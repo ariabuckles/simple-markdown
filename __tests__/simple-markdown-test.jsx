@@ -1,6 +1,7 @@
 var assert = require("assert");
 var nodeUtil = require("util");
 var _ = require("underscore");
+var React = require("react");
 
 var SimpleMarkdown = require("../simple-markdown.jsx");
 var {
