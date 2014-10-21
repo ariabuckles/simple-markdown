@@ -1,0 +1,31 @@
+{
+  "name": "simple-markdown",
+  "version": "0.0.0",
+  "description": "Javascript markdown parsing, made simple",
+  "main": "simple-markdown.jsx",
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Khan/simple-markdown.git"
+  },
+  "keywords": [
+    "math"
+  ],
+  "author": "Khan Academy",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Khan/simple-markdown/issues"
+  },
+  "homepage": "https://github.com/Khan/simple-markdown",
+  "devDependencies": {
+    "mocha": "^1.21.5",
+    "node-jsx": "git://github.com/spicyj/node-jsx#0.12.0-rc1",
+    "react-tools": "0.12.0-rc1"
+  },
+  "dependencies": {
+    "react": "0.12.0-rc1",
+    "underscore": "^1.4.4"
+  }
+}
