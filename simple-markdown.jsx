@@ -43,7 +43,7 @@
  */
 
 // Load dependencies from the global namespace or require them
-var find = (globalName) => {
+var find = function(globalName) {
     if (typeof window !== "undefined" && window[globalName]) {
         return window[globalName];
     } else if (typeof global !== "undefined" && global[globalName]) {
@@ -72,8 +72,8 @@ var React = find("React") || require("react");
  *     some nesting is. For an example use-case, see passage-ref
  *     parsing in src/widgets/passage/passage-markdown.jsx
  */
-var parserFor = (rules, ruleList) => {
-    var nestedParse = (source, state) => {
+var parserFor = function(rules, ruleList) {
+    var nestedParse = function(source, state) {
         var result = [];
         state = state || {};
         while (source) {
@@ -112,8 +112,8 @@ var parserFor = (rules, ruleList) => {
     return nestedParse;
 };
 
-var outputFor = (outputFunc) => {
-    var nestedOutput = (ast) => {
+var outputFor = function(outputFunc) {
+    var nestedOutput = function(ast) {
         if (_.isArray(ast)) {
             return _.map(ast, nestedOutput);
         } else {
@@ -123,7 +123,7 @@ var outputFor = (outputFunc) => {
     return nestedOutput;
 };
 
-var sanitizeUrl = (url) => {
+var sanitizeUrl = function(url) {
     if (url == null) {
         return null;
     }
@@ -143,12 +143,12 @@ var sanitizeUrl = (url) => {
     return url;
 };
 
-var parseCapture = (capture, parse, state) => {
+var parseCapture = function(capture, parse, state) {
     return {
         content: parse(capture[1], state)
     };
 };
-var ignoreCapture = () => ({});
+var ignoreCapture = function() { return {}; };
 
 // recognize a `*` `-`, `+`, `1.`, `2.`... list bullet
 var LIST_BULLET = "(?:[*+-]|\\d+\\.)";
@@ -177,7 +177,7 @@ var LIST_ITEM_END_R = / *\n+$/;
 // we leave the newlines at the end
 var LIST_IS_MULTI_PARAGRAPH_R = /\n{2,}./;
 
-var TABLES = (() => {
+var TABLES = (function() {
     // predefine regexes so we don't have to create them inside functions
     // sure, regex literals should be fast, even inside functions, but they
     // aren't in all browsers.
@@ -193,7 +193,7 @@ var TABLES = (() => {
     var TABLE_CENTER_ALIGN = /^ *:-+: *$/;
     var TABLE_LEFT_ALIGN = /^ *:-+ *$/;
 
-    var parseTableAlignCapture = (alignCapture) => {
+    var parseTableAlignCapture = function(alignCapture) {
         if (TABLE_RIGHT_ALIGN.test(alignCapture)) {
             return "right";
         } else if (TABLE_CENTER_ALIGN.test(alignCapture)) {
@@ -205,14 +205,16 @@ var TABLES = (() => {
         }
     };
 
-    var parseTableHeader = (capture, parse, state) => {
+    var parseTableHeader = function(capture, parse, state) {
         var headerText = capture[1]
             .replace(TABLE_HEADER_TRIM, "")
             .split(TABLE_ROW_SPLIT);
-        return _.map(headerText, (text) => parse(text, state));
+        return _.map(headerText, function(text) {
+            return parse(text, state);
+        });
     };
 
-    var parseTableAlign = (capture, parse, state) => {
+    var parseTableAlign = function(capture, parse, state) {
         var alignText = capture[2]
             .replace(TABLE_ALIGN_TRIM, "")
             .split(TABLE_ROW_SPLIT);
@@ -220,31 +222,35 @@ var TABLES = (() => {
         return _.map(alignText, parseTableAlignCapture);
     };
 
-    var parseTableCells = (capture, parse, state) => {
+    var parseTableCells = function(capture, parse, state) {
         var rowsText = capture[3]
             .replace(TABLE_CELLS_TRIM, "")
             .split("\n");
 
-        return _.map(rowsText, (rowText) => {
+        return _.map(rowsText, function(rowText) {
             var cellText = rowText
                 .replace(PLAIN_TABLE_ROW_TRIM, "")
                 .split(TABLE_ROW_SPLIT);
-            return _.map(cellText, (text) => parse(text, state));
+            return _.map(cellText, function(text) {
+                return parse(text, state);
+            });
         });
     };
 
-    var parseNpTableCells = (capture, parse, state) => {
+    var parseNpTableCells = function(capture, parse, state) {
         var rowsText = capture[3]
             .replace(NPTABLE_CELLS_TRIM, "")
             .split("\n");
 
-        return _.map(rowsText, (rowText) => {
+        return _.map(rowsText, function(rowText) {
             var cellText = rowText.split(TABLE_ROW_SPLIT);
-            return _.map(cellText, (text) => parse(text, state));
+            return _.map(cellText, function(text) {
+                return parse(text, state);
+            });
         });
     };
 
-    var parseTable = (capture, parse, state) => {
+    var parseTable = function(capture, parse, state) {
         var header = parseTableHeader(capture, parse, state);
         var align = parseTableAlign(capture, parse, state);
         var cells = parseTableCells(capture, parse, state);
@@ -257,7 +263,7 @@ var TABLES = (() => {
         };
     };
 
-    var parseNpTable = (capture, parse, state) => {
+    var parseNpTable = function(capture, parse, state) {
         var header = parseTableHeader(capture, parse, state);
         var align = parseTableAlign(capture, parse, state);
         var cells = parseNpTableCells(capture, parse, state);
@@ -281,7 +287,7 @@ var LINK_HREF_AND_TITLE =
         "\\s*<?([^\\s]*?)>?(?:\\s+['\"]([\\s\\S]*?)['\"])?\\s*";
 var AUTOLINK_MAILTO_CHECK_R = /mailto:/i;
 
-var parseRef = (capture, state, refNode) => {
+var parseRef = function(capture, state, refNode) {
     var ref = (capture[2] || capture[1])
         .replace(/\s+/g, ' ')
         .toLowerCase();
@@ -311,13 +317,13 @@ var parseRef = (capture, state, refNode) => {
 var defaultRules = {
     heading: {
         regex: /^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return {
                 level: capture[1].length,
                 content: parse(capture[2], state)
             };
         },
-        output: (node, output) => {
+        output: function(node, output) {
             return React.DOM["h" + node.level](
                 null,
                 output(node.content)
@@ -330,7 +336,7 @@ var defaultRules = {
     },
     lheading: {
         regex: /^([^\n]+)\n *(=|-){3,} *(?:\n *)+\n/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return {
                 type: "heading",
                 level: capture[2] === '=' ? 1 : 2,
@@ -340,12 +346,12 @@ var defaultRules = {
     },
     hr: {
         regex: /^( *[-*_]){3,} *(?:\n *)+\n/,
-        parse: () => ({}),
-        output: () => <hr />
+        parse: ignoreCapture,
+        output: function() { return <hr />; }
     },
     codeBlock: {
         regex: /^(?:    [^\n]+\n*)+(?:\n *)+\n/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             var content = capture[0]
                 .replace(/^    /gm, '')
                 .replace(/\n+$/, '');
@@ -354,7 +360,7 @@ var defaultRules = {
                 content: content
             };
         },
-        output: (node, output) => {
+        output: function(node, output) {
             var className = node.lang ?
                 "markdown-code-" + node.lang :
                 undefined;
@@ -367,7 +373,7 @@ var defaultRules = {
     },
     fence: {
         regex: /^ *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\1 *(?:\n *)+\n/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return {
                 type: "codeBlock",
                 lang: capture[2] || undefined,
@@ -377,13 +383,13 @@ var defaultRules = {
     },
     blockQuote: {
         regex: /^( *>[^\n]+(\n[^\n]+)*\n*)+\n{2,}/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             content = capture[0].replace(/^ *> ?/gm, '');
             return {
                 content: parse(content, state)
             };
         },
-        output: (node, output) => {
+        output: function(node, output) {
             return <blockquote>{output(node.content)}</blockquote>;
         }
     },
@@ -396,7 +402,7 @@ var defaultRules = {
             // lists, where our content might end before we receive two `\n`s
             "|\\s*\n$)"
         ),
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             var bullet = capture[2];
             var ordered = bullet.length > 1;
             var items = capture[0]
@@ -404,7 +410,7 @@ var defaultRules = {
                 .match(LIST_ITEM_R);
 
             var lastItemWasAParagraph = false;
-            var itemContent = _.map(items, (item, i) => {
+            var itemContent = _.map(items, function(item, i) {
                 // We need to see how far indented this item is:
                 var space = LIST_ITEM_PREFIX_R.exec(item)[0].length;
                 // And then we construct a regex to "unindent" the subsequent
@@ -451,10 +457,10 @@ var defaultRules = {
                 items: itemContent
             };
         },
-        output: (node, output) => {
+        output: function(node, output) {
             var ListWrapper = node.ordered ? "ol" : "ul";
             return <ListWrapper>
-                {_.map(node.items, (item) => {
+                {_.map(node.items, function(item) {
                     return <li>{output(item)}</li>;
                 })}
             </ListWrapper>;
@@ -469,7 +475,7 @@ var defaultRules = {
         // TODO(aria): fix this
         // TODO(aria): fix 80 char line width
         regex: /^ *\[([^\]]+)\]: *<?([^\s>]*)>?(?: +["(]([^\n]+)[")])? *\n(?=\n|\[[^\]]+\]: )\n?/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             var def = capture[1]
                 .replace(/\s+/g, ' ')
                 .toLowerCase();
@@ -488,7 +494,7 @@ var defaultRules = {
             // with our newly found information now.
             // Sorry :(.
             if (state._refs && state._refs[def]) {
-                _.each(state._refs[def], (link) => {
+                _.each(state._refs[def], function(link) {
                     _.extend(link, defAttrs);
                 });
             }
@@ -507,27 +513,27 @@ var defaultRules = {
                 def: def
             }, defAttrs);
         },
-        output: () => null
+        output: function() { return null; }
     },
     table: {
         regex: /^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/,
         parse: TABLES.parseTable,
-        output: (node, output) => {
-            var getStyle = (colIndex) => {
+        output: function(node, output) {
+            var getStyle = function(colIndex) {
                 return node.align[colIndex] == null ? {} : {
                     textAlign: node.align[colIndex]
                 };
             };
 
-            var headers = _.map(node.header, (content, i) => {
+            var headers = _.map(node.header, function(content, i) {
                 return <th style={getStyle(i)}>
                     {output(content)}
                 </th>;
             });
 
-            var rows = _.map(node.cells, (row, r) => {
+            var rows = _.map(node.cells, function(row, r) {
                 return <tr>
-                    {_.map(row, (content, c) => {
+                    {_.map(row, function(content, c) {
                         return <td style={getStyle(c)}>
                             {output(content)}
                         </td>;
@@ -550,12 +556,12 @@ var defaultRules = {
     newline: {
         regex: /^(?:\n *)*\n/,
         parse: ignoreCapture,
-        output: (node, output) => "\n"
+        output: function(node, output) { return "\n"; }
     },
     paragraph: {
         regex: /^((?:[^\n]|\n(?! *\n))+)(?:\n *)+\n/,
         parse: parseCapture,
-        output: (node, output) => {
+        output: function(node, output) {
             return <div className="paragraph">{output(node.content)}</div>;
         }
     },
@@ -565,7 +571,7 @@ var defaultRules = {
         // escaping anything else provides a very flexible escape mechanism,
         // regardless of how this grammar is extended.
         regex: /^\\([^0-9A-Za-z\s])/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return {
                 type: "text",
                 content: capture[1]
@@ -574,7 +580,7 @@ var defaultRules = {
     },
     autolink: {
         regex: /^<([^ >]+:\/[^ >]+)>/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return {
                 type: "link",
                 content: [{
@@ -587,7 +593,7 @@ var defaultRules = {
     },
     mailto: {
         regex: /^<([^ >]+@[^ >]+)>/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             var address = capture[1];
             var target = capture[1];
 
@@ -608,7 +614,7 @@ var defaultRules = {
     },
     url: {
         regex: /^(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return {
                 type: "link",
                 content: [{
@@ -624,7 +630,7 @@ var defaultRules = {
         regex: new RegExp(
             "^\\[(" + LINK_INSIDE + ")\\]\\(" + LINK_HREF_AND_TITLE + "\\)"
         ),
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             var link ={
                 content: parse(capture[1]),
                 target: capture[2],
@@ -632,7 +638,7 @@ var defaultRules = {
             };
             return link;
         },
-        output: (node, output) => {
+        output: function(node, output) {
             return React.DOM.a({
                 href: sanitizeUrl(node.target),
                 title: node.title
@@ -643,7 +649,7 @@ var defaultRules = {
         regex: new RegExp(
             "^!\\[(" + LINK_INSIDE + ")\\]\\(" + LINK_HREF_AND_TITLE + "\\)"
         ),
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             var image = {
                 alt: capture[1],
                 target: capture[2],
@@ -651,7 +657,7 @@ var defaultRules = {
             };
             return image;
         },
-        output: (node, output) => {
+        output: function(node, output) {
             return <img
                 src={sanitizeUrl(node.target)}
                 alt={node.alt}
@@ -665,7 +671,7 @@ var defaultRules = {
             // The [ref] target of the link
             "\\s*\\[([^\\]]*)\\]"
         ),
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return parseRef(capture, state, {
                 type: "link",
                 content: parse(capture[1], state)
@@ -679,7 +685,7 @@ var defaultRules = {
             // The [ref] target of the link
             "\\s*\\[([^\\]]*)\\]"
         ),
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return parseRef(capture, state, {
                 type: "image",
                 alt: capture[1]
@@ -689,50 +695,50 @@ var defaultRules = {
     strong: {
         regex: /^\*\*([\s\S]+?)\*\*(?!\*)/,
         parse: parseCapture,
-        output: (node, output) => {
+        output: function(node, output) {
             return <strong>{output(node.content)}</strong>;
         }
     },
     u: {
         regex: /^__([\s\S]+?)__(?!_)/,
         parse: parseCapture,
-        output: (node, output) => {
+        output: function(node, output) {
             return <u>{output(node.content)}</u>;
         }
     },
     em: {
         regex: /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return {
                 content: parse(capture[2] || capture[1], state)
             };
         },
-        output: (node, output) => {
+        output: function(node, output) {
             return <em>{output(node.content)}</em>;
         }
     },
     del: {
         regex: /^~~(?=\S)([\s\S]*?\S)~~/,
         parse: parseCapture,
-        output: (node, output) => {
+        output: function(node, output) {
             return <del>{output(node.content)}</del>;
         }
     },
     inlineCode: {
         regex: /^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return {
                 content: capture[2]
             };
         },
-        output: (node, output) => {
+        output: function(node, output) {
             return <code>{node.content}</code>;
         }
     },
     br: {
         regex: /^ {2,}\n/,
-        parse: () => ({}),
-        output: () => <br />
+        parse: ignoreCapture,
+        output: function() { return <br />; }
     },
     text: {
         // Here we look for anything followed by non-symbols,
@@ -751,12 +757,12 @@ var defaultRules = {
         // can define lists as block and not consider them for
         // inline text.
         regex: /^[\s\S]+?(?=[^0-9A-Za-z\s\u00ff-\uffff\-]|-\S|\n\n| {2,}\n|\w+:|$)/,
-        parse: (capture, parse, state) => {
+        parse: function(capture, parse, state) {
             return {
                 content: capture[0]
             };
         },
-        output: (node, output) => {
+        output: function(node, output) {
             return node.content;
         }
     }
@@ -764,8 +770,8 @@ var defaultRules = {
 
 var defaultPriorities = Object.keys(defaultRules);
 
-var ruleOutput = (rules) => {
-    var nestedRuleOutput = (ast, outputFunc) => {
+var ruleOutput = function(rules) {
+    var nestedRuleOutput = function(ast, outputFunc) {
         return rules[ast.type].output(ast, outputFunc);
     };
     return nestedRuleOutput;
