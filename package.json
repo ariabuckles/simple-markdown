@@ -2,7 +2,7 @@
   "name": "simple-markdown",
   "version": "0.0.0",
   "description": "Javascript markdown parsing, made simple",
-  "main": "simple-markdown.jsx",
+  "main": "simple-markdown.js",
   "scripts": {
     "test": "make test"
   },

@@ -347,7 +347,7 @@ var defaultRules = {
     hr: {
         regex: /^( *[-*_]){3,} *(?:\n *)+\n/,
         parse: ignoreCapture,
-        output: function() { return <hr />; }
+        output: function() { return React.DOM.hr(null); }
     },
     codeBlock: {
         regex: /^(?:    [^\n]+\n*)+(?:\n *)+\n/,
@@ -364,11 +364,11 @@ var defaultRules = {
             var className = node.lang ?
                 "markdown-code-" + node.lang :
                 undefined;
-            return <pre>
-                <code className={className}>
-                    {node.content}
-                </code>
-            </pre>;
+            return React.DOM.pre(null,
+                React.DOM.code({className: className},
+                    node.content
+                )
+            );
         }
     },
     fence: {
@@ -390,7 +390,7 @@ var defaultRules = {
             };
         },
         output: function(node, output) {
-            return <blockquote>{output(node.content)}</blockquote>;
+            return React.DOM.blockquote(null, output(node.content));
         }
     },
     list: {
@@ -433,7 +433,7 @@ var defaultRules = {
                 //  * as is this
                 var isLastItem = (i === items.length - 1);
                 var containsBlocks = content.indexOf("\n\n") !== -1;
-                
+
                 // Any element in a list is a block if it contains multiple
                 // newlines. The last element in the list can also be a block
                 // if the previous item in the list was a block (this is
@@ -459,11 +459,11 @@ var defaultRules = {
         },
         output: function(node, output) {
             var ListWrapper = node.ordered ? "ol" : "ul";
-            return <ListWrapper>
-                {_.map(node.items, function(item) {
-                    return <li>{output(item)}</li>;
-                })}
-            </ListWrapper>;
+            return React.DOM[ListWrapper](null,
+                _.map(node.items, function(item) {
+                    return React.DOM.li(null, output(item));
+                })
+            );
         }
     },
     def: {
@@ -526,31 +526,31 @@ var defaultRules = {
             };
 
             var headers = _.map(node.header, function(content, i) {
-                return <th style={getStyle(i)}>
-                    {output(content)}
-                </th>;
+                return React.DOM.th({style: getStyle(i)},
+                    output(content)
+                );
             });
 
             var rows = _.map(node.cells, function(row, r) {
-                return <tr>
-                    {_.map(row, function(content, c) {
-                        return <td style={getStyle(c)}>
-                            {output(content)}
-                        </td>;
-                    })}
-                </tr>;
+                return React.DOM.tr(null,
+                    _.map(row, function(content, c) {
+                        return React.DOM.td({style: getStyle(c)},
+                            output(content)
+                        );
+                    })
+                );
             });
-            
-            return <table>
-                <thead>
-                    <tr>
-                        {headers}
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows}
-                </tbody>
-            </table>;
+
+            return React.DOM.table(null,
+                React.DOM.thead(null,
+                    React.DOM.tr(null,
+                        headers
+                    )
+                ),
+                React.DOM.tbody(null,
+                    rows
+                )
+            );
         }
     },
     newline: {
@@ -562,7 +562,7 @@ var defaultRules = {
         regex: /^((?:[^\n]|\n(?! *\n))+)(?:\n *)+\n/,
         parse: parseCapture,
         output: function(node, output) {
-            return <div className="paragraph">{output(node.content)}</div>;
+            return React.DOM.div({className: "paragraph"}, output(node.content));
         }
     },
     escape: {
@@ -658,10 +658,10 @@ var defaultRules = {
             return image;
         },
         output: function(node, output) {
-            return <img
-                src={sanitizeUrl(node.target)}
-                alt={node.alt}
-                title={node.title}/>;
+            return React.DOM.img({
+                src: sanitizeUrl(node.target),
+                alt: node.alt,
+                title: node.title});
         }
     },
     reflink: {
@@ -696,14 +696,14 @@ var defaultRules = {
         regex: /^\*\*([\s\S]+?)\*\*(?!\*)/,
         parse: parseCapture,
         output: function(node, output) {
-            return <strong>{output(node.content)}</strong>;
+            return React.DOM.strong(null, output(node.content));
         }
     },
     u: {
         regex: /^__([\s\S]+?)__(?!_)/,
         parse: parseCapture,
         output: function(node, output) {
-            return <u>{output(node.content)}</u>;
+            return React.DOM.u(null, output(node.content));
         }
     },
     em: {
@@ -714,14 +714,14 @@ var defaultRules = {
             };
         },
         output: function(node, output) {
-            return <em>{output(node.content)}</em>;
+            return React.DOM.em(null, output(node.content));
         }
     },
     del: {
         regex: /^~~(?=\S)([\s\S]*?\S)~~/,
         parse: parseCapture,
         output: function(node, output) {
-            return <del>{output(node.content)}</del>;
+            return React.DOM.del(null, output(node.content));
         }
     },
     inlineCode: {
@@ -732,13 +732,13 @@ var defaultRules = {
             };
         },
         output: function(node, output) {
-            return <code>{node.content}</code>;
+            return React.DOM.code(null, node.content);
         }
     },
     br: {
         regex: /^ {2,}\n/,
         parse: ignoreCapture,
-        output: function() { return <br />; }
+        output: function() { return React.DOM.br(null); }
     },
     text: {
         // Here we look for anything followed by non-symbols,
@@ -798,4 +798,3 @@ if (typeof module !== "undefined" && module.exports) {
 } else {
     window.SimpleMarkdown = SimpleMarkdown;
 }
-

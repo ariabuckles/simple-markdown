@@ -3,7 +3,7 @@ var nodeUtil = require("util");
 var _ = require("underscore");
 var React = require("react");
 
-var SimpleMarkdown = require("../simple-markdown.jsx");
+var SimpleMarkdown = require("../simple-markdown.js");
 var defaultParse = SimpleMarkdown.defaultParse;
 var defaultOutput = SimpleMarkdown.defaultOutput;
 
@@ -35,7 +35,7 @@ var validateParse = function(parsed, expected) {
 var htmlThroughReact = function(parsed) {
     var output = defaultOutput(parsed);
     var rawHtml = React.renderToStaticMarkup(
-        <div>{output}</div>
+        React.DOM.div(null, output)
     );
     var innerHtml = rawHtml
         .replace(/^<div>/, '')
