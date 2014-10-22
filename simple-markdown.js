@@ -41,6 +41,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+(function() {
 
 // Load dependencies from the global namespace or require them
 var find = function(globalName) {
@@ -798,3 +799,5 @@ if (typeof module !== "undefined" && module.exports) {
 } else {
     window.SimpleMarkdown = SimpleMarkdown;
 }
+
+})();
