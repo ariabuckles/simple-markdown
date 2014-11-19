@@ -1530,6 +1530,7 @@ describe("simple markdown", function() {
             );
             validateParse(parsed, [{
                 ordered: false,
+                start: undefined,
                 items: [
                     [{
                         content: "hi\n",
@@ -1557,6 +1558,7 @@ describe("simple markdown", function() {
             validateParse(parsed, [{
                 type: "list",
                 ordered: true,
+                start: 1,
                 items: [
                     [{
                         type: "text",
@@ -1582,6 +1584,32 @@ describe("simple markdown", function() {
             );
             validateParse(parsed, [{
                 type: "list",
+                start: 1,
+                ordered: true,
+                items: [
+                    [{
+                        type: "text",
+                        content: "first\n",
+                    }],
+                    [{
+                        type: "text",
+                        content: "second\n",
+                    }],
+                    [{
+                        type: "text",
+                        content: "third\n",
+                    }],
+                ]
+            }]);
+
+            var parsed2 = defaultParse(
+                "63. first\n" +
+                "13. second\n" +
+                "9. third\n\n"
+            );
+            validateParse(parsed2, [{
+                type: "list",
+                start: 63,
                 ordered: true,
                 items: [
                     [{
@@ -1610,6 +1638,7 @@ describe("simple markdown", function() {
             );
             validateParse(parsed, [{
                 ordered: true,
+                start: 1,
                 items: [
                     [{
                         content: "first\n",
@@ -1622,6 +1651,7 @@ describe("simple markdown", function() {
                         },
                         {
                             ordered: false,
+                            start: undefined,
                             items: [
                                 [{
                                     content: "inner\n",
@@ -1653,6 +1683,7 @@ describe("simple markdown", function() {
             validateParse(parsed, [{
                 type: "list",
                 ordered: false,
+                start: undefined,
                 items: [
                     [{
                         type: "paragraph",
@@ -1690,6 +1721,7 @@ describe("simple markdown", function() {
             validateParse(parsed, [{
                 type: "list",
                 ordered: false,
+                start: undefined,
                 items: [
                     [{
                         type: "text",
@@ -1720,6 +1752,7 @@ describe("simple markdown", function() {
             validateParse(parsed2, [{
                 type: "list",
                 ordered: false,
+                start: undefined,
                 items: [
                     [{
                         type: "paragraph",
@@ -1750,6 +1783,7 @@ describe("simple markdown", function() {
             validateParse(parsed, [{
                 type: "list",
                 ordered: false,
+                start: undefined,
                 items: [
                     [
                         {
@@ -1795,6 +1829,7 @@ describe("simple markdown", function() {
             validateParse(parsed, [{
                 type: "list",
                 ordered: false,
+                start: undefined,
                 items: [
                     [{
                         type: "paragraph",
@@ -1829,6 +1864,7 @@ describe("simple markdown", function() {
             validateParse(parsed, [{
                 type: "list",
                 ordered: false,
+                start: undefined,
                 items: [[
                     {
                         type: "paragraph",
@@ -1854,6 +1890,7 @@ describe("simple markdown", function() {
             validateParse(parsed2, [{
                 type: "list",
                 ordered: false,
+                start: undefined,
                 items: [
                     [
                         {
@@ -1906,6 +1943,7 @@ describe("simple markdown", function() {
 
                         type: "list",
                         ordered: false,
+                        start: undefined,
                         items: [
                             [{
                                 content: "asterisk 1\n",
@@ -1958,6 +1996,7 @@ describe("simple markdown", function() {
             validateParse(parsed, [{
                 type: "list",
                 ordered: false,
+                start: undefined,
                 items: [[
                     { content: "hi - there\n", type: "text" },
                 ]]
@@ -1971,6 +2010,7 @@ describe("simple markdown", function() {
 //            validateParse(parsed2, [{
 //                type: "list",
 //                ordered: false,
+//                start: undefined,
 //                items: [[
 //                    { content: "hi * there\n", type: "text" },
 //                ]]
@@ -1980,6 +2020,7 @@ describe("simple markdown", function() {
             validateParse(parsed3, [{
                 type: "list",
                 ordered: true,
+                start: 1,
                 items: [[
                     { content: "hi 1", type: "text" },
                     { content: ". there\n", type: "text" },
@@ -1992,6 +2033,7 @@ describe("simple markdown", function() {
             validateParse(parsed, [{
                 type: "list",
                 ordered: false,
+                start: undefined,
                 items: [
                     [{type: "text", content: "hi\n"}],
                     [{type: "text", content: "there\n"}],

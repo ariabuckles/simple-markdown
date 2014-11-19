@@ -406,6 +406,7 @@ var defaultRules = {
         parse: function(capture, parse, state) {
             var bullet = capture[2];
             var ordered = bullet.length > 1;
+            var start = ordered ? +bullet : undefined;
             var items = capture[0]
                 .replace(LIST_BLOCK_END_R, "\n")
                 .match(LIST_ITEM_R);
@@ -455,13 +456,15 @@ var defaultRules = {
 
             return {
                 ordered: ordered,
+                start: start,
                 items: itemContent
             };
         },
         output: function(node, output) {
             var ListWrapper = node.ordered ? "ol" : "ul";
-            return React.DOM[ListWrapper](null,
-                _.map(node.items, function(item) {
+            return React.DOM[ListWrapper]({
+                start: node.start
+            }, _.map(node.items, function(item) {
                     return React.DOM.li(null, output(item));
                 })
             );
