@@ -387,7 +387,7 @@ var defaultRules = {
     blockQuote: {
         regex: /^( *>[^\n]+(\n[^\n]+)*\n*)+\n{2,}/,
         parse: function(capture, parse, state) {
-            content = capture[0].replace(/^ *> ?/gm, '');
+            var content = capture[0].replace(/^ *> ?/gm, '');
             return {
                 content: parse(content, state)
             };
@@ -638,7 +638,7 @@ var defaultRules = {
         ),
         parse: function(capture, parse, state) {
             var link ={
-                content: parse(capture[1]),
+                content: parse(capture[1], state),
                 target: capture[2],
                 title: capture[3]
             };
