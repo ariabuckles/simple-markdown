@@ -1,3 +1,5 @@
+/* @flow */
+
 /**
  * Simple-Markdown
  * ===============

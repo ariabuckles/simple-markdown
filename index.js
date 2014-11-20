@@ -1,1 +1,2 @@
-module.exports = require("./simple-markdown.jsx");
+/* @flow */
+module.exports = require("./simple-markdown.js");
