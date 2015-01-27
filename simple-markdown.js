@@ -84,7 +84,12 @@ var parserFor = function(rules, ruleList) {
             while (i < ruleList.length) {
                 var ruleType = ruleList[i];
                 var rule = rules[ruleType];
-                var capture = rule.regex.exec(source);
+                var capture;
+                if (rule.match) {
+                    capture = rule.match(source, state);
+                } else {
+                    capture = rule.regex.exec(source);
+                }
                 if (capture) {
                     source = source.substring(capture[0].length);
                     var parsed = rule.parse(capture, nestedParse, state);
@@ -115,6 +120,41 @@ var parserFor = function(rules, ruleList) {
         return result;
     };
     return nestedParse;
+};
+
+// Creates a match function for an inline scoped element from a regex
+var inlineRegex = function(regex) {
+    var match = function(source, state) {
+        if (state.inline) {
+            return regex.exec(source);
+        } else {
+            return null;
+        }
+    };
+    match.regex = regex;
+    return match;
+};
+
+// Creates a match function for a block scoped element from a regex
+var blockRegex = function(regex) {
+    var match = function(source, state) {
+        if (state.inline) {
+            return null;
+        } else {
+            return regex.exec(source);
+        }
+    };
+    match.regex = regex;
+    return match;
+};
+
+// Creates a match function from a regex, ignoring block/inline scope
+var anyScopeRegex = function(regex) {
+    var match = function(source, state) {
+        return regex.exec(source);
+    };
+    match.regex = regex;
+    return match;
 };
 
 var outputFor = function(outputFunc) {
@@ -148,9 +188,27 @@ var sanitizeUrl = function(url) {
     return url;
 };
 
-var parseCapture = function(capture, parse, state) {
+// Parse some content with the parser `parse`, with state.inline
+// set to true. Useful for block elements; not generally necessary
+// to be used by inline elements (where state.inline is already true.
+var parseInline = function(parse, content, state) {
+    var isCurrentlyInline = state.inline || false;
+    state.inline = true;
+    var result = parse(content, state);
+    state.inline = isCurrentlyInline;
+    return result;
+};
+var parseBlock = function(parse, content, state) {
+    var isCurrentlyInline = state.inline || false;
+    state.inline = false;
+    var result = parse(content + "\n\n", state);
+    state.inline = isCurrentlyInline;
+    return result;
+};
+
+var parseCaptureInline = function(capture, parse, state) {
     return {
-        content: parse(capture[1], state)
+        content: parseInline(parse, capture[1], state)
     };
 };
 var ignoreCapture = function() { return {}; };
@@ -171,16 +229,25 @@ var LIST_ITEM_PREFIX_R = new RegExp("^" + LIST_ITEM_PREFIX);
 var LIST_ITEM_R = new RegExp(
     LIST_ITEM_PREFIX +
     "[^\\n]*(?:\\n" +
-    "(?!\\1" + LIST_BULLET + " )[^\\n]*)*\n",
+    "(?!\\1" + LIST_BULLET + " )[^\\n]*)*(\n|$)",
     "gm"
 );
+var BLOCK_END_R = /\n{2,}$/;
 // recognize the end of a paragraph block inside a list item:
 // two or more newlines at end end of the item
-var LIST_BLOCK_END_R = /\n{2,}$/;
+var LIST_BLOCK_END_R = BLOCK_END_R;
 var LIST_ITEM_END_R = / *\n+$/;
 // check whether a list item has paragraphs: if it does,
 // we leave the newlines at the end
 var LIST_IS_MULTI_PARAGRAPH_R = /\n{2,}./;
+var LIST_R = new RegExp(
+    "^( *)(" + LIST_BULLET + ") " +
+    "[\\s\\S]+?(?:\n{2,}(?! )" +
+    "(?!\\1" + LIST_BULLET + " )\\n*" +
+    // the \\s*$ here is so that we can parse the inside of nested
+    // lists, where our content might end before we receive two `\n`s
+    "|\\s*\n*$)"
+);
 
 var TABLES = (function() {
     // predefine regexes so we don't have to create them inside functions
@@ -256,9 +323,11 @@ var TABLES = (function() {
     };
 
     var parseTable = function(capture, parse, state) {
+        state.inline = true;
         var header = parseTableHeader(capture, parse, state);
         var align = parseTableAlign(capture, parse, state);
         var cells = parseTableCells(capture, parse, state);
+        state.inline = false;
 
         return {
             type: "table",
@@ -269,9 +338,11 @@ var TABLES = (function() {
     };
 
     var parseNpTable = function(capture, parse, state) {
+        state.inline = true;
         var header = parseTableHeader(capture, parse, state);
         var align = parseTableAlign(capture, parse, state);
         var cells = parseNpTableCells(capture, parse, state);
+        state.inline = false;
 
         return {
             type: "table",
@@ -283,7 +354,8 @@ var TABLES = (function() {
 
     return {
         parseTable: parseTable,
-        parseNpTable: parseNpTable
+        parseNpTable: parseNpTable,
+        NPTABLE_REGEX: /^ *(\S.*\|.*)\n *([-:]+ *\|[-| :]*)\n((?:.*\|.*(?:\n|$))*)\n*/
     };
 })();
 
@@ -321,11 +393,11 @@ var parseRef = function(capture, state, refNode) {
 
 var defaultRules = {
     heading: {
-        regex: /^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/,
+        match: blockRegex(/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
                 level: capture[1].length,
-                content: parse(capture[2], state)
+                content: parseInline(parse, capture[2], state)
             };
         },
         output: function(node, output) {
@@ -336,26 +408,28 @@ var defaultRules = {
         }
     },
     nptable: {
-        regex: /^ *(\S.*\|.*)\n *([-:]+ *\|[-| :]*)\n((?:.*\|.*(?:\n|$))*)\n*/,
+        match: blockRegex(TABLES.NPTABLE_REGEX),
+        // For perseus-markdown temporary backcompat:
+        regex: TABLES.NPTABLE_REGEX,
         parse: TABLES.parseNpTable
     },
     lheading: {
-        regex: /^([^\n]+)\n *(=|-){3,} *(?:\n *)+\n/,
+        match: blockRegex(/^([^\n]+)\n *(=|-){3,} *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
                 type: "heading",
                 level: capture[2] === '=' ? 1 : 2,
-                content: parse(capture[1], state)
+                content: parseInline(parse, capture[1], state)
             };
         }
     },
     hr: {
-        regex: /^( *[-*_]){3,} *(?:\n *)+\n/,
+        match: blockRegex(/^( *[-*_]){3,} *(?:\n *)+\n/),
         parse: ignoreCapture,
         output: function() { return React.DOM.hr(null); }
     },
     codeBlock: {
-        regex: /^(?:    [^\n]+\n*)+(?:\n *)+\n/,
+        match: blockRegex(/^(?:    [^\n]+\n*)+(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             var content = capture[0]
                 .replace(/^    /gm, '')
@@ -377,7 +451,7 @@ var defaultRules = {
         }
     },
     fence: {
-        regex: /^ *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\1 *(?:\n *)+\n/,
+        match: blockRegex(/^ *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\1 *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
                 type: "codeBlock",
@@ -387,7 +461,7 @@ var defaultRules = {
         }
     },
     blockQuote: {
-        regex: /^( *>[^\n]+(\n[^\n]+)*\n*)+\n{2,}/,
+        match: blockRegex(/^( *>[^\n]+(\n[^\n]+)*\n*)+\n{2,}/),
         parse: function(capture, parse, state) {
             var content = capture[0].replace(/^ *> ?/gm, '');
             return {
@@ -399,14 +473,13 @@ var defaultRules = {
         }
     },
     list: {
-        regex: new RegExp(
-            "^( *)(" + LIST_BULLET + ") " +
-            "[\\s\\S]+?(?:\n{2,}(?! )" +
-            "(?!\\1" + LIST_BULLET + " )\\n*" +
-            // the \\s*$ here is so that we can parse the inside of nested
-            // lists, where our content might end before we receive two `\n`s
-            "|\\s*\n$)"
-        ),
+        match: function(source, state) {
+            if (!state.inline || state._list) {
+                return LIST_R.exec(source);
+            } else {
+                return null;
+            }
+        },
         parse: function(capture, parse, state) {
             var bullet = capture[2];
             var ordered = bullet.length > 1;
@@ -450,12 +523,18 @@ var defaultRules = {
                         (isLastItem && lastItemWasAParagraph);
                 lastItemWasAParagraph = thisItemIsAParagraph;
 
-                var adjustedContent = content.replace(LIST_ITEM_END_R, "\n");
+                var adjustedContent = content.replace(LIST_ITEM_END_R, "");
                 if (thisItemIsAParagraph) {
-                    adjustedContent += "\n";
+                    return parse(adjustedContent + "\n\n", _.defaults({
+                        inline: false,
+                        _list: true
+                    }, state));
+                } else {
+                    return parse(adjustedContent, _.defaults({
+                        inline: true,
+                        _list: true
+                    }, state));
                 }
-
-                return parse(adjustedContent, state);
             });
 
             return {
@@ -524,7 +603,7 @@ var defaultRules = {
         output: function() { return null; }
     },
     table: {
-        regex: /^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/,
+        match: blockRegex(/^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/),
         parse: TABLES.parseTable,
         output: function(node, output) {
             var getStyle = function(colIndex) {
@@ -562,13 +641,13 @@ var defaultRules = {
         }
     },
     newline: {
-        regex: /^(?:\n *)*\n/,
+        match: blockRegex(/^(?:\n *)*\n/),
         parse: ignoreCapture,
         output: function(node, output) { return "\n"; }
     },
     paragraph: {
-        regex: /^((?:[^\n]|\n(?! *\n))+)(?:\n *)+\n/,
-        parse: parseCapture,
+        match: blockRegex(/^((?:[^\n]|\n(?! *\n))+)(?:\n *)+\n/),
+        parse: parseCaptureInline,
         output: function(node, output) {
             return React.DOM.div({className: "paragraph"}, output(node.content));
         }
@@ -578,7 +657,7 @@ var defaultRules = {
         // backslashes used in plain text still get rendered. But allowing
         // escaping anything else provides a very flexible escape mechanism,
         // regardless of how this grammar is extended.
-        regex: /^\\([^0-9A-Za-z\s])/,
+        match: inlineRegex(/^\\([^0-9A-Za-z\s])/),
         parse: function(capture, parse, state) {
             return {
                 type: "text",
@@ -587,7 +666,7 @@ var defaultRules = {
         }
     },
     autolink: {
-        regex: /^<([^ >]+:\/[^ >]+)>/,
+        match: inlineRegex(/^<([^ >]+:\/[^ >]+)>/),
         parse: function(capture, parse, state) {
             return {
                 type: "link",
@@ -600,7 +679,7 @@ var defaultRules = {
         }
     },
     mailto: {
-        regex: /^<([^ >]+@[^ >]+)>/,
+        match: inlineRegex(/^<([^ >]+@[^ >]+)>/),
         parse: function(capture, parse, state) {
             var address = capture[1];
             var target = capture[1];
@@ -621,7 +700,7 @@ var defaultRules = {
         }
     },
     url: {
-        regex: /^(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/,
+        match: inlineRegex(/^(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/),
         parse: function(capture, parse, state) {
             return {
                 type: "link",
@@ -635,9 +714,9 @@ var defaultRules = {
         }
     },
     link: {
-        regex: new RegExp(
+        match: inlineRegex(new RegExp(
             "^\\[(" + LINK_INSIDE + ")\\]\\(" + LINK_HREF_AND_TITLE + "\\)"
-        ),
+        )),
         parse: function(capture, parse, state) {
             var link ={
                 content: parse(capture[1], state),
@@ -654,9 +733,9 @@ var defaultRules = {
         }
     },
     image: {
-        regex: new RegExp(
+        match: inlineRegex(new RegExp(
             "^!\\[(" + LINK_INSIDE + ")\\]\\(" + LINK_HREF_AND_TITLE + "\\)"
-        ),
+        )),
         parse: function(capture, parse, state) {
             var image = {
                 alt: capture[1],
@@ -673,12 +752,12 @@ var defaultRules = {
         }
     },
     reflink: {
-        regex: new RegExp(
+        match: inlineRegex(new RegExp(
             // The first [part] of the link
             "^\\[(" + LINK_INSIDE + ")\\]" +
             // The [ref] target of the link
             "\\s*\\[([^\\]]*)\\]"
-        ),
+        )),
         parse: function(capture, parse, state) {
             return parseRef(capture, state, {
                 type: "link",
@@ -687,12 +766,12 @@ var defaultRules = {
         }
     },
     refimage: {
-        regex: new RegExp(
+        match: inlineRegex(new RegExp(
             // The first [part] of the link
             "^!\\[(" + LINK_INSIDE + ")\\]" +
             // The [ref] target of the link
             "\\s*\\[([^\\]]*)\\]"
-        ),
+        )),
         parse: function(capture, parse, state) {
             return parseRef(capture, state, {
                 type: "image",
@@ -701,21 +780,23 @@ var defaultRules = {
         }
     },
     strong: {
-        regex: /^\*\*([\s\S]+?)\*\*(?!\*)/,
-        parse: parseCapture,
+        match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
+        parse: parseCaptureInline,
         output: function(node, output) {
             return React.DOM.strong(null, output(node.content));
         }
     },
     u: {
-        regex: /^__([\s\S]+?)__(?!_)/,
-        parse: parseCapture,
+        match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
+        parse: parseCaptureInline,
         output: function(node, output) {
             return React.DOM.u(null, output(node.content));
         }
     },
     em: {
-        regex: /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/,
+        match: inlineRegex(
+            /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/
+        ),
         parse: function(capture, parse, state) {
             return {
                 content: parse(capture[2] || capture[1], state)
@@ -726,14 +807,14 @@ var defaultRules = {
         }
     },
     del: {
-        regex: /^~~(?=\S)([\s\S]*?\S)~~/,
-        parse: parseCapture,
+        match: inlineRegex(/^~~(?=\S)([\s\S]*?\S)~~/),
+        parse: parseCaptureInline,
         output: function(node, output) {
             return React.DOM.del(null, output(node.content));
         }
     },
     inlineCode: {
-        regex: /^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/,
+        match: inlineRegex(/^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/),
         parse: function(capture, parse, state) {
             return {
                 content: capture[2]
@@ -744,7 +825,7 @@ var defaultRules = {
         }
     },
     br: {
-        regex: /^ {2,}\n/,
+        match: anyScopeRegex(/^ {2,}\n/),
         parse: ignoreCapture,
         output: function() { return React.DOM.br(null); }
     },
@@ -764,7 +845,9 @@ var defaultRules = {
         // TODO(aria): add block vs inline regexes so that we
         // can define lists as block and not consider them for
         // inline text.
-        regex: /^[\s\S]+?(?=[^0-9A-Za-z\s\u00ff-\uffff\-]|-\S|\n\n| {2,}\n|\w+:|$)/,
+        match: inlineRegex(
+            /^[\s\S]+?(?=[^0-9A-Za-z\s\u00ff-\uffff\-]|-\S|\n\n| {2,}\n|\w+:|$)/
+        ),
         parse: function(capture, parse, state) {
             return {
                 content: capture[0]
@@ -785,7 +868,23 @@ var ruleOutput = function(rules) {
     return nestedRuleOutput;
 };
 
-var defaultParse = parserFor(defaultRules, defaultPriorities);
+var defaultRawParse = parserFor(defaultRules, defaultPriorities);
+var defaultBlockParse = function(source) {
+    return defaultRawParse(source + "\n\n", {
+        inline: false
+    });
+};
+var defaultInlineParse = function(source) {
+    return defaultRawParse(source, {
+        inline: true
+    });
+};
+var defaultImplicitParse = function(source) {
+    return defaultRawParse(source, {
+        inline: !(BLOCK_END_R.test(source))
+    });
+};
+
 var defaultOutput = outputFor(ruleOutput(defaultRules));
 
 var SimpleMarkdown = {
@@ -794,8 +893,23 @@ var SimpleMarkdown = {
     defaultRules: defaultRules,
     defaultPriorities: defaultPriorities,
     ruleOutput: ruleOutput,
-    defaultParse: defaultParse,
+
+    inlineRegex: inlineRegex,
+    blockRegex: blockRegex,
+    anyScopeRegex: anyScopeRegex,
+    parseInline: parseInline,
+    parseBlock: parseBlock,
+
+    defaultRawParse: defaultRawParse,
+    defaultBlockParse: defaultBlockParse,
+    defaultInlineParse: defaultInlineParse,
+    defaultImplicitParse: defaultImplicitParse,
+
+    // deprecated:
+    defaultParse: defaultImplicitParse,
+
     defaultOutput: defaultOutput,
+
     sanitizeUrl: sanitizeUrl
 };
 

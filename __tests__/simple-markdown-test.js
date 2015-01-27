@@ -4,7 +4,9 @@ var _ = require("underscore");
 var React = require("react");
 
 var SimpleMarkdown = require("../simple-markdown.js");
-var defaultParse = SimpleMarkdown.defaultParse;
+var blockParse = SimpleMarkdown.defaultBlockParse;
+var inlineParse = SimpleMarkdown.defaultInlineParse;
+var implicitParse = SimpleMarkdown.defaultImplicitParse;
 var defaultOutput = SimpleMarkdown.defaultOutput;
 
 // A pretty-printer that handles `undefined` and functions better
@@ -12,22 +14,27 @@ var defaultOutput = SimpleMarkdown.defaultOutput;
 // Important because some AST node fields can be undefined, and
 // if those don't show up in the assert output, it can be
 // very confusing to figure out how the actual and expected differ
+// Whether node's util.inspect or JSON.stringify is better seems
+// context dependent.
 var prettyPrintAST = function(ast) {
-    return nodeUtil.inspect(ast, {
-        depth: null,
-        colors: false
-    });
+    return JSON.stringify(ast, null, 4);
+//    return nodeUtil.inspect(ast, {
+//        depth: null,
+//        colors: false
+//    });
 };
 
 var validateParse = function(parsed, expected) {
     if (!_.isEqual(parsed, expected)) {
         var parsedStr = prettyPrintAST(parsed);
         var expectedStr = prettyPrintAST(expected);
-        assert.fail(
-            parsedStr,
-            expectedStr,
-            "parsed did not match expected",
-            "<>"
+        // assert.fail doesn't seem to print the
+        // expected and actual anymore, so we just
+        // throw our own exception.
+        throw new Error("Expected:\n" +
+            expectedStr +
+            "\n\nActual:\n" +
+            parsedStr
         );
     }
 };
@@ -48,13 +55,13 @@ var htmlThroughReact = function(parsed) {
 };
 
 var htmlFromMarkdown = function(source) {
-    return htmlThroughReact(defaultParse(source));
+    return htmlThroughReact(implicitParse(source));
 };
 
 describe("simple markdown", function() {
     describe("parser", function() {
         it("should parse a plain string", function() {
-            var parsed = defaultParse("hi there");
+            var parsed = inlineParse("hi there");
             validateParse(parsed, [{
                 type: "text",
                 content: "hi there"
@@ -62,7 +69,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse bold", function() {
-            var parsed = defaultParse("**hi**");
+            var parsed = inlineParse("**hi**");
             validateParse(parsed, [{
                 type: "strong",
                 content: [{
@@ -73,7 +80,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse italics", function() {
-            var parsed = defaultParse("*hi*");
+            var parsed = inlineParse("*hi*");
             validateParse(parsed, [{
                 type: "em",
                 content: [{
@@ -84,7 +91,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse strikethrough", function() {
-            var parsed = defaultParse("~~hi~~");
+            var parsed = inlineParse("~~hi~~");
             validateParse(parsed, [{
                 type: "del",
                 content: [{
@@ -95,7 +102,7 @@ describe("simple markdown", function() {
 
             // not super important that it parses this like this, but
             // it should be a valid something...
-            var parsed2 = defaultParse("~~~~~");
+            var parsed2 = inlineParse("~~~~~");
             validateParse(parsed2, [{
                 type: "del",
                 content: [{
@@ -106,7 +113,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse underlines", function() {
-            var parsed = defaultParse("__hi__");
+            var parsed = inlineParse("__hi__");
             validateParse(parsed, [{
                 type: "u",
                 content: [{
@@ -117,7 +124,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse nested bold/italics", function() {
-            var parsed = defaultParse("***hi***");
+            var parsed = inlineParse("***hi***");
             validateParse(parsed, [{
                 type: "strong",
                 content: [{
@@ -131,7 +138,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse nested bold/italics/underline", function() {
-            var parsed1 = defaultParse("***__hi__***");
+            var parsed1 = inlineParse("***__hi__***");
             validateParse(parsed1, [{
                 type: "strong",
                 content: [{
@@ -146,7 +153,7 @@ describe("simple markdown", function() {
                 }]
             }]);
 
-            var parsed2 = defaultParse("*__**hi**__*");
+            var parsed2 = inlineParse("*__**hi**__*");
             validateParse(parsed2, [{
                 type: "em",
                 content: [{
@@ -163,7 +170,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse multiple bold/italics/underlines", function() {
-            var parsed = defaultParse(
+            var parsed = inlineParse(
                 "*some* of this __sentence__ is **bold**"
             );
             validateParse(parsed, [
@@ -200,7 +207,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse inline code", function() {
-            var parsed = defaultParse("`hi`");
+            var parsed = inlineParse("`hi`");
             validateParse(parsed, [{
                 type: "inlineCode",
                 content: "hi"
@@ -208,7 +215,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse * and _ inside `` as code", function() {
-            var parsed = defaultParse(
+            var parsed = inlineParse(
                 "`const int * const * const p; // _hi_`"
             );
             validateParse(parsed, [{
@@ -218,7 +225,7 @@ describe("simple markdown", function() {
         });
 
         it("should allow you to escape special characters with \\", function() {
-            var parsed = defaultParse(
+            var parsed = inlineParse(
                 "\\`hi\\` \\*bye\\* \\~\\|\\<\\[\\{"
             );
             validateParse(parsed, [
@@ -237,7 +244,7 @@ describe("simple markdown", function() {
                 { type: "text", content: "{" },
             ]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = inlineParse(
                 "hi\\^caret"
             );
             validateParse(parsed2, [
@@ -248,7 +255,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse basic []() links as links", function() {
-            var parsed = defaultParse("[hi](http://www.google.com)");
+            var parsed = inlineParse("[hi](http://www.google.com)");
             validateParse(parsed, [{
                 type: "link",
                 content: [{
@@ -259,7 +266,7 @@ describe("simple markdown", function() {
                 title: undefined
             }]);
 
-            var parsed2 = defaultParse("[secure](https://www.google.com)");
+            var parsed2 = inlineParse("[secure](https://www.google.com)");
             validateParse(parsed2, [{
                 type: "link",
                 content: [{
@@ -270,7 +277,7 @@ describe("simple markdown", function() {
                 title: undefined
             }]);
 
-            var parsed3 = defaultParse(
+            var parsed3 = inlineParse(
                 "[local](http://localhost:9000/test.html)"
             );
             validateParse(parsed3, [{
@@ -283,7 +290,7 @@ describe("simple markdown", function() {
                 title: undefined
             }]);
 
-            var parsed4 = defaultParse(
+            var parsed4 = inlineParse(
                 "[params](http://localhost:9000/test.html" +
                 "?content=%7B%7D&format=pretty)"
             );
@@ -298,7 +305,7 @@ describe("simple markdown", function() {
                 title: undefined
             }]);
 
-            var parsed5 = defaultParse(
+            var parsed5 = inlineParse(
                 "[hash](http://localhost:9000/test.html#content=%7B%7D)"
             );
             validateParse(parsed5, [{
@@ -319,7 +326,7 @@ describe("simple markdown", function() {
             // portion, but will still detect that the inside
             // of the parentheses contains a raw url, which it
             // will turn into a url link.
-            var parsed = defaultParse("\\[hi](http://www.google.com)");
+            var parsed = inlineParse("\\[hi](http://www.google.com)");
             validateParse(parsed, [
                 {content: "[", type: "text"},
                 {content: "hi", type: "text"},
@@ -339,7 +346,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse basic <autolinks>", function() {
-            var parsed = defaultParse("<http://www.google.com>");
+            var parsed = inlineParse("<http://www.google.com>");
             validateParse(parsed, [{
                 type: "link",
                 content: [{
@@ -349,7 +356,7 @@ describe("simple markdown", function() {
                 target: "http://www.google.com"
             }]);
 
-            var parsed2 = defaultParse("<https://www.google.com>");
+            var parsed2 = inlineParse("<https://www.google.com>");
             validateParse(parsed2, [{
                 type: "link",
                 content: [{
@@ -359,7 +366,7 @@ describe("simple markdown", function() {
                 target: "https://www.google.com"
             }]);
 
-            var parsed3 = defaultParse("<http://localhost:9000/test.html>");
+            var parsed3 = inlineParse("<http://localhost:9000/test.html>");
             validateParse(parsed3, [{
                 type: "link",
                 content: [{
@@ -369,7 +376,7 @@ describe("simple markdown", function() {
                 target: "http://localhost:9000/test.html"
             }]);
 
-            var parsed4 = defaultParse(
+            var parsed4 = inlineParse(
                 "<http://localhost:9000/test.html" +
                 "?content=%7B%7D&format=pretty>"
             );
@@ -384,7 +391,7 @@ describe("simple markdown", function() {
                         "?content=%7B%7D&format=pretty"
             }]);
 
-            var parsed5 = defaultParse(
+            var parsed5 = inlineParse(
                 "<http://localhost:9000/test.html#content=%7B%7D>"
             );
             validateParse(parsed5, [{
@@ -398,7 +405,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse basic <mailto@autolinks>", function() {
-            var parsed = defaultParse("<test@example.com>");
+            var parsed = inlineParse("<test@example.com>");
             validateParse(parsed, [{
                 type: "link",
                 content: [{
@@ -408,7 +415,7 @@ describe("simple markdown", function() {
                 target: "mailto:test@example.com"
             }]);
 
-            var parsed2 = defaultParse("<test+ext@example.com>");
+            var parsed2 = inlineParse("<test+ext@example.com>");
             validateParse(parsed2, [{
                 type: "link",
                 content: [{
@@ -418,7 +425,7 @@ describe("simple markdown", function() {
                 target: "mailto:test+ext@example.com"
             }]);
 
-            var parsed3 = defaultParse("<mailto:test@example.com>");
+            var parsed3 = inlineParse("<mailto:test@example.com>");
             validateParse(parsed3, [{
                 type: "link",
                 content: [{
@@ -428,7 +435,7 @@ describe("simple markdown", function() {
                 target: "mailto:test@example.com"
             }]);
 
-            var parsed4 = defaultParse("<MAILTO:TEST@EXAMPLE.COM>");
+            var parsed4 = inlineParse("<MAILTO:TEST@EXAMPLE.COM>");
             validateParse(parsed4, [{
                 type: "link",
                 content: [{
@@ -440,7 +447,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse basic freeform urls", function() {
-            var parsed = defaultParse("http://www.google.com");
+            var parsed = inlineParse("http://www.google.com");
             validateParse(parsed, [{
                 type: "link",
                 content: [{
@@ -451,7 +458,7 @@ describe("simple markdown", function() {
                 title: undefined
             }]);
 
-            var parsed2 = defaultParse("https://www.google.com");
+            var parsed2 = inlineParse("https://www.google.com");
             validateParse(parsed2, [{
                 type: "link",
                 content: [{
@@ -462,7 +469,7 @@ describe("simple markdown", function() {
                 title: undefined
             }]);
 
-            var parsed3 = defaultParse("http://example.com/test.html");
+            var parsed3 = inlineParse("http://example.com/test.html");
             validateParse(parsed3, [{
                 type: "link",
                 content: [{
@@ -473,7 +480,7 @@ describe("simple markdown", function() {
                 title: undefined
             }]);
 
-            var parsed4 = defaultParse(
+            var parsed4 = inlineParse(
                 "http://example.com/test.html" +
                 "?content=%7B%7D&format=pretty"
             );
@@ -489,7 +496,7 @@ describe("simple markdown", function() {
                 title: undefined
             }]);
 
-            var parsed5 = defaultParse(
+            var parsed5 = inlineParse(
                 "http://example.com/test.html#content=%7B%7D"
             );
             validateParse(parsed5, [{
@@ -504,7 +511,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse freeform urls inside paragraphs", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "hi this is a link http://www.google.com\n\n"
             );
             validateParse(parsed, [{
@@ -528,7 +535,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse [reflinks][and their targets]", function() {
-            var parsed = defaultParse(
+            var parsed = implicitParse(
                 "[Google][1]\n\n" +
                 "[1]: http://www.google.com\n\n"
             );
@@ -553,7 +560,7 @@ describe("simple markdown", function() {
                 },
             ]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = blockParse(
                 "[1]: http://www.google.com\n\n" +
                 "[Google][1]\n\n"
             );
@@ -580,7 +587,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse inline link titles", function() {
-            var parsed = defaultParse(
+            var parsed = inlineParse(
                 "[Google](http://www.google.com \"This is google!\")"
             );
             validateParse(parsed, [{
@@ -593,7 +600,7 @@ describe("simple markdown", function() {
                 title: "This is google!"
             }]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = inlineParse(
                 "[Google](http://www.google.com \"still Google\")"
             );
             validateParse(parsed2, [{
@@ -608,7 +615,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse reflink titles", function() {
-            var parsed = defaultParse(
+            var parsed = implicitParse(
                 "[Google][1]\n\n" +
                 "[1]: http://www.google.com (This is google!)\n\n"
             );
@@ -633,7 +640,7 @@ describe("simple markdown", function() {
                 },
             ]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = implicitParse(
                 "[1]: http://www.google.com \"still Google\"\n\n" +
                 "[Google][1]\n\n"
             );
@@ -660,7 +667,7 @@ describe("simple markdown", function() {
 
             // test some edge cases, notably:
             // target of ""; title using parens; def with a `-` in it
-            var parsed3 = defaultParse(
+            var parsed3 = implicitParse(
                 "[Nowhere][nowhere-target]\n\n" +
                 "[nowhere-target]: <> (nowhere)\n\n"
             );
@@ -687,7 +694,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse [reflinks][] with implicit targets", function() {
-            var parsed = defaultParse(
+            var parsed = implicitParse(
                 "[Google][]\n\n" +
                 "[Google]: http://www.google.com\n\n"
             );
@@ -712,7 +719,7 @@ describe("simple markdown", function() {
                 },
             ]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = implicitParse(
                 "[Google]: http://www.google.com\n\n" +
                 "[Google][]\n\n"
             );
@@ -739,7 +746,7 @@ describe("simple markdown", function() {
         });
 
         it("should handle multiple [reflinks][to the same target]", function() {
-            var parsed = defaultParse(
+            var parsed = implicitParse(
                 "[Google][1] [Yahoo][1]\n\n" +
                 "[1]: http://www.google.com\n\n"
             );
@@ -783,7 +790,7 @@ describe("simple markdown", function() {
             // links. This is just a test that things are continuing to work
             // as we currently expect them to, but I seriously hope no one
             // writes markdown like this!
-            var parsed2 = defaultParse(
+            var parsed2 = implicitParse(
                 "[test][1]\n\n" +
                 "[1]: http://google.com\n\n" +
                 "[test2][1]\n\n" +
@@ -830,7 +837,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse basic images", function() {
-            var parsed = defaultParse("![](http://example.com/test.png)");
+            var parsed = inlineParse("![](http://example.com/test.png)");
             validateParse(parsed, [{
                 type: "image",
                 alt: "",
@@ -838,7 +845,7 @@ describe("simple markdown", function() {
                 title: undefined
             }]);
 
-            var parsed2 = defaultParse("![aaalt](http://example.com/image)");
+            var parsed2 = inlineParse("![aaalt](http://example.com/image)");
             validateParse(parsed2, [{
                 type: "image",
                 alt: "aaalt",
@@ -846,7 +853,7 @@ describe("simple markdown", function() {
                 title: undefined
             }]);
 
-            var parsed3 = defaultParse(
+            var parsed3 = inlineParse(
                 "![](http://localhost:9000/test.html \"local\")"
             );
             validateParse(parsed3, [{
@@ -856,7 +863,7 @@ describe("simple markdown", function() {
                 title: "local"
             }]);
 
-            var parsed4 = defaultParse(
+            var parsed4 = inlineParse(
                 "![p](http://localhost:9000/test" +
                 "?content=%7B%7D&format=pretty \"params\")"
             );
@@ -868,7 +875,7 @@ describe("simple markdown", function() {
                 title: "params"
             }]);
 
-            var parsed5 = defaultParse(
+            var parsed5 = inlineParse(
                 "![hash](http://localhost:9000/test.png#content=%7B%7D)"
             );
             validateParse(parsed5, [{
@@ -880,7 +887,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse [refimages][and their targets]", function() {
-            var parsed = defaultParse(
+            var parsed = implicitParse(
                 "![aaalt][1]\n\n" +
                 "[1]: http://example.com/test.gif\n\n"
             );
@@ -902,7 +909,7 @@ describe("simple markdown", function() {
                 },
             ]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = implicitParse(
                 "[image]: http://example.com/test.gif\n\n" +
                 "![image][]\n\n"
             );
@@ -924,7 +931,7 @@ describe("simple markdown", function() {
                 },
             ]);
 
-            var parsed3 = defaultParse(
+            var parsed3 = implicitParse(
                 "[image]: http://example.com/test.gif \"title!\"\n\n" +
                 "![image][]\n\n"
             );
@@ -946,7 +953,7 @@ describe("simple markdown", function() {
                 },
             ]);
 
-            var parsed3 = defaultParse(
+            var parsed3 = implicitParse(
                 "[image]: http://example.com/test.gif (*title text*)\n\n" +
                 "![image][]\n\n"
             );
@@ -970,7 +977,7 @@ describe("simple markdown", function() {
         });
 
         it("should compare defs case- and whitespace-insensitively", function() {
-            var parsed = defaultParse(
+            var parsed = implicitParse(
                 "[Google][HiIiI]\n\n" +
                 "[HIiii]: http://www.google.com\n\n"
             );
@@ -995,7 +1002,7 @@ describe("simple markdown", function() {
                 },
             ]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = implicitParse(
                 "[Google][]\n\n" +
                 "[google]: http://www.google.com\n\n"
             );
@@ -1020,7 +1027,7 @@ describe("simple markdown", function() {
                 },
             ]);
 
-            var parsed3 = defaultParse(
+            var parsed3 = implicitParse(
                 "[Google][ h    i ]\n\n" +
                 "[  h i   ]: http://www.google.com\n\n"
             );
@@ -1047,7 +1054,7 @@ describe("simple markdown", function() {
         });
 
         it("should not allow defs to break out of a paragraph", function() {
-            var parsed = defaultParse("hi [1]: there\n\n");
+            var parsed = implicitParse("hi [1]: there\n\n");
             validateParse(parsed, [{
                 type: "paragraph",
                 content: [
@@ -1060,7 +1067,7 @@ describe("simple markdown", function() {
         });
 
         it("should allow a group of defs next to each other", function() {
-            var parsed = defaultParse(
+            var parsed = implicitParse(
                 "[a]: # (title)\n" +
                 "[b]: http://www.google.com\n" +
                 "[//]: <> (hi)\n" +
@@ -1103,7 +1110,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse a single top-level paragraph", function() {
-            var parsed = defaultParse("hi\n\n");
+            var parsed = blockParse("hi\n\n");
             validateParse(parsed, [{
                 type: "paragraph",
                 content: [{
@@ -1114,7 +1121,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse multiple top-level paragraphs", function() {
-            var parsed = defaultParse("hi\n\nbye\n\nthere\n\n");
+            var parsed = blockParse("hi\n\nbye\n\nthere\n\n");
             validateParse(parsed, [
                 {
                     type: "paragraph",
@@ -1141,7 +1148,7 @@ describe("simple markdown", function() {
         });
 
         it("should not parse single newlines as paragraphs", function() {
-            var parsed = defaultParse("hi\nbye\nthere\n");
+            var parsed = inlineParse("hi\nbye\nthere\n");
             validateParse(parsed, [{
                 type: "text",
                 content: "hi\nbye\nthere\n"
@@ -1149,7 +1156,7 @@ describe("simple markdown", function() {
         });
 
         it("should not parse a single newline as a new paragraph", function() {
-            var parsed = defaultParse("hi\nbye\nthere\n\n");
+            var parsed = blockParse("hi\nbye\nthere\n\n");
             validateParse(parsed, [{
                 type: "paragraph",
                 content: [{
@@ -1160,7 +1167,7 @@ describe("simple markdown", function() {
         });
 
         it("should allow whitespace-only lines to end paragraphs", function() {
-            var parsed = defaultParse("hi\n \n");
+            var parsed = blockParse("hi\n \n");
             validateParse(parsed, [{
                 type: "paragraph",
                 content: [{
@@ -1169,7 +1176,7 @@ describe("simple markdown", function() {
                 }]
             }]);
 
-            var parsed2 = defaultParse("hi\n  \n");
+            var parsed2 = blockParse("hi\n  \n");
             validateParse(parsed2, [{
                 type: "paragraph",
                 content: [{
@@ -1178,7 +1185,7 @@ describe("simple markdown", function() {
                 }]
             }]);
 
-            var parsed3 = defaultParse("hi\n\n  \n  \n");
+            var parsed3 = blockParse("hi\n\n  \n  \n");
             validateParse(parsed3, [{
                 type: "paragraph",
                 content: [{
@@ -1187,7 +1194,7 @@ describe("simple markdown", function() {
                 }]
             }]);
 
-            var parsed4 = defaultParse("hi\n  \n\n   \nbye\n\n");
+            var parsed4 = blockParse("hi\n  \n\n   \nbye\n\n");
             validateParse(parsed4, [
                 {
                     type: "paragraph",
@@ -1207,7 +1214,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse a single heading", function() {
-            var parsed = defaultParse("### heading3\n\n");
+            var parsed = blockParse("### heading3\n\n");
             validateParse(parsed, [{
                 type: "heading",
                 level: 3,
@@ -1219,7 +1226,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse a single lheading", function() {
-            var parsed = defaultParse("heading2\n-----\n\n");
+            var parsed = blockParse("heading2\n-----\n\n");
             validateParse(parsed, [{
                 type: "heading",
                 level: 2,
@@ -1231,7 +1238,7 @@ describe("simple markdown", function() {
         });
 
         it("should not parse a single lheading with two -- or ==", function() {
-            var parsed = defaultParse("heading1\n==\n\n");
+            var parsed = blockParse("heading1\n==\n\n");
             validateParse(parsed, [{
                 type: "paragraph",
                 content: [
@@ -1241,7 +1248,7 @@ describe("simple markdown", function() {
                 ]
             }]);
 
-            var parsed2 = defaultParse("heading2\n--\n\n");
+            var parsed2 = blockParse("heading2\n--\n\n");
             validateParse(parsed2, [{
                 type: "paragraph",
                 content: [
@@ -1252,7 +1259,7 @@ describe("simple markdown", function() {
         });
 
         it("should not parse 7 #s as an h7", function() {
-            var parsed = defaultParse("#######heading7\n\n");
+            var parsed = blockParse("#######heading7\n\n");
             validateParse(parsed, [{
                 type: "heading",
                 level: 6,
@@ -1264,7 +1271,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse a heading between paragraphs", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "para 1\n\n" +
                 "#heading\n\n\n" +
                 "para 2\n\n"
@@ -1296,7 +1303,7 @@ describe("simple markdown", function() {
         });
 
         it("should not allow headings mid-paragraph", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "paragraph # text\n" +
                 "more paragraph\n\n"
             );
@@ -1308,7 +1315,7 @@ describe("simple markdown", function() {
                 ]
             }]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = blockParse(
                 "paragraph\n" +
                 "text\n" +
                 "----\n" +
@@ -1326,7 +1333,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse a single top-level blockquote", function() {
-            var parsed = defaultParse("> blockquote\n\n");
+            var parsed = blockParse("> blockquote\n\n");
             validateParse(parsed, [{
                 type: "blockQuote",
                 content: [{
@@ -1340,7 +1347,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse multiple blockquotes and paragraphs", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "para 1\n\n" +
                 "> blockquote 1\n" +
                 ">\n" +
@@ -1385,7 +1392,7 @@ describe("simple markdown", function() {
         });
 
         it("should not let a > escape a paragraph as a blockquote", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "para 1 > not a quote\n\n"
             );
             validateParse(parsed, [{
@@ -1398,7 +1405,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse a single top-level code block", function() {
-            var parsed = defaultParse("    if (true) { code(); }\n\n");
+            var parsed = blockParse("    if (true) { code(); }\n\n");
             validateParse(parsed, [{
                 type: "codeBlock",
                 lang: undefined,
@@ -1407,7 +1414,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse a code block with trailing spaces", function() {
-            var parsed = defaultParse("    if (true) { code(); }\n    \n\n");
+            var parsed = blockParse("    if (true) { code(); }\n    \n\n");
             validateParse(parsed, [{
                 type: "codeBlock",
                 lang: undefined,
@@ -1416,14 +1423,14 @@ describe("simple markdown", function() {
         });
 
         it("should parse fence blocks", function() {
-            var parsed = defaultParse("```\ncode\n```\n\n");
+            var parsed = blockParse("```\ncode\n```\n\n");
             validateParse(parsed, [{
                 type: "codeBlock",
                 lang: undefined,
                 content: "code"
             }]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = blockParse(
                 "```aletheia\n" +
                 "if true [code()]\n" +
                 "```\n\n"
@@ -1436,7 +1443,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse mixed paragraphs and code", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "this is regular text\n\n" +
                 "    this is code\n\n" +
                 "this is more regular text\n\n");
@@ -1464,7 +1471,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse top-level horizontal rules", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "---\n\n" +
                 "***\n\n" +
                 "___\n\n" +
@@ -1483,7 +1490,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse hrs between paragraphs", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "para 1\n\n" +
                 " * * * \n\n" +
                 "para 2\n\n");
@@ -1507,7 +1514,7 @@ describe("simple markdown", function() {
         });
 
         it("should not allow hrs within a paragraph", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "paragraph ----\n" +
                 "more paragraph\n\n"
             );
@@ -1523,7 +1530,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse simple unordered lists", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 " * hi\n" +
                 " * bye\n" +
                 " * there\n\n"
@@ -1533,15 +1540,15 @@ describe("simple markdown", function() {
                 start: undefined,
                 items: [
                     [{
-                        content: "hi\n",
+                        content: "hi",
                         type: "text",
                     }],
                     [{
-                        content: "bye\n",
+                        content: "bye",
                         type: "text",
                     }],
                     [{
-                        content: "there\n",
+                        content: "there",
                         type: "text",
                     }],
                 ],
@@ -1550,7 +1557,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse simple ordered lists", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "1. first\n" +
                 "2. second\n" +
                 "3. third\n\n"
@@ -1562,22 +1569,22 @@ describe("simple markdown", function() {
                 items: [
                     [{
                         type: "text",
-                        content: "first\n",
+                        content: "first",
                     }],
                     [{
                         type: "text",
-                        content: "second\n",
+                        content: "second",
                     }],
                     [{
                         type: "text",
-                        content: "third\n",
+                        content: "third",
                     }],
                 ]
             }]);
         });
 
         it("should parse simple ordered lists with silly numbers", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "1. first\n" +
                 "13. second\n" +
                 "9. third\n\n"
@@ -1589,20 +1596,20 @@ describe("simple markdown", function() {
                 items: [
                     [{
                         type: "text",
-                        content: "first\n",
+                        content: "first",
                     }],
                     [{
                         type: "text",
-                        content: "second\n",
+                        content: "second",
                     }],
                     [{
                         type: "text",
-                        content: "third\n",
+                        content: "third",
                     }],
                 ]
             }]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = blockParse(
                 "63. first\n" +
                 "13. second\n" +
                 "9. third\n\n"
@@ -1614,22 +1621,22 @@ describe("simple markdown", function() {
                 items: [
                     [{
                         type: "text",
-                        content: "first\n",
+                        content: "first",
                     }],
                     [{
                         type: "text",
-                        content: "second\n",
+                        content: "second",
                     }],
                     [{
                         type: "text",
-                        content: "third\n",
+                        content: "third",
                     }],
                 ]
             }]);
         });
 
         it("should parse nested lists", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "1. first\n" +
                 "2. second\n" +
                 "   * inner\n" +
@@ -1641,7 +1648,7 @@ describe("simple markdown", function() {
                 start: 1,
                 items: [
                     [{
-                        content: "first\n",
+                        content: "first",
                         type: "text",
                     }],
                     [
@@ -1654,11 +1661,11 @@ describe("simple markdown", function() {
                             start: undefined,
                             items: [
                                 [{
-                                    content: "inner\n",
+                                    content: "inner",
                                     type: "text",
                                 }],
                                 [{
-                                    content: "inner\n",
+                                    content: "inner",
                                     type: "text",
                                 }]
                             ],
@@ -1666,7 +1673,7 @@ describe("simple markdown", function() {
                         }
                     ],
                     [{
-                        content: "third\n",
+                        content: "third",
                         type: "text",
                     }],
                 ],
@@ -1675,7 +1682,7 @@ describe("simple markdown", function() {
         });
 
         it("should parse loose lists", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 " * hi\n\n" +
                 " * bye\n\n" +
                 " * there\n\n"
@@ -1713,7 +1720,7 @@ describe("simple markdown", function() {
         it("should have defined behaviour for semi-loose lists", function() {
             // we mostly care that this does something vaguely reasonable.
             // if you write markdown like this the results are your own fault.
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 " * hi\n" +
                 " * bye\n\n" +
                 " * there\n\n"
@@ -1725,7 +1732,7 @@ describe("simple markdown", function() {
                 items: [
                     [{
                         type: "text",
-                        content: "hi\n"
+                        content: "hi"
                     }],
                     [{
                         type: "paragraph",
@@ -1744,7 +1751,7 @@ describe("simple markdown", function() {
                 ]
             }]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = blockParse(
                 " * hi\n\n" +
                 " * bye\n" +
                 " * there\n\n"
@@ -1763,18 +1770,18 @@ describe("simple markdown", function() {
                     }],
                     [{
                         type: "text",
-                        content: "bye\n"
+                        content: "bye"
                     }],
                     [{
                         type: "text",
-                        content: "there\n"
+                        content: "there"
                     }],
                 ]
             }]);
         });
 
         it("should parse paragraphs within loose lists", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 " * hi\n\n" +
                 "   hello\n\n" +
                 " * bye\n\n" +
@@ -1820,7 +1827,7 @@ describe("simple markdown", function() {
         });
 
         it("should allow line breaks+wrapping in tight lists", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 " * hi\n" +
                 "   hello\n\n" +
                 " * bye\n\n" +
@@ -1857,7 +1864,7 @@ describe("simple markdown", function() {
         });
 
         it("should allow code inside list items", function() {
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 " * this is a list\n\n" +
                 "       with code in it\n\n"
             );
@@ -1881,7 +1888,7 @@ describe("simple markdown", function() {
                 ]]
             }]);
 
-            var parsed2 = defaultParse(
+            var parsed2 = blockParse(
                 " * this is a list\n\n" +
                 "       with code in it\n\n" +
                 " * second item\n" +
@@ -1921,7 +1928,7 @@ describe("simple markdown", function() {
 
         it("should allow lists inside blockquotes", function() {
             // This list also has lots of trailing space after the *s
-            var parsed = defaultParse(
+            var parsed = blockParse(
                 "> A list within a blockquote\n" +
                 ">\n" +
                 "> *    asterisk 1\n" +
@@ -1946,15 +1953,15 @@ describe("simple markdown", function() {
                         start: undefined,
                         items: [
                             [{
-                                content: "asterisk 1\n",
+                                content: "asterisk 1",
                                 type: "text",
                             }],
                             [{
-                                content: "asterisk 2\n",
+                                content: "asterisk 2",
                                 type: "text",
                             }],
                             [{
-                                content: "asterisk 3\n",
+                                content: "asterisk 3",
                                 type: "text",
                             }],
                         ]
@@ -1964,7 +1971,7 @@ describe("simple markdown", function() {
         });
 
         it("symbols should not break a paragraph into a list", function() {
-            var parsed = defaultParse("hi - there\n\n");
+            var parsed = blockParse("hi - there\n\n");
             validateParse(parsed, [{
                 type: "paragraph",
                 content: [
@@ -1972,7 +1979,7 @@ describe("simple markdown", function() {
                 ]
             }]);
 
-            var parsed2 = defaultParse("hi * there\n\n");
+            var parsed2 = blockParse("hi * there\n\n");
             validateParse(parsed2, [{
                 type: "paragraph",
                 content: [
@@ -1981,7 +1988,7 @@ describe("simple markdown", function() {
                 ]
             }]);
 
-            var parsed3 = defaultParse("hi 1. there\n\n");
+            var parsed3 = blockParse("hi 1. there\n\n");
             validateParse(parsed3, [{
                 type: "paragraph",
                 content: [
@@ -1992,13 +1999,13 @@ describe("simple markdown", function() {
         });
 
         it("dashes or numbers should not break a list item into a list", function() {
-            var parsed = defaultParse("- hi - there\n\n");
+            var parsed = blockParse("- hi - there\n\n");
             validateParse(parsed, [{
                 type: "list",
                 ordered: false,
                 start: undefined,
                 items: [[
-                    { content: "hi - there\n", type: "text" },
+                    { content: "hi - there", type: "text" },
                 ]]
             }]);
 
@@ -2006,7 +2013,7 @@ describe("simple markdown", function() {
             // emphasis, so we have to split text on them.
             // TODO(aria): split block vs inline parsing so we can handle
             // this case
-//            var parsed2 = defaultParse("* hi * there\n\n");
+//            var parsed2 = blockParse("* hi * there\n\n");
 //            validateParse(parsed2, [{
 //                type: "list",
 //                ordered: false,
@@ -2016,27 +2023,27 @@ describe("simple markdown", function() {
 //                ]]
 //            }]);
 
-            var parsed3 = defaultParse("1. hi 1. there\n\n");
+            var parsed3 = blockParse("1. hi 1. there\n\n");
             validateParse(parsed3, [{
                 type: "list",
                 ordered: true,
                 start: 1,
                 items: [[
                     { content: "hi 1", type: "text" },
-                    { content: ". there\n", type: "text" },
+                    { content: ". there", type: "text" },
                 ]]
             }]);
         });
 
         it("should ignore double spaces at the end of lists", function() {
-            var parsed = defaultParse(" * hi  \n * there\n\n");
+            var parsed = blockParse(" * hi  \n * there\n\n");
             validateParse(parsed, [{
                 type: "list",
                 ordered: false,
                 start: undefined,
                 items: [
-                    [{type: "text", content: "hi\n"}],
-                    [{type: "text", content: "there\n"}],
+                    [{type: "text", content: "hi"}],
+                    [{type: "text", content: "there"}],
                 ]
             }]);
         });
@@ -2064,7 +2071,7 @@ describe("simple markdown", function() {
                 ]
             }];
 
-            var parsedPiped = defaultParse(
+            var parsedPiped = blockParse(
                 "| h1 | h2 | h3 |\n" +
                 "| -- | -- | -- |\n" +
                 "| d1 | d2 | d3 |\n" +
@@ -2073,7 +2080,7 @@ describe("simple markdown", function() {
             );
             validateParse(parsedPiped, expected);
 
-            var parsedNp = defaultParse(
+            var parsedNp = blockParse(
                 "h1 | h2 | h3\n" +
                 "- | - | -\n" +
                 "d1 | d2 | d3\n" +
@@ -2099,7 +2106,7 @@ describe("simple markdown", function() {
                 ]]
             }];
 
-            var parsedPiped = defaultParse(
+            var parsedPiped = blockParse(
                 "| *h1* | *h2* | *h3* |\n" +
                 "| ---- | ---- | ---- |\n" +
                 "| *d1* | *d2* | *d3* |\n" +
@@ -2107,7 +2114,7 @@ describe("simple markdown", function() {
             );
             validateParse(parsedPiped, expected);
 
-            var parsedNp = defaultParse(
+            var parsedNp = blockParse(
                 "*h1* | *h2* | *h3*\n" +
                 "-|-|-\n" +
                 "*d1* | *d2* | *d3*\n" +
@@ -2118,7 +2125,7 @@ describe("simple markdown", function() {
 
         it("should parse table alignments", function() {
             var validateAligns = function(tableSrc, expectedAligns) {
-                var parsed = defaultParse(tableSrc + "\n");
+                var parsed = blockParse(tableSrc + "\n");
                 assert.strictEqual(parsed[0].type, "table");
                 var actualAligns = parsed[0].align;
                 validateParse(actualAligns, expectedAligns);
@@ -2169,7 +2176,7 @@ describe("simple markdown", function() {
 
         it("should be able to parse <br>s", function() {
             // Inside a paragraph:
-            var parsed = defaultParse("hi  \nbye\n\n");
+            var parsed = blockParse("hi  \nbye\n\n");
             validateParse(parsed, [{
                 type: "paragraph",
                 content: [
@@ -2180,7 +2187,7 @@ describe("simple markdown", function() {
             }]);
 
             // Outside a paragraph:
-            var parsed2 = defaultParse("hi  \nbye");
+            var parsed2 = inlineParse("hi  \nbye");
             validateParse(parsed2, [
                 { content: "hi", type: "text" },
                 { type: "br" },
@@ -2188,7 +2195,7 @@ describe("simple markdown", function() {
             ]);
 
             // But double spaces on the same line shouldn't count:
-            var parsed3 = defaultParse("hi  bye");
+            var parsed3 = inlineParse("hi  bye");
             validateParse(parsed3, [
                 { content: "hi  bye", type: "text" },
             ]);
