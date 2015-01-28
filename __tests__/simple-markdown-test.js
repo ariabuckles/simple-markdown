@@ -1253,7 +1253,8 @@ describe("simple markdown", function() {
                 type: "paragraph",
                 content: [
                     {type: "text", content: "heading2\n"},
-                    {type: "text", content: "--"},
+                    {type: "text", content: "-"},
+                    {type: "text", content: "-"},
                 ]
             }]);
         });
@@ -1327,7 +1328,8 @@ describe("simple markdown", function() {
                     {content: "paragraph\ntext\n", type: "text"},
                     {content: "-", type: "text"},
                     {content: "-", type: "text"},
-                    {content: "--\nmore paragraph", type: "text"},
+                    {content: "-", type: "text"},
+                    {content: "-\nmore paragraph", type: "text"},
                 ]
             }]);
         });
@@ -1524,7 +1526,8 @@ describe("simple markdown", function() {
                     {content: "paragraph ", type: "text"},
                     {content: "-", type: "text"},
                     {content: "-", type: "text"},
-                    {content: "--\nmore paragraph", type: "text"},
+                    {content: "-", type: "text"},
+                    {content: "-\nmore paragraph", type: "text"},
                 ]
             }]);
         });
@@ -1975,7 +1978,8 @@ describe("simple markdown", function() {
             validateParse(parsed, [{
                 type: "paragraph",
                 content: [
-                    { content: "hi - there", type: "text" },
+                    { content: "hi ", type: "text" },
+                    { content: "- there", type: "text" },
                 ]
             }]);
 
@@ -2005,23 +2009,21 @@ describe("simple markdown", function() {
                 ordered: false,
                 start: undefined,
                 items: [[
-                    { content: "hi - there", type: "text" },
+                    { content: "hi ", type: "text" },
+                    { content: "- there", type: "text" },
                 ]]
             }]);
 
-            // NOTE: This doesn't work right now because we need `*`s for
-            // emphasis, so we have to split text on them.
-            // TODO(aria): split block vs inline parsing so we can handle
-            // this case
-//            var parsed2 = blockParse("* hi * there\n\n");
-//            validateParse(parsed2, [{
-//                type: "list",
-//                ordered: false,
-//                start: undefined,
-//                items: [[
-//                    { content: "hi * there\n", type: "text" },
-//                ]]
-//            }]);
+            var parsed2 = blockParse("* hi * there\n\n");
+            validateParse(parsed2, [{
+                type: "list",
+                ordered: false,
+                start: undefined,
+                items: [[
+                    { content: "hi ", type: "text" },
+                    { content: "* there", type: "text" },
+                ]]
+            }]);
 
             var parsed3 = blockParse("1. hi 1. there\n\n");
             validateParse(parsed3, [{

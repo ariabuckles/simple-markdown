@@ -79,6 +79,11 @@ var parserFor = function(rules, ruleList) {
     var nestedParse = function(source, state) {
         var result = [];
         state = state || {};
+        // We store the previous capture so that match functions can
+        // use some limited amount of lookbehind. Lists use this to
+        // ensure they don't match arbitrary '- ' or '* ' in inline
+        // text (see the list rule for more information).
+        var prevCapture = "";
         while (source) {
             var i = 0;
             while (i < ruleList.length) {
@@ -86,12 +91,13 @@ var parserFor = function(rules, ruleList) {
                 var rule = rules[ruleType];
                 var capture;
                 if (rule.match) {
-                    capture = rule.match(source, state);
+                    capture = rule.match(source, state, prevCapture);
                 } else {
                     capture = rule.regex.exec(source);
                 }
                 if (capture) {
-                    source = source.substring(capture[0].length);
+                    var currCaptureString = capture[0];
+                    source = source.substring(currCaptureString.length);
                     var parsed = rule.parse(capture, nestedParse, state);
                     // We maintain the same object here so that rules can
                     // store references to the objects they return and
@@ -105,6 +111,8 @@ var parserFor = function(rules, ruleList) {
                         parsed.type = ruleType;
                     }
                     result.push(parsed);
+
+                    prevCapture = currCaptureString;
                     break;
                 }
                 i++;
@@ -248,6 +256,7 @@ var LIST_R = new RegExp(
     // lists, where our content might end before we receive two `\n`s
     "|\\s*\n*$)"
 );
+var LIST_LOOKBEHIND_R = /^$|\n *$/;
 
 var TABLES = (function() {
     // predefine regexes so we don't have to create them inside functions
@@ -473,8 +482,19 @@ var defaultRules = {
         }
     },
     list: {
-        match: function(source, state) {
-            if (!state.inline || state._list) {
+        match: function(source, state, prevCapture) {
+            // We only want to break into a list if we are at the start of a
+            // line. This is to avoid parsing "hi * there" with "* there"
+            // becoming a part of a list.
+            // You might wonder, "but that's inline, so of course it wouldn't
+            // start a list?". You would be correct! Except that some of our
+            // lists can be inline, because they might be inside another list,
+            // in which case we can parse with inline scope, but need to allow
+            // nested lists inside this inline scope.
+            var isStartOfLine = LIST_LOOKBEHIND_R.test(prevCapture);
+            var isListBlock = state._list || !state.inline;
+
+            if (isStartOfLine && isListBlock) {
                 return LIST_R.exec(source);
             } else {
                 return null;
@@ -554,14 +574,12 @@ var defaultRules = {
         }
     },
     def: {
-        // TODO(aria): This is super hacky, and basically looks for a def
-        // either inline or block that is followed by two newlines OR a
-        // newline and another def. This isn't quite correct, since it
-        // doesn't work on things that look like two defs within a
-        // paragraph but separated by a newline.
-        // TODO(aria): fix this
-        // TODO(aria): fix 80 char line width
-        regex: /^ *\[([^\]]+)\]: *<?([^\s>]*)>?(?: +["(]([^\n]+)[")])? *\n(?=\n|\[[^\]]+\]: )\n?/,
+        // TODO(aria): This will match without a blank line before the next
+        // block element, which is inconsistent with most of the rest of
+        // simple-markdown.
+        match: blockRegex(
+            /^ *\[([^\]]+)\]: *<?([^\s>]*)>?(?: +["(]([^\n]+)[")])? *\n(?: *\n)?/
+        ),
         parse: function(capture, parse, state) {
             var def = capture[1]
                 .replace(/\s+/g, ' ')
@@ -795,7 +813,26 @@ var defaultRules = {
     },
     em: {
         match: inlineRegex(
-            /^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/
+            new RegExp(
+                // only match _s surrounding words.
+                "^\\b_" +
+                "((?:__|[\\s\\S])+?)_" +
+                "\\b" +
+                // Or match *s:
+                "|" +
+                // Only match *s that are followed by a non-space:
+                "^\\*(?=\\S)(" +
+                // Match any of:
+                //  - `**`: so that bolds inside italics don't close the
+                //          italics
+                //  - whitespace: if it's not followed by a * (we don't
+                //          want ' *' to close an italics--it might
+                //          start a list)
+                //  - non-whitespace, non-* characters
+                "(?:\\*\\*|\\s+[^\\*\\s]|[^\\s\\*])+?" +
+                // followed by a non-space, non-* then *
+                "[^\\s\\*])\\*(?!\\*)"
+            )
         ),
         parse: function(capture, parse, state) {
             return {
@@ -834,19 +871,8 @@ var defaultRules = {
         // double newlines, or double-space-newlines
         // We break on any symbol characters so that this grammar
         // is easy to extend without needing to modify this regex
-        // HACK: the `-` is included in the list of text characters
-        // so that you can't start a list inside a list without a
-        // newline preceding the hyphen (that is, so '- a - b' is
-        // parsed as a single list item instead of a second list
-        // inside a list item). The `-\S` rule is so that we break
-        // dashes that couldn't initialize lists, so that headings
-        // with `------` underlines are not parsed as one text
-        // blob.
-        // TODO(aria): add block vs inline regexes so that we
-        // can define lists as block and not consider them for
-        // inline text.
         match: inlineRegex(
-            /^[\s\S]+?(?=[^0-9A-Za-z\s\u00ff-\uffff\-]|-\S|\n\n| {2,}\n|\w+:|$)/
+            /^[\s\S]+?(?=[^0-9A-Za-z\s\u00ff-\uffff]|\n\n| {2,}\n|\w+:|$)/
         ),
         parse: function(capture, parse, state) {
             return {
