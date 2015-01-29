@@ -65,6 +65,7 @@ For output, rules must specify an `output` method.
 Here is an example rule, a slightly modified version of what
 simple-markdown uses for parsing **strong** (**bold**) text:
 
+```javascript
     strong: {
         match: function(source, state, lookbehind) {
             return /^\*\*([\s\S]+?)\*\*(?!\*)/.exec(source);
@@ -78,6 +79,7 @@ simple-markdown uses for parsing **strong** (**bold**) text:
             return React.DOM.strong(null, recurseOutput(node.content));
         }
     },
+```
 
 Let's look at those three methods in more detail.
 
@@ -130,10 +132,12 @@ to state, or `inline: false` to force block parsing (to leave the
 parsing scope alone, you can just pass `state` with no modifications).
 For example:
 
+```javascript
     var innerText = capture[1];
     recurseParse(innerText, _.defaults({
         inline: true
     }, state));
+```
     
 `parse` should return a `node` object, which can have custom fields
 that will be passed to `output`, below. The one reserved field is
@@ -216,7 +220,9 @@ arrays correctly.
 The most common use case is to pass the output of
 `ruleOutput` as the parameter to `outputFor`:
 
+```javascript
     var output = SimpleMarkdown.outputFor(SimpleMarkdown.ruleOutput(rules));
+```
 
 #### Putting it all together
 
@@ -229,6 +235,7 @@ input manually, in addition to specifying `inline: false`
 default rules, which assume `inline` is false if it is
 undefined).
 
+```javascript
     var rules = SimpleMarkdown.defaultRules; // for example
     var priorities = SimpleMarkdown.defaultPriorities; // likewise
     var parser = SimpleMarkdown.parserFor(rules, priorities);
@@ -241,6 +248,7 @@ undefined).
         var outputResult = output(parseTree);
         return outputResult;
     };
+```
 
 Extension rules helper functions
 --------------------------------
