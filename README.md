@@ -99,12 +99,14 @@ allow for lookbehind. For example, lists check that lookbehind ends with
 `/^$|\n *$/` to ensure that lists only match at the beginning of a new
 line.
 
-`match` should return an object, array, or array-like object, which
-we'll call `capture`, where `capture[0]` is the full matched source,
-and any other fields can be used in the rule's `parse` function.
-The return value from `Regexp.prototype.exec` fits this requirement,
-and the common use case is to return the result of
-`someRegex.exec(source)`.
+If this rule matches, `match` should return an object, array, or
+array-like object, which we'll call `capture`, where `capture[0]`
+is the full matched source, and any other fields can be used in the
+rule's `parse` function. The return value from `Regexp.prototype.exec`
+fits this requirement, and the common use case is to return the result
+of `someRegex.exec(source)`.
+
+If this rule does not match, `match` should return null.
 
 NOTE: If you are using regexes in your match function, your regex
 should always begin with `^`. Regexes without leading `^`s can
@@ -112,7 +114,34 @@ cause unexpected output or infinite loops.
 
 #### `parse(capture, recurseParse, state)`
 
-*Coming soon*
+`parse` takes the output of `match` and transforms it into a syntax
+tree node object, which we'll call `node` here.
+
+`capture` is the non-null result returned from match.
+
+`recurseParse` is a function that can be called on sub-content and
+state to recursively parse the sub-content. This returns an array.
+
+`state` is the mutable state threading object, which can be examined
+or modified, and should be passed through to any `recurseParse` calls.
+
+For example, to parse inline sub-content, you can add `inline: true`
+to state, or `inline: false` to force block parsing (to leave the
+parsing scope alone, you can just pass `state` with no modifications).
+For example:
+
+    var innerText = capture[1];
+    recurseParse(innerText, _.defaults({
+        inline: true
+    }, state));
+    
+`parse` should return a `node` object, which can have custom fields
+that will be passed to `output`, below. The one reserved field is
+`type`, which designates the type of the node, which will be used
+for output. If no type is specified, simple-markdown will use the
+current rule's type (the common case). If you have multiple ways
+to parse a single element, it can be useful to have multiple rules
+that all return nodes of the same type.
 
 #### `output(node, recurseOutput)`
 
