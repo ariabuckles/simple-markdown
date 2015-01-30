@@ -118,7 +118,7 @@ will explain how all of these steps work in greater detail. (To
 follow along with these examples, you'll also need
 [underscore][underscore].)
 
-[underscore][http://underscorejs.org/]
+[underscore]: http://underscorejs.org/
 
 First, we create a new rule. We'll look for double underscores
 surrounding text.
