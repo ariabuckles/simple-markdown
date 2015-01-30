@@ -104,7 +104,9 @@ var parserFor = function(rules, ruleList) {
                 }
                 i++;
             }
-            if (i === rules.length) {
+
+            // TODO(aria): Write tests for this
+            if (i === ruleList.length) {
                 throw new Error(
                     "could not find rule to match content: " + source
                 );
