@@ -16,16 +16,198 @@ simple-markdown aims for extensibility and simplicity.
 
 What does this mean?
 Many websites using markdown-like languages have custom extensions,
-such as `@`mentions or issue number linking. These extensions are
-usually custom to the specific site, and don't make sense as part
-of generic markdown. Unfortunately, most markdown-like parsers
-have a very small interface that doesn't allow extension without
-forking. simple-markdown is designed to allow simple addition of
+such as `@`mentions or issue number linking. Unfortunately, most
+markdown-like parsers don't allow extension without
+forking, and can be difficult to modify even when forked.
+simple-markdown is designed to allow simple addition of
 custom extensions without needing to be forked.
 
 At Khan Academy, we use markdown to format
 over half of our math exercises, but we need extensions for
-math text and interactive widgets.
+math text and interactive widgets. simple-markdown processes
+the majority of our exercises using
+[these extensions][PerseusMarkdown].
+
+[PerseusMarkdown][https://github.com/Khan/perseus/blob/master/src/perseus-markdown.jsx]
+
+simple-markdown is MIT licensed. See the LICENSE file for the
+license text.
+
+Getting started
+---------------
+
+First, let's parse and output some generic markdown using
+simple-markdown.
+
+If you want to run these examples in
+node, you should run `npm install` in the simple-markdown
+folder or `npm install simple-markdown` in your project's
+folder. Then you can acquire the `SimpleMarkdown` variable
+with:
+
+```javascript
+    var SimpleMarkdown = require("simple-markdown");
+```
+
+Then let's get a basic markdown parser and outputter.
+`SimpleMarkdown` provides default parsers/outputters for
+generic markdown:
+
+```javascript
+    var mdParser = SimpleMarkdown.defaultBlockParser;
+    var mdOutput = SimpleMarkdown.defaultOutput;
+```
+
+`mdParse` can give us a syntax tree:
+
+```javascript
+    var syntaxTree = mdParse(
+        "Here is a paragraph and an *em tag*."
+    );
+```
+
+Let's inspect our syntax tree:
+
+```javascript
+    // pretty-print this with 4-space indentation:
+    console.log(JSON.stringify(syntaxTree, null, 4));
+    => [
+        {
+            "content": [
+                {
+                    "content": "Here is a paragraph and an ",
+                    "type": "text"
+                },
+                {
+                    "content": [
+                        {
+                            "content": "em tag",
+                            "type": "text"
+                        }
+                    ],
+                    "type": "em"
+                },
+                {
+                    "content": ".",
+                    "type": "text"
+                }
+            ],
+            "type": "paragraph"
+        }
+    ]
+```
+
+Then to turn that into an array of React elements, we can
+call `mdOutput`:
+
+```javascript
+    mdOutput(syntaxTree)
+    => [ { type: 'div',
+        key: null,
+        ref: null,
+        _owner: null,
+        _context: {},
+        _store: { validated: false, props: [Object] } } ]
+```
+
+
+Adding a simple extension
+-------------------------
+
+Let's add an underline extension! To do this, we'll need to create
+a new rule and then make a new parser/outputter. The next section
+will explain how all of these steps work in greater detail. (To
+follow along with these examples, you'll also need
+[underscore][underscore].)
+
+[underscore][http://underscorejs.org/]
+
+First, we create a new rule. We'll look for double underscores
+surrounding text. A regex to capture this would look something
+like `/^__([\s\S]+?)__(?!_)/`. This matches "__", followed by
+any content until it finds another "__" not followed by a
+third "_".
+
+```javascript
+    var underlineRule = {
+        // First we check whether a string matches
+        match: function(source) {
+            return /^__([\s\S]+?)__(?!_)/.exec(source);
+        },
+        // Then parse this string into a syntax node
+        parse: function(capture, parse, state) {
+            return {
+                content: parse(capture[1], state)
+            };
+        },
+        // Finally transform this syntax node into a
+        // React element
+        output: function(node, output) {
+            return React.DOM.u(null, output(node.content));
+        }
+    };
+```
+
+Then, we need to add this rule to the other rules:
+
+```javascript
+    var rules = _.extend({}, SimpleMarkdown.defaultRules, {
+        underline: underlineRule
+    });
+```
+
+And to the other priorities. We'll put underlines right
+before `em`s, so that `"__"` will be parsed before `"_"`
+for emphasis/italics.
+
+```javascript
+    var priorities = _.clone(SimpleMarkdown.defaultPriorities);
+    var emIndex = priorities.indexOf("em");
+    priorities.splice(emIndex, 0, "underline");
+```
+
+Finally, we need to build our parser and outputter:
+
+```javascript
+    var rawBuiltParser = SimpleMarkdown.parserFor(rules, priorities);
+    var parse = function(source) {
+        var blockSource = source + "\n\n";
+        return rawBuiltParser(blockSource, {inline: false});
+    };
+    var output = SimpleMarkdown.outputFor(SimpleMarkdown.ruleOutput(rules));
+```
+
+Now we can use our custom `parse` and `output` functions to parse
+markdown with underlines!
+
+```javascript
+    var syntaxTree = parse("__hello underlines__");
+    console.log(JSON.stringify(syntaxTree, null, 4));
+    => [
+        {
+            "content": [
+                {
+                    "content": [
+                        {
+                            "content": "hello underlines",
+                            "type": "text"
+                        }
+                    ],
+                    "type": "underline"
+                }
+            ],
+            "type": "paragraph"
+        }
+    ]
+    
+    output(syntaxTree)
+    => [ { type: 'div',
+        key: null,
+        ref: null,
+        _owner: null,
+        _context: {},
+        _store: { validated: false, props: [Object] } } ]
+```
 
 
 Basic parsing/output API
