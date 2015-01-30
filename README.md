@@ -22,16 +22,16 @@ forking, and can be difficult to modify even when forked.
 simple-markdown is designed to allow simple addition of
 custom extensions without needing to be forked.
 
-At Khan Academy, we use markdown to format
-over half of our math exercises, but we need extensions for
-math text and interactive widgets. simple-markdown processes
-the majority of our exercises using
-[these extensions][PerseusMarkdown].
+At Khan Academy, we use simple-markdown to format
+over half of our math exercises, because we need
+[markdown extensions][PerseusMarkdown] for math text and
+interactive widgets.
 
 [PerseusMarkdown]: https://github.com/Khan/perseus/blob/master/src/perseus-markdown.jsx
 
-simple-markdown is MIT licensed. See the LICENSE file for the
-license text.
+simple-markdown is [MIT licensed][LICENSE].
+
+[LICENSE]: https://github.com/Khan/simple-markdown/blob/master/LICENSE
 
 Getting started
 ---------------
