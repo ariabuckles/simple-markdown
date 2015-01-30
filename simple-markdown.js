@@ -63,9 +63,12 @@ var React = find("React") || require("react");
  * Creates a parser for a given set of rules, with the precedence
  * specified as a list of rules.
  *
- * @rules: an object containing rule type -> {regex, parse} objects
- * @ruleList: an array of rule types, specifying the precedence rules
- *   are evaluated in (earlier in the array is higher precendence)
+ * @rules: an object containing
+ * rule type -> {match, order, parse} objects
+ * (lower order is higher precedence)
+ * (Note: `order` is added to defaultRules after creation so that
+ *  the `order` of defaultRules in the source matches the `order`
+ *  of defaultRules in terms of `order` fields.)
  *
  * @returns The resulting parse function, with the following parameters:
  *   @source: the input source string to be parsed
@@ -75,7 +78,31 @@ var React = find("React") || require("react");
  *     some nesting is. For an example use-case, see passage-ref
  *     parsing in src/widgets/passage/passage-markdown.jsx
  */
-var parserFor = function(rules, ruleList) {
+var parserFor = function(rules) {
+    // Sorts rules in order of increasing order, then
+    // ascending rule name in case of ties.
+    var ruleList = _.keys(rules);
+    ruleList.sort(function(typeA, typeB) {
+        var orderA = rules[typeA].order;
+        var orderB = rules[typeB].order;
+
+        // First sort based on increasing order
+        if (orderA !== orderB) {
+            return orderA - orderB;
+
+        // Then based on increasing unicode lexicographic ordering
+        } else if (typeA < typeB) {
+            return -1;
+        } else if (typeA > typeB) {
+            return 1;
+
+        } else {
+            // Rules should never have the same name,
+            // but this is provided for completeness.
+            return 0;
+        }
+    });
+
     var nestedParse = function(source, state) {
         var result = [];
         state = state || {};
@@ -885,7 +912,9 @@ var defaultRules = {
     }
 };
 
-var defaultPriorities = Object.keys(defaultRules);
+_.each(Object.keys(defaultRules), function(type, i) {
+    defaultRules[type].order = i;
+});
 
 var ruleOutput = function(rules) {
     var nestedRuleOutput = function(ast, outputFunc) {
@@ -894,7 +923,7 @@ var ruleOutput = function(rules) {
     return nestedRuleOutput;
 };
 
-var defaultRawParse = parserFor(defaultRules, defaultPriorities);
+var defaultRawParse = parserFor(defaultRules);
 var defaultBlockParse = function(source) {
     return defaultRawParse(source + "\n\n", {
         inline: false
@@ -917,7 +946,6 @@ var SimpleMarkdown = {
     parserFor: parserFor,
     outputFor: outputFor,
     defaultRules: defaultRules,
-    defaultPriorities: defaultPriorities,
     ruleOutput: ruleOutput,
 
     inlineRegex: inlineRegex,

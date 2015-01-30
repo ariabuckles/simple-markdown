@@ -2204,6 +2204,186 @@ describe("simple markdown", function() {
         });
     });
 
+    describe("parser extension api", function() {
+        it("should parse a simple %variable% extension", function() {
+            var percentVarRule = {
+                match: function(source) {
+                    return /^%([\s\S]+?)%/.exec(source);
+                },
+
+                order: SimpleMarkdown.defaultRules.em.order + 0.5,
+
+                parse: function(capture, parse, state) {
+                    return {
+                        content: capture[1]
+                    };
+                }
+            };
+
+            var rules = _.extend({}, SimpleMarkdown.defaultRules, {
+                percentVar: percentVarRule
+            });
+
+            var rawBuiltParser = SimpleMarkdown.parserFor(rules);
+
+            var inlineParse = function(source) {
+                return rawBuiltParser(source, {inline: true});
+            };
+
+            var parsed = inlineParse("Hi %name%!");
+
+            validateParse(parsed, [
+                {content: "Hi ", type: "text"},
+                {content: "name", type: "percentVar"},
+                {content: "!", type: "text"},
+            ]);
+        });
+
+        describe("should sort rules by order and name", function() {
+            var emRule = {
+                match: SimpleMarkdown.inlineRegex(/^_([\s\S]+?)_/),
+                parse: function(capture, parse, state) {
+                    return {
+                        content: capture[1]
+                    };
+                }
+            };
+            var textRule = _.extend({}, SimpleMarkdown.defaultRules.text, {
+                order: 10
+            });
+
+            it("should sort rules by order", function() {
+                var parser1 = SimpleMarkdown.parserFor({
+                    em1: _.extend({}, emRule, {
+                        order: 0
+                    }),
+                    em2: _.extend({}, emRule, {
+                        order: 1
+                    }),
+                    text: textRule
+                });
+
+                var parsed1 = parser1("_hi_", {inline: true});
+                validateParse(parsed1, [
+                    {content: "hi", type: "em1"},
+                ]);
+
+                var parser2 = SimpleMarkdown.parserFor({
+                    em1: _.extend({}, emRule, {
+                        order: 1
+                    }),
+                    em2: _.extend({}, emRule, {
+                        order: 0
+                    }),
+                    text: textRule
+                });
+
+                var parsed2 = parser2("_hi_", {inline: true});
+                validateParse(parsed2, [
+                    {content: "hi", type: "em2"},
+                ]);
+            });
+
+            it("should allow fractional orders", function() {
+                var parser1 = SimpleMarkdown.parserFor({
+                    em1: _.extend({}, emRule, {
+                        order: 1.4
+                    }),
+                    em2: _.extend({}, emRule, {
+                        order: 0.9
+                    }),
+                    text: textRule
+                });
+
+                var parsed1 = parser1("_hi_", {inline: true});
+                validateParse(parsed1, [
+                    {content: "hi", type: "em2"},
+                ]);
+
+                var parser2 = SimpleMarkdown.parserFor({
+                    em1: _.extend({}, emRule, {
+                        order: 0.5
+                    }),
+                    em2: _.extend({}, emRule, {
+                        order: 0
+                    }),
+                    text: textRule
+                });
+
+                var parsed2 = parser2("_hi_", {inline: true});
+                validateParse(parsed2, [
+                    {content: "hi", type: "em2"},
+                ]);
+            });
+
+            it("should allow negative orders", function() {
+                var parser1 = SimpleMarkdown.parserFor({
+                    em1: _.extend({}, emRule, {
+                        order: 0
+                    }),
+                    em2: _.extend({}, emRule, {
+                        order: -1
+                    }),
+                    text: textRule
+                });
+
+                var parsed1 = parser1("_hi_", {inline: true});
+                validateParse(parsed1, [
+                    {content: "hi", type: "em2"},
+                ]);
+
+                var parser2 = SimpleMarkdown.parserFor({
+                    em1: _.extend({}, emRule, {
+                        order: -2
+                    }),
+                    em2: _.extend({}, emRule, {
+                        order: 1
+                    }),
+                    text: textRule
+                });
+
+                var parsed2 = parser2("_hi_", {inline: true});
+                validateParse(parsed2, [
+                    {content: "hi", type: "em1"},
+                ]);
+            });
+
+            it("should break ties by rule name", function() {
+                var parser1 = SimpleMarkdown.parserFor({
+                    em1: _.extend({}, emRule, {
+                        order: 0
+                    }),
+                    em2: _.extend({}, emRule, {
+                        order: 0
+                    }),
+                    text: textRule
+                });
+
+                var parsed1 = parser1("_hi_", {inline: true});
+                validateParse(parsed1, [
+                    {content: "hi", type: "em1"},
+                ]);
+
+                // ...regardless of their order in the
+                // original rule definition
+                var parser2 = SimpleMarkdown.parserFor({
+                    em2: _.extend({}, emRule, {
+                        order: 0
+                    }),
+                    em1: _.extend({}, emRule, {
+                        order: 0
+                    }),
+                    text: textRule
+                });
+
+                var parsed2 = parser2("_hi_", {inline: true});
+                validateParse(parsed1, [
+                    {content: "hi", type: "em1"},
+                ]);
+            });
+        });
+    });
+
     describe("react output", function() {
         it("should sanitize dangerous links", function() {
             var html = htmlFromMarkdown(
