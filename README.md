@@ -1,8 +1,8 @@
 simple-markdown
 ===============
 
-Javascript markdown parsing, made simple.
-
+simple-markdown is a markdown-like parser designed for simplicity
+and extensibility.
 
 Philosophy
 ----------
