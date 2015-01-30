@@ -28,7 +28,7 @@ math text and interactive widgets. simple-markdown processes
 the majority of our exercises using
 [these extensions][PerseusMarkdown].
 
-[PerseusMarkdown][https://github.com/Khan/perseus/blob/master/src/perseus-markdown.jsx]
+[PerseusMarkdown]: https://github.com/Khan/perseus/blob/master/src/perseus-markdown.jsx
 
 simple-markdown is MIT licensed. See the LICENSE file for the
 license text.
