@@ -61,9 +61,7 @@ generic markdown:
 `mdParse` can give us a syntax tree:
 
 ```javascript
-    var syntaxTree = mdParse(
-        "Here is a paragraph and an *em tag*."
-    );
+    var syntaxTree = mdParse("Here is a paragraph and an *em tag*.");
 ```
 
 Let's inspect our syntax tree:
