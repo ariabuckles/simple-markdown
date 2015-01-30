@@ -121,23 +121,34 @@ follow along with these examples, you'll also need
 [underscore][http://underscorejs.org/]
 
 First, we create a new rule. We'll look for double underscores
-surrounding text. A regex to capture this would look something
+surrounding text.
+
+We'll put underlines right
+before `em`s, so that `"__"` will be parsed before `"_"`
+for emphasis/italics.
+
+A regex to capture this would look something
 like `/^__([\s\S]+?)__(?!_)/`. This matches "__", followed by
 any content until it finds another "__" not followed by a
 third "_".
 
 ```javascript
     var underlineRule = {
+        // Specify the order in which this rule is to be run
+        order: SimpleMarkdown.defaultRules.em.order - 0.5,
+        
         // First we check whether a string matches
         match: function(source) {
             return /^__([\s\S]+?)__(?!_)/.exec(source);
         },
+        
         // Then parse this string into a syntax node
         parse: function(capture, parse, state) {
             return {
                 content: parse(capture[1], state)
             };
         },
+        
         // Finally transform this syntax node into a
         // React element
         output: function(node, output) {
@@ -154,20 +165,10 @@ Then, we need to add this rule to the other rules:
     });
 ```
 
-And to the other priorities. We'll put underlines right
-before `em`s, so that `"__"` will be parsed before `"_"`
-for emphasis/italics.
-
-```javascript
-    var priorities = _.clone(SimpleMarkdown.defaultPriorities);
-    var emIndex = priorities.indexOf("em");
-    priorities.splice(emIndex, 0, "underline");
-```
-
 Finally, we need to build our parser and outputter:
 
 ```javascript
-    var rawBuiltParser = SimpleMarkdown.parserFor(rules, priorities);
+    var rawBuiltParser = SimpleMarkdown.parserFor(rules);
     var parse = function(source) {
         var blockSource = source + "\n\n";
         return rawBuiltParser(blockSource, {inline: false});
@@ -357,39 +358,27 @@ intermediate steps in the parsing/output process, if necessary.
 #### `SimpleMarkdown.defaultRules`
 
 The default rules, specified as an object, where the keys are
-the rule types, and the values are objects containing `match`,
-`parse`, and `output` functions (these rules can be used for
-both parsing and outputting).
+the rule types, and the values are objects containing `order`,
+`match`, `parse`, and `output` fields (these rules can be used
+for both parsing and outputting).
 
-#### `SimpleMarkdown.defaultPriorities`
+#### `SimpleMarkdown.parserFor(rules)`
 
-An array of the types in `defaultRules`, in priority order.
-To extend simple-markdown with your own rules, you will need
-to create a `priorities` array of the order in which to parse
-rules (rules will only be considered if they are found in the
-`priorities` array). If you intend to keep all or most of the
-default rules, creating a custom `priorities` array from the
-`defaultPriorities` array is often useful.
-
-The `priorities` array is an array of strings, where each element
-is the string name of a type in the `rules` object.
-
-#### `SimpleMarkdown.parserFor(rules, priorities)`
-
-Takes a `rules` object and a `priorities` array, and
-returns a parser for the rule types in the `priorities`
-array, in that order. The rules in the `rules` object
-should contain `match` and `parse` functions for each
-rule listed in the `priorities` array.
+Takes a `rules` object and returns a parser for the rule types
+in the rules object, in order of increasing `order` fields,
+which must be present and a finite number for each rule.
+In the case of order field ties, rules are ordered
+lexicographically by rule name. Each of the rules in the `rules`
+object must contain a `match` and a `parse` function.
 
 #### `SimpleMarkdown.ruleOutput(rules)`
 
-Takes a `rules` object and returns a function that can
-output a single syntax tree node of any type that is
-in the `rules` object, given a node and a recursive output
-function. This is not the final output function because it
-doesn't handle arrays of nodes or recursion
-(see `outputFor`).
+Takes a `rules` object, containing an `output` function for
+each rule, and returns a function that can output a single
+syntax tree node of any type that is in the `rules` object,
+given a node and a recursive output function. This is not
+the final output function because it doesn't handle arrays
+of nodes or recursion (see `outputFor`).
 
 #### `SimpleMarkdown.outputFor(singleNodeOutputFunction)`
 
@@ -406,8 +395,8 @@ The most common use case is to pass the output of
 
 #### Putting it all together
 
-Given a set of rules and priorities, one can create a single
-function that takes an input content string and outputs a
+Given a set of rules, one can create a single function
+that takes an input content string and outputs a
 React-renderable as follows. Note that since many rules
 expect blocks to end in `"\n\n"`, we append that to source
 input manually, in addition to specifying `inline: false`
@@ -417,9 +406,10 @@ undefined).
 
 ```javascript
     var rules = SimpleMarkdown.defaultRules; // for example
-    var priorities = SimpleMarkdown.defaultPriorities; // likewise
-    var parser = SimpleMarkdown.parserFor(rules, priorities);
+
+    var parser = SimpleMarkdown.parserFor(rules);
     var output = SimpleMarkdown.outputFor(SimpleMarkdown.ruleOutput(rules));
+    
     var blockParseAndOutput = function(source) {
         // Many rules require content to end in \n\n to be interpreted
         // as a block.
