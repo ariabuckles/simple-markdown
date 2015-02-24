@@ -192,7 +192,7 @@ var anyScopeRegex = function(regex) {
     return match;
 };
 
-var outputFor = function(outputFunc) {
+var reactFor = function(outputFunc) {
     var nestedOutput = function(ast) {
         if (_.isArray(ast)) {
             return _.map(ast, nestedOutput);
@@ -435,10 +435,10 @@ var defaultRules = {
                 content: parseInline(parse, capture[2], state)
             };
         },
-        output: function(node, output) {
+        react: function(node, output, state) {
             return React.DOM["h" + node.level](
                 null,
-                output(node.content)
+                output(node.content, state)
             );
         }
     },
@@ -461,7 +461,7 @@ var defaultRules = {
     hr: {
         match: blockRegex(/^( *[-*_]){3,} *(?:\n *)+\n/),
         parse: ignoreCapture,
-        output: function() { return React.DOM.hr(null); }
+        react: function() { return React.DOM.hr(null); }
     },
     codeBlock: {
         match: blockRegex(/^(?:    [^\n]+\n*)+(?:\n *)+\n/),
@@ -474,7 +474,7 @@ var defaultRules = {
                 content: content
             };
         },
-        output: function(node, output) {
+        react: function(node, output) {
             var className = node.lang ?
                 "markdown-code-" + node.lang :
                 undefined;
@@ -503,7 +503,7 @@ var defaultRules = {
                 content: parse(content, state)
             };
         },
-        output: function(node, output) {
+        react: function(node, output) {
             return React.DOM.blockquote(null, output(node.content));
         }
     },
@@ -589,7 +589,7 @@ var defaultRules = {
                 items: itemContent
             };
         },
-        output: function(node, output) {
+        react: function(node, output) {
             var ListWrapper = node.ordered ? "ol" : "ul";
             return React.DOM[ListWrapper]({
                 start: node.start
@@ -644,12 +644,12 @@ var defaultRules = {
                 def: def
             }, defAttrs);
         },
-        output: function() { return null; }
+        react: function() { return null; }
     },
     table: {
         match: blockRegex(/^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/),
         parse: TABLES.parseTable,
-        output: function(node, output) {
+        react: function(node, output) {
             var getStyle = function(colIndex) {
                 return node.align[colIndex] == null ? {} : {
                     textAlign: node.align[colIndex]
@@ -687,12 +687,12 @@ var defaultRules = {
     newline: {
         match: blockRegex(/^(?:\n *)*\n/),
         parse: ignoreCapture,
-        output: function(node, output) { return "\n"; }
+        react: function(node, output) { return "\n"; }
     },
     paragraph: {
         match: blockRegex(/^((?:[^\n]|\n(?! *\n))+)(?:\n *)+\n/),
         parse: parseCaptureInline,
-        output: function(node, output) {
+        react: function(node, output) {
             return React.DOM.div({className: "paragraph"}, output(node.content));
         }
     },
@@ -769,7 +769,7 @@ var defaultRules = {
             };
             return link;
         },
-        output: function(node, output) {
+        react: function(node, output) {
             return React.DOM.a({
                 href: sanitizeUrl(node.target),
                 title: node.title
@@ -788,7 +788,7 @@ var defaultRules = {
             };
             return image;
         },
-        output: function(node, output) {
+        react: function(node, output) {
             return React.DOM.img({
                 src: sanitizeUrl(node.target),
                 alt: node.alt,
@@ -826,14 +826,14 @@ var defaultRules = {
     strong: {
         match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
         parse: parseCaptureInline,
-        output: function(node, output) {
+        react: function(node, output) {
             return React.DOM.strong(null, output(node.content));
         }
     },
     u: {
         match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
         parse: parseCaptureInline,
-        output: function(node, output) {
+        react: function(node, output) {
             return React.DOM.u(null, output(node.content));
         }
     },
@@ -865,14 +865,14 @@ var defaultRules = {
                 content: parse(capture[2] || capture[1], state)
             };
         },
-        output: function(node, output) {
+        react: function(node, output) {
             return React.DOM.em(null, output(node.content));
         }
     },
     del: {
         match: inlineRegex(/^~~(?=\S)([\s\S]*?\S)~~/),
         parse: parseCaptureInline,
-        output: function(node, output) {
+        react: function(node, output) {
             return React.DOM.del(null, output(node.content));
         }
     },
@@ -883,14 +883,14 @@ var defaultRules = {
                 content: capture[2]
             };
         },
-        output: function(node, output) {
+        react: function(node, output) {
             return React.DOM.code(null, node.content);
         }
     },
     br: {
         match: anyScopeRegex(/^ {2,}\n/),
         parse: ignoreCapture,
-        output: function() { return React.DOM.br(null); }
+        react: function() { return React.DOM.br(null); }
     },
     text: {
         // Here we look for anything followed by non-symbols,
@@ -905,7 +905,7 @@ var defaultRules = {
                 content: capture[0]
             };
         },
-        output: function(node, output) {
+        react: function(node, output) {
             return node.content;
         }
     }
@@ -915,9 +915,16 @@ _.each(Object.keys(defaultRules), function(type, i) {
     defaultRules[type].order = i;
 });
 
-var ruleOutput = function(rules) {
-    var nestedRuleOutput = function(ast, outputFunc) {
-        return rules[ast.type].output(ast, outputFunc);
+var ruleOutput = function(rules, property) {
+    if (!property && typeof console !== "undefined") {
+        console.warn("simple-markdown ruleOutput should take 'react' or " +
+            "'html' as the second argument."
+        );
+    }
+    // deprecated:
+    property = property || "react";
+    var nestedRuleOutput = function(ast, outputFunc, state) {
+        return rules[ast.type][property](ast, outputFunc, state);
     };
     return nestedRuleOutput;
 };
@@ -939,13 +946,13 @@ var defaultImplicitParse = function(source) {
     });
 };
 
-var defaultOutput = outputFor(ruleOutput(defaultRules));
+var defaultReactOutput = reactFor(ruleOutput(defaultRules, "react"));
 
 var SimpleMarkdown = {
-    parserFor: parserFor,
-    outputFor: outputFor,
     defaultRules: defaultRules,
+    parserFor: parserFor,
     ruleOutput: ruleOutput,
+    reactFor: reactFor,
 
     inlineRegex: inlineRegex,
     blockRegex: blockRegex,
@@ -958,12 +965,14 @@ var SimpleMarkdown = {
     defaultInlineParse: defaultInlineParse,
     defaultImplicitParse: defaultImplicitParse,
 
+    defaultReactOutput: defaultReactOutput,
+
+    sanitizeUrl: sanitizeUrl,
+
     // deprecated:
     defaultParse: defaultImplicitParse,
-
-    defaultOutput: defaultOutput,
-
-    sanitizeUrl: sanitizeUrl
+    outputFor: reactFor,
+    defaultOutput: defaultReactOutput,
 };
 
 if (typeof module !== "undefined" && module.exports) {
