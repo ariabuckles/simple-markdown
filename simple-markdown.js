@@ -193,11 +193,18 @@ var anyScopeRegex = function(regex) {
 };
 
 var reactFor = function(outputFunc) {
-    var nestedOutput = function(ast) {
+    var nestedOutput = function(ast, state) {
+        state = state || {};
         if (_.isArray(ast)) {
-            return _.map(ast, nestedOutput);
+            var oldKey = state.key;
+            var result = ast.map(function(node, i) {
+                state.key = i;
+                return nestedOutput(node, state);
+            });
+            state.key = oldKey;
+            return result;
         } else {
-            return outputFunc(ast, nestedOutput);
+            return outputFunc(ast, nestedOutput, state);
         }
     };
     return nestedOutput;
