@@ -283,7 +283,6 @@ var LIST_BLOCK_END_R = BLOCK_END_R;
 var LIST_ITEM_END_R = / *\n+$/;
 // check whether a list item has paragraphs: if it does,
 // we leave the newlines at the end
-var LIST_IS_MULTI_PARAGRAPH_R = /\n{2,}./;
 var LIST_R = new RegExp(
     "^( *)(" + LIST_BULLET + ") " +
     "[\\s\\S]+?(?:\n{2,}(?! )" +
