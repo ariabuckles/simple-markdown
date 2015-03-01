@@ -57,7 +57,6 @@ var find = function(globalName) {
 };
 
 var _ = find("_") || require("underscore");
-var React = find("React") || require("react/addons");
 
 /**
  * Creates a parser for a given set of rules, with the precedence
@@ -209,6 +208,39 @@ var reactFor = function(outputFunc) {
     };
     return nestedOutput;
 };
+
+var reactElement = function(element) {
+    // Debugging assertions. To be commented out when committed
+    // TODO(aria): Figure out a better way of having dev asserts
+/*
+    if (typeof element.props !== "object") {
+        throw new Error("props of " + element.type + " must be an object");
+    }
+    if (!element._isReactElement) {
+        throw new Error(
+            "must set _isReactElement on element " +
+            element.type
+        );
+    }
+    if (element._store !== null) { // === because we don't want to count
+                                   // undefined here
+        throw new Error(
+            "must set _store to null on element " +
+            element.type
+        );
+    }
+*/
+
+    // This should just override an already present element._store, which
+    // exists so that the class of this object doesn't change in V8
+    element._store = {
+        validated: true,
+        originalProps: element.props
+    };
+    return element;
+};
+
+var EMPTY_PROPS = {};
 
 var sanitizeUrl = function(url) {
     if (url == null) {
@@ -443,10 +475,15 @@ var defaultRules = {
             };
         },
         react: function(node, output, state) {
-            return React.DOM["h" + node.level](
-                null,
-                output(node.content, state)
-            );
+            return reactElement({
+                type: 'h' + node.level,
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                _isReactElement: true,
+                _store: null
+            });
         }
     },
     nptable: {
@@ -468,7 +505,15 @@ var defaultRules = {
     hr: {
         match: blockRegex(/^( *[-*_]){3,} *(?:\n *)+\n/),
         parse: ignoreCapture,
-        react: function() { return React.DOM.hr(null); }
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'hr',
+                key: state.key,
+                props: EMPTY_PROPS,
+                _isReactElement: true,
+                _store: null,
+            });
+        }
     },
     codeBlock: {
         match: blockRegex(/^(?:    [^\n]+\n*)+(?:\n *)+\n/),
@@ -481,15 +526,28 @@ var defaultRules = {
                 content: content
             };
         },
-        react: function(node, output) {
+        react: function(node, output, state) {
             var className = node.lang ?
                 "markdown-code-" + node.lang :
                 undefined;
-            return React.DOM.pre(null,
-                React.DOM.code({className: className},
-                    node.content
-                )
-            );
+
+            return reactElement({
+                type: 'pre',
+                key: state.key,
+                props: {
+                    children: reactElement({
+                        type: 'code',
+                        props: {
+                            className: className,
+                            children: node.content
+                        },
+                        _isReactElement: true,
+                        _store: null
+                    })
+                },
+                _isReactElement: true,
+                _store: null
+            });
         }
     },
     fence: {
@@ -510,8 +568,16 @@ var defaultRules = {
                 content: parse(content, state)
             };
         },
-        react: function(node, output) {
-            return React.DOM.blockquote(null, output(node.content));
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'blockquote',
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                _isReactElement: true,
+                _store: null
+            });
         }
     },
     list: {
@@ -596,14 +662,29 @@ var defaultRules = {
                 items: itemContent
             };
         },
-        react: function(node, output) {
+        react: function(node, output, state) {
             var ListWrapper = node.ordered ? "ol" : "ul";
-            return React.DOM[ListWrapper]({
-                start: node.start
-            }, _.map(node.items, function(item) {
-                    return React.DOM.li(null, output(item));
-                })
-            );
+
+            return reactElement({
+                type: ListWrapper,
+                key: state.key,
+                props: {
+                    start: node.start,
+                    children: node.items.map(function(item, i) {
+                        return reactElement({
+                            type: 'li',
+                            key: i,
+                            props: {
+                                children: output(item, state)
+                            },
+                            _isReactElement: true,
+                            _store: null,
+                        });
+                    })
+                },
+                _isReactElement: true,
+                _store: null,
+            });
         }
     },
     def: {
@@ -656,7 +737,7 @@ var defaultRules = {
     table: {
         match: blockRegex(/^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/),
         parse: TABLES.parseTable,
-        react: function(node, output) {
+        react: function(node, output, state) {
             var getStyle = function(colIndex) {
                 return node.align[colIndex] == null ? {} : {
                     textAlign: node.align[colIndex]
@@ -664,43 +745,94 @@ var defaultRules = {
             };
 
             var headers = _.map(node.header, function(content, i) {
-                return React.DOM.th({style: getStyle(i)},
-                    output(content)
-                );
+                return reactElement({
+                    type: 'th',
+                    key: i,
+                    props: {
+                        style: getStyle(i),
+                        children: output(content, state)
+                    },
+                    _isReactElement: true,
+                    _store: null
+                });
             });
 
             var rows = _.map(node.cells, function(row, r) {
-                return React.DOM.tr(null,
-                    _.map(row, function(content, c) {
-                        return React.DOM.td({style: getStyle(c)},
-                            output(content)
-                        );
-                    })
-                );
+                return reactElement({
+                    type: 'tr',
+                    key: r,
+                    props: {
+                        children: row.map(function(content, c) {
+                            return reactElement({
+                                type: 'td',
+                                key: c,
+                                props: {
+                                    style: getStyle(c),
+                                    children: output(content, state)
+                                },
+                                _isReactElement: true,
+                                _store: null,
+                            });
+                        })
+                    },
+                    _isReactElement: true,
+                    _store: null,
+                });
             });
 
-            return React.DOM.table(null,
-                React.DOM.thead(null,
-                    React.DOM.tr(null,
-                        headers
-                    )
-                ),
-                React.DOM.tbody(null,
-                    rows
-                )
-            );
+            return reactElement({
+                type: 'table',
+                key: state.key,
+                props: {
+                    children: [reactElement({
+                        type: 'thead',
+                        key: 'thead',
+                        props: {
+                            children: reactElement({
+                                type: 'tr',
+                                props: {
+                                    children: headers
+                                },
+                                _isReactElement: true,
+                                _store: null,
+                            })
+                        },
+                        _isReactElement: true,
+                        _store: null,
+                    }), reactElement({
+                        type: 'tbody',
+                        key: 'tbody',
+                        props: {
+                            children: rows
+                        },
+                        _isReactElement: true,
+                        _store: null,
+                    })]
+                },
+                _isReactElement: true,
+                _store: null,
+            });
         }
     },
     newline: {
         match: blockRegex(/^(?:\n *)*\n/),
         parse: ignoreCapture,
-        react: function(node, output) { return "\n"; }
+        react: function(node, output, state) { return "\n"; }
     },
     paragraph: {
         match: blockRegex(/^((?:[^\n]|\n(?! *\n))+)(?:\n *)+\n/),
         parse: parseCaptureInline,
-        react: function(node, output) {
-            return React.DOM.div({className: "paragraph"}, output(node.content));
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'div',
+                key: state.key,
+                props: {
+                    className: 'paragraph',
+                    children: output(node.content, state)
+                },
+                _isReactElement: true,
+                _store: null,
+            });
         }
     },
     escape: {
@@ -776,11 +908,18 @@ var defaultRules = {
             };
             return link;
         },
-        react: function(node, output) {
-            return React.DOM.a({
-                href: sanitizeUrl(node.target),
-                title: node.title
-            }, output(node.content));
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'a',
+                key: state.key,
+                props: {
+                    href: sanitizeUrl(node.target),
+                    title: node.title,
+                    children: output(node.content, state)
+                },
+                _isReactElement: true,
+                _store: null,
+            });
         }
     },
     image: {
@@ -795,11 +934,18 @@ var defaultRules = {
             };
             return image;
         },
-        react: function(node, output) {
-            return React.DOM.img({
-                src: sanitizeUrl(node.target),
-                alt: node.alt,
-                title: node.title});
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'img',
+                key: state.key,
+                props: {
+                    src: sanitizeUrl(node.target),
+                    alt: node.alt,
+                    title: node.title
+                },
+                _isReactElement: true,
+                _store: null,
+            });
         }
     },
     reflink: {
@@ -833,15 +979,31 @@ var defaultRules = {
     strong: {
         match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
         parse: parseCaptureInline,
-        react: function(node, output) {
-            return React.DOM.strong(null, output(node.content));
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'strong',
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                _isReactElement: true,
+                _store: null,
+            });
         }
     },
     u: {
         match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
         parse: parseCaptureInline,
-        react: function(node, output) {
-            return React.DOM.u(null, output(node.content));
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'u',
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                _isReactElement: true,
+                _store: null,
+            });
         }
     },
     em: {
@@ -872,15 +1034,31 @@ var defaultRules = {
                 content: parse(capture[2] || capture[1], state)
             };
         },
-        react: function(node, output) {
-            return React.DOM.em(null, output(node.content));
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'em',
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                _isReactElement: true,
+                _store: null,
+            });
         }
     },
     del: {
         match: inlineRegex(/^~~(?=\S)([\s\S]*?\S)~~/),
         parse: parseCaptureInline,
-        react: function(node, output) {
-            return React.DOM.del(null, output(node.content));
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'del',
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                _isReactElement: true,
+                _store: null,
+            });
         }
     },
     inlineCode: {
@@ -890,14 +1068,30 @@ var defaultRules = {
                 content: capture[2]
             };
         },
-        react: function(node, output) {
-            return React.DOM.code(null, node.content);
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'code',
+                key: state.key,
+                props: {
+                    children: node.content
+                },
+                _isReactElement: true,
+                _store: null,
+            });
         }
     },
     br: {
         match: anyScopeRegex(/^ {2,}\n/),
         parse: ignoreCapture,
-        react: function() { return React.DOM.br(null); }
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'br',
+                key: state.key,
+                props: EMPTY_PROPS,
+                _isReactElement: true,
+                _store: null,
+            });
+        }
     },
     text: {
         // Here we look for anything followed by non-symbols,
@@ -912,7 +1106,7 @@ var defaultRules = {
                 content: capture[0]
             };
         },
-        react: function(node, output) {
+        react: function(node, output, state) {
             return node.content;
         }
     }
