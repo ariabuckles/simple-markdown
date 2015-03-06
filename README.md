@@ -126,13 +126,13 @@ First, we create a new rule. We'll look for double underscores
 surrounding text.
 
 We'll put underlines right
-before `em`s, so that `"__"` will be parsed before `"_"`
+before `em`s, so that `__` will be parsed before `_`
 for emphasis/italics.
 
 A regex to capture this would look something
-like `/^__([\s\S]+?)__(?!_)/`. This matches "__", followed by
-any content until it finds another "__" not followed by a
-third "_".
+like `/^__([\s\S]+?)__(?!_)/`. This matches `__`, followed by
+any content until it finds another `__` not followed by a
+third `_`.
 
 ```javascript
     var underlineRule = {
