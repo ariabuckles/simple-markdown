@@ -195,16 +195,7 @@ var anyScopeRegex = function(regex) {
 var outputFor = function(outputFunc) {
     var nestedOutput = function(ast) {
         if (_.isArray(ast)) {
-            // TODO(alpert): Using a keyed object here to silence key warnings,
-            // but these keys are not meaningful. Having meaningful keys
-            // requires how markdown parsing/editing works, so this is the best
-            // we can do for now. :(
-            var nodes = {};
-            _.each(ast, function(node, i) {
-                // Use non-numeric keys to preserve insertion order
-                nodes['k' + i] = nestedOutput(node);
-            });
-            return React.addons.createFragment(nodes);
+            return _.map(ast, nestedOutput);
         } else {
             return outputFunc(ast, nestedOutput);
         }
@@ -602,8 +593,8 @@ var defaultRules = {
             var ListWrapper = node.ordered ? "ol" : "ul";
             return React.DOM[ListWrapper]({
                 start: node.start
-            }, _.map(node.items, function(item, i) {
-                    return React.DOM.li({key: i}, output(item));
+            }, _.map(node.items, function(item) {
+                    return React.DOM.li(null, output(item));
                 })
             );
         }
