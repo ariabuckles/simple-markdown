@@ -57,7 +57,7 @@ var find = function(globalName) {
 };
 
 var _ = find("_") || require("underscore");
-var React = find("React") || require("react");
+var React = find("React") || require("react/addons");
 
 /**
  * Creates a parser for a given set of rules, with the precedence
