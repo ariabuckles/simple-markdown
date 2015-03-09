@@ -58,6 +58,11 @@ var htmlFromMarkdown = function(source) {
     return htmlThroughReact(implicitParse(source));
 };
 
+var assertParsesToReact = function(source, html) {
+    var actualHtml = htmlFromMarkdown(source);
+    assert.strictEqual(actualHtml, html);
+};
+
 describe("simple markdown", function() {
     describe("parser", function() {
         it("should parse a plain string", function() {
@@ -165,6 +170,51 @@ describe("simple markdown", function() {
                             content: "hi"
                         }]
                     }]
+                }]
+            }]);
+
+            var parsed3 = inlineParse("***bolditalics***");
+            validateParse(parsed3, [{
+                type: "strong",
+                content: [{
+                    type: "em",
+                    content: [{
+                        type: "text",
+                        content: "bolditalics",
+                    }]
+                }]
+            }]);
+
+            var parsed4 = inlineParse("**bold *italics***");
+            validateParse(parsed4, [{
+                type: "strong",
+                content: [{
+                    type: "text",
+                    content: "bold ",
+                }, {
+                    type: "em",
+                    content: [{
+                        type: "text",
+                        content: "italics",
+                    }]
+                }]
+            }]);
+        });
+
+        // TODO(aria): Make this pass:
+        it.skip("should parse complex combined bold/italics", function() {
+            var parsed = inlineParse("***bold** italics*");
+            validateParse(parsed, [{
+                type: "em",
+                content: [{
+                    type: "strong",
+                    content: [{
+                        type: "text",
+                        content: "bold",
+                    }]
+                }, {
+                    type: "text",
+                    content: " italics",
                 }]
             }]);
         });
@@ -1444,6 +1494,36 @@ describe("simple markdown", function() {
             }]);
         });
 
+        it("should allow indentation inside code blocks", function() {
+            var parsed = blockParse(
+                "```\n" +
+                "if (true === false) {\n" +
+                "    throw 'world does not exist';\n" +
+                "}\n" +
+                "```\n\n"
+            );
+            validateParse(parsed, [{
+                type: "codeBlock",
+                lang: undefined,
+                content: (
+                    "if (true === false) {\n" +
+                    "    throw 'world does not exist';\n" +
+                    "}"
+                ),
+            }]);
+
+            var parsed = blockParse(
+                "~~~\n" +
+                "    this should be indented\n" +
+                "~~~\n\n"
+            );
+            validateParse(parsed, [{
+                type: "codeBlock",
+                lang: undefined,
+                content: "    this should be indented",
+            }]);
+        });
+
         it("should parse mixed paragraphs and code", function() {
             var parsed = blockParse(
                 "this is regular text\n\n" +
@@ -2419,6 +2499,302 @@ describe("simple markdown", function() {
                 "<div class=\"paragraph\">" +
                     "<a href=\"https://www.google.com\">link</a>" +
                 "</div>"
+            );
+        });
+
+        it("should output headings", function() {
+            assertParsesToReact(
+                "### Heading!\n\n",
+                "<h3>Heading!</h3>"
+            );
+
+            assertParsesToReact(
+                "## hi! ##\n\n",
+                "<h2>hi!</h2>"
+            );
+
+            assertParsesToReact(
+                "Yay!\n====\n\n",
+                "<h1>Yay!</h1>"
+            );
+
+            assertParsesToReact(
+                "Success\n---\n\n",
+                "<h2>Success</h2>"
+            );
+        });
+
+        it("should output hrs", function() {
+            assertParsesToReact(
+                "-----\n\n",
+                "<hr>"
+            );
+            assertParsesToReact(
+                " * * * \n\n",
+                "<hr>"
+            );
+            assertParsesToReact(
+                "___\n\n",
+                "<hr>"
+            );
+        });
+
+        it("should output codeblocks", function() {
+            var html = htmlFromMarkdown(
+                "    var microwave = new TimeMachine();\n\n"
+            );
+            assert.strictEqual(
+                html,
+                "<pre><code>var microwave = new TimeMachine();</code></pre>"
+            );
+
+            var html2 = htmlFromMarkdown(
+                "~~~\n" +
+                "var computer = new IBN(5100);\n" +
+                "~~~\n\n"
+            );
+            assert.strictEqual(
+                html2,
+                "<pre><code>var computer = new IBN(5100);</code></pre>"
+            );
+
+            var html3 = htmlFromMarkdown(
+                "```yavascript\n" +
+                "var undefined = function() { return 5; }" +
+                "```\n\n"
+            );
+            assert.strictEqual(
+                html3,
+                '<pre><code class="markdown-code-yavascript">' +
+                'var undefined = function() { return 5; }' +
+                '</code></pre>'
+            );
+        });
+
+        it("should output blockQuotes", function() {
+            assertParsesToReact(
+                "> hi there this is a\ntest\n\n",
+                '<blockquote><div class="paragraph">' +
+                'hi there this is a test' +
+                '</div></blockquote>'
+            );
+
+            assertParsesToReact(
+                "> hi there this is a\n> test\n\n",
+                '<blockquote><div class="paragraph">' +
+                'hi there this is a test' +
+                '</div></blockquote>'
+            );
+        });
+
+        it("should output lists", function() {
+            assertParsesToReact(
+                " * first\n" +
+                " * second\n" +
+                " * third\n\n",
+                '<ul>' +
+                '<li>first</li>' +
+                '<li>second</li>' +
+                '<li>third</li>' +
+                '</ul>'
+            );
+
+            assertParsesToReact(
+                "1. first\n" +
+                "2. second\n" +
+                "3. third\n\n",
+                '<ol start="1">' +
+                '<li>first</li>' +
+                '<li>second</li>' +
+                '<li>third</li>' +
+                '</ol>'
+            );
+
+            assertParsesToReact(
+                " * first\n" +
+                " * second\n" +
+                "    * inner\n" +
+                " * third\n\n",
+                '<ul>' +
+                '<li>first</li>' +
+                '<li>second <ul><li>inner</li></ul></li>' +
+                '<li>third</li>' +
+                '</ul>'
+            );
+        });
+
+        it("should output tables", function() {
+            assertParsesToReact(
+                "h1 | h2 | h3\n" +
+                "---|----|---\n" +
+                "d1 | d2 | d3\n" +
+                "\n",
+                '<table><thead>' +
+                '<tr><th>h1</th><th>h2</th><th>h3</th></tr>' +
+                '</thead><tbody>' +
+                '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
+                '</tbody></table>'
+            );
+
+            assertParsesToReact(
+                "| h1 | h2 | h3 |\n" +
+                "|----|----|----|\n" +
+                "| d1 | d2 | d3 |\n" +
+                "\n",
+                '<table><thead>' +
+                '<tr><th>h1</th><th>h2</th><th>h3</th></tr>' +
+                '</thead><tbody>' +
+                '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
+                '</tbody></table>'
+            );
+
+            assertParsesToReact(
+                "h1 | h2 | h3\n" +
+                ":--|:--:|--:\n" +
+                "d1 | d2 | d3\n" +
+                "\n",
+                '<table><thead>' +
+                '<tr>' +
+                '<th style="text-align:left;">h1</th>' +
+                '<th style="text-align:center;">h2</th>' +
+                '<th style="text-align:right;">h3</th>' +
+                '</tr>' +
+                '</thead><tbody>' +
+                '<tr>' +
+                '<td style="text-align:left;">d1</td>' +
+                '<td style="text-align:center;">d2</td>' +
+                '<td style="text-align:right;">d3</td>' +
+                '</tr>' +
+                '</tbody></table>'
+            );
+        });
+
+        // TODO(aria): Figure out how to test the newline rule here
+
+        it("should output paragraphs", function() {
+            var html = htmlFromMarkdown(
+                "hi\n\n"
+            );
+            assert.strictEqual(
+                html,
+                '<div class="paragraph">hi</div>'
+            );
+
+            var html2 = htmlFromMarkdown(
+                "hi\n\n" +
+                "bye\n\n"
+            );
+            assert.strictEqual(
+                html2,
+                '<div class="paragraph">hi</div>' +
+                '<div class="paragraph">bye</div>'
+            );
+        });
+
+        it("should output escaped text", function() {
+            assertParsesToReact(
+                "\\#escaping\\^symbols\\*is\\[legal](yes)",
+                '#escaping^symbols*is[legal](yes)'
+            );
+        });
+
+        it("should output links", function() {
+            assertParsesToReact(
+                "<https://www.khanacademy.org>",
+                '<a href="https://www.khanacademy.org">' +
+                'https://www.khanacademy.org' +
+                '</a>'
+            );
+
+            assertParsesToReact(
+                "<aria@khanacademy.org>",
+                '<a href="mailto:aria@khanacademy.org">' +
+                'aria@khanacademy.org' +
+                '</a>'
+            );
+
+            assertParsesToReact(
+                "https://www.khanacademy.org",
+                '<a href="https://www.khanacademy.org">' +
+                'https://www.khanacademy.org' +
+                '</a>'
+            );
+
+            assertParsesToReact(
+                "[KA](https://www.khanacademy.org)",
+                '<a href="https://www.khanacademy.org">' +
+                'KA' +
+                '</a>'
+            );
+
+            assertParsesToReact(
+                "[KA][1]\n\n[1]: https://www.khanacademy.org\n\n",
+                '<div class="paragraph">' +
+                '<a href="https://www.khanacademy.org">' +
+                'KA' +
+                '</a>' +
+                '</div>'
+            );
+        });
+
+        it("should output strong", function() {
+            assertParsesToReact(
+                "**bold**",
+                '<strong>bold</strong>'
+            );
+        });
+
+        it("should output u", function() {
+            assertParsesToReact(
+                "__underscore__",
+                '<u>underscore</u>'
+            );
+        });
+
+        it("should output em", function() {
+            assertParsesToReact(
+                "*italics*",
+                '<em>italics</em>'
+            );
+        });
+
+        it("should output simple combined bold/italics", function() {
+            assertParsesToReact(
+                "***bolditalics***",
+                '<strong><em>bolditalics</em></strong>'
+            );
+            assertParsesToReact(
+                "**bold *italics***",
+                '<strong>bold <em>italics</em></strong>'
+            );
+        });
+
+        // TODO(aria): Make this pass:
+        it.skip("should output complex combined bold/italics", function() {
+            assertParsesToReact(
+                "***bold** italics*",
+                '<em><strong>bold</strong> italics</em>'
+            );
+        });
+
+        it("should output del", function() {
+            assertParsesToReact(
+                "~~strikethrough~~",
+                '<del>strikethrough</del>'
+            );
+        });
+
+        it("should output inline code", function() {
+            assertParsesToReact(
+                "here is some `inline code`.",
+                'here is some <code>inline code</code>.'
+            );
+        });
+
+        it("should output text", function() {
+            assertParsesToReact(
+                "Yay text!",
+                'Yay text!'
             );
         });
     });
