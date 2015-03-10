@@ -45,19 +45,6 @@
  */
 (function() {
 
-// Load dependencies from the global namespace or require them
-var find = function(globalName) {
-    if (typeof window !== "undefined" && window[globalName]) {
-        return window[globalName];
-    } else if (typeof global !== "undefined" && global[globalName]) {
-        return global[globalName];
-    } else {
-        return undefined;
-    }
-};
-
-var _ = find("_") || require("underscore");
-
 /**
  * Creates a parser for a given set of rules, with the precedence
  * specified as a list of rules.
