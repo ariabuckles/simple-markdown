@@ -449,7 +449,11 @@ var parseRef = function(capture, state, refNode) {
     // already been seen, we can use its target/source
     // and title here:
     if (state._defs && state._defs[ref]) {
-        _.extend(refNode, state._defs[ref]);
+        var def = state._defs[ref];
+        // `refNode` can be a link or an image. Both use
+        // target and title properties.
+        refNode.target = def.target;
+        refNode.title = def.title;
     }
 
     // In case we haven't seen our def yet (or if someone
@@ -700,10 +704,6 @@ var defaultRules = {
                 .toLowerCase();
             var target = capture[2];
             var title = capture[3];
-            var defAttrs = {
-                target: target,
-                title: title
-            };
 
             // Look for previous links/images using this def
             // If any links/images using this def have already been declared,
@@ -713,8 +713,10 @@ var defaultRules = {
             // with our newly found information now.
             // Sorry :(.
             if (state._refs && state._refs[def]) {
-                state._refs[def].forEach(function(link) {
-                    _.extend(link, defAttrs);
+                // `refNode` can be a link or an image
+                state._refs[def].forEach(function(refNode) {
+                    refNode.target = target;
+                    refNode.title = title;
                 });
             }
 
@@ -724,13 +726,18 @@ var defaultRules = {
             // that future reflinks can modify themselves appropriately with
             // this information.
             state._defs = state._defs || {};
-            state._defs[def] = defAttrs;
+            state._defs[def] = {
+                target: target,
+                title: title,
+            };
 
             // return the relevant parsed information
             // for debugging only.
-            return _.extend({
-                def: def
-            }, defAttrs);
+            return {
+                def: def,
+                target: target,
+                title: title,
+            };
         },
         react: function() { return null; }
     },
