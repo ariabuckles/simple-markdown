@@ -80,7 +80,7 @@ var _ = find("_") || require("underscore");
 var parserFor = function(rules) {
     // Sorts rules in order of increasing order, then
     // ascending rule name in case of ties.
-    var ruleList = _.keys(rules);
+    var ruleList = Object.keys(rules);
     ruleList.sort(function(typeA, typeB) {
         var orderA = rules[typeA].order;
         var orderB = rules[typeB].order;
@@ -194,7 +194,7 @@ var anyScopeRegex = function(regex) {
 var reactFor = function(outputFunc) {
     var nestedOutput = function(ast, state) {
         state = state || {};
-        if (_.isArray(ast)) {
+        if (Array.isArray(ast)) {
             var oldKey = state.key;
             var result = ast.map(function(node, i) {
                 state.key = i;
@@ -355,7 +355,7 @@ var TABLES = (function() {
         var headerText = capture[1]
             .replace(TABLE_HEADER_TRIM, "")
             .split(TABLE_ROW_SPLIT);
-        return _.map(headerText, function(text) {
+        return headerText.map(function(text) {
             return parse(text, state);
         });
     };
@@ -365,7 +365,7 @@ var TABLES = (function() {
             .replace(TABLE_ALIGN_TRIM, "")
             .split(TABLE_ROW_SPLIT);
 
-        return _.map(alignText, parseTableAlignCapture);
+        return alignText.map(parseTableAlignCapture);
     };
 
     var parseTableCells = function(capture, parse, state) {
@@ -373,11 +373,11 @@ var TABLES = (function() {
             .replace(TABLE_CELLS_TRIM, "")
             .split("\n");
 
-        return _.map(rowsText, function(rowText) {
+        return rowsText.map(function(rowText) {
             var cellText = rowText
                 .replace(PLAIN_TABLE_ROW_TRIM, "")
                 .split(TABLE_ROW_SPLIT);
-            return _.map(cellText, function(text) {
+            return cellText.map(function(text) {
                 return parse(text, state);
             });
         });
@@ -388,9 +388,9 @@ var TABLES = (function() {
             .replace(NPTABLE_CELLS_TRIM, "")
             .split("\n");
 
-        return _.map(rowsText, function(rowText) {
+        return rowsText.map(function(rowText) {
             var cellText = rowText.split(TABLE_ROW_SPLIT);
-            return _.map(cellText, function(text) {
+            return cellText.map(function(text) {
                 return parse(text, state);
             });
         });
@@ -608,7 +608,7 @@ var defaultRules = {
                 .match(LIST_ITEM_R);
 
             var lastItemWasAParagraph = false;
-            var itemContent = _.map(items, function(item, i) {
+            var itemContent = items.map(function(item, i) {
                 // We need to see how far indented this item is:
                 var space = LIST_ITEM_PREFIX_R.exec(item)[0].length;
                 // And then we construct a regex to "unindent" the subsequent
@@ -713,7 +713,7 @@ var defaultRules = {
             // with our newly found information now.
             // Sorry :(.
             if (state._refs && state._refs[def]) {
-                _.each(state._refs[def], function(link) {
+                state._refs[def].forEach(function(link) {
                     _.extend(link, defAttrs);
                 });
             }
@@ -744,7 +744,7 @@ var defaultRules = {
                 };
             };
 
-            var headers = _.map(node.header, function(content, i) {
+            var headers = node.header.map(function(content, i) {
                 return reactElement({
                     type: 'th',
                     key: i,
@@ -757,7 +757,7 @@ var defaultRules = {
                 });
             });
 
-            var rows = _.map(node.cells, function(row, r) {
+            var rows = node.cells.map(function(row, r) {
                 return reactElement({
                     type: 'tr',
                     key: r,
@@ -1112,7 +1112,7 @@ var defaultRules = {
     }
 };
 
-_.each(Object.keys(defaultRules), function(type, i) {
+Object.keys(defaultRules).forEach(function(type, i) {
     defaultRules[type].order = i;
 });
 
