@@ -646,18 +646,30 @@ var defaultRules = {
                         (isLastItem && lastItemWasAParagraph);
                 lastItemWasAParagraph = thisItemIsAParagraph;
 
-                var adjustedContent = content.replace(LIST_ITEM_END_R, "");
+                // backup our state for restoration afterwards. We're going to
+                // want to set state._list to true, and state.inline depending
+                // on our list's looseness.
+                var oldStateInline = state.inline;
+                var oldStateList = state._list;
+                state._list = true;
+
+                // Parse inline if we're in a tight list, or block if we're in
+                // a loose list.
+                var adjustedContent;
                 if (thisItemIsAParagraph) {
-                    return parse(adjustedContent + "\n\n", _.defaults({
-                        inline: false,
-                        _list: true
-                    }, state));
+                    state.inline = false;
+                    adjustedContent = content.replace(LIST_ITEM_END_R, "\n\n");
                 } else {
-                    return parse(adjustedContent, _.defaults({
-                        inline: true,
-                        _list: true
-                    }, state));
+                    state.inline = true;
+                    adjustedContent = content.replace(LIST_ITEM_END_R, "");
                 }
+
+                var result = parse(adjustedContent, state);
+
+                // Restore our state before returning
+                state.inline = oldStateInline;
+                state._list = oldStateList;
+                return result;
             });
 
             return {
