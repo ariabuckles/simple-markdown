@@ -560,6 +560,17 @@ describe("simple markdown", function() {
             }]);
         });
 
+        it("should not split words before colons", function() {
+            var parsed = inlineParse("Here is a rule: try this");
+            validateParse(parsed, [{
+                type: "text",
+                content: "Here is a rule",
+            }, {
+                type: "text",
+                content: ": try this",
+            }]);
+        });
+
         it("should parse freeform urls inside paragraphs", function() {
             var parsed = blockParse(
                 "hi this is a link http://www.google.com\n\n"
