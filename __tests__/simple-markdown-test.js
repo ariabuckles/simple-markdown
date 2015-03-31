@@ -2808,5 +2808,11 @@ describe("simple markdown", function() {
                 'Yay text!'
             );
         });
+
+        it("shouldn't split text into multiple spans", function() {
+            var parsed = SimpleMarkdown.defaultInlineParse("hi, there!");
+            var elements = SimpleMarkdown.defaultReactOutput(parsed);
+            assert.deepEqual(elements, ["hi, there!"]);
+        });
     });
 });

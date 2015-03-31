@@ -183,10 +183,23 @@ var reactFor = function(outputFunc) {
         state = state || {};
         if (Array.isArray(ast)) {
             var oldKey = state.key;
-            var result = ast.map(function(node, i) {
+            var result = [];
+
+            // map nestedOutput over the ast, except group any text
+            // nodes together into a single string output.
+            var lastWasString = false;
+            for (var i = 0; i < ast.length; i++) {
                 state.key = i;
-                return nestedOutput(node, state);
-            });
+                var nodeOut = nestedOutput(ast[i], state);
+                var isString = (typeof nodeOut === "string");
+                if (isString && lastWasString) {
+                    result[result.length - 1] += nodeOut;
+                } else {
+                    result.push(nodeOut);
+                }
+                lastWasString = isString;
+            }
+
             state.key = oldKey;
             return result;
         } else {
