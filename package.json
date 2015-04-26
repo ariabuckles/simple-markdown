@@ -1,6 +1,6 @@
 {
   "name": "simple-markdown",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Javascript markdown parsing, made simple",
   "main": "simple-markdown.js",
   "scripts": {
