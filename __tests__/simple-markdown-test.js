@@ -1,5 +1,4 @@
 var assert = require("assert");
-var nodeUtil = require("util");
 var _ = require("underscore");
 var React = require("react");
 
@@ -8,6 +7,7 @@ var blockParse = SimpleMarkdown.defaultBlockParse;
 var inlineParse = SimpleMarkdown.defaultInlineParse;
 var implicitParse = SimpleMarkdown.defaultImplicitParse;
 var defaultOutput = SimpleMarkdown.defaultOutput;
+var defaultHtmlOutput = SimpleMarkdown.defaultHtmlOutput;
 
 // A pretty-printer that handles `undefined` and functions better
 // than JSON.stringify
@@ -54,11 +54,22 @@ var htmlThroughReact = function(parsed) {
     return simplifiedHtml;
 };
 
-var htmlFromMarkdown = function(source) {
+var htmlFromReactMarkdown = function(source) {
     return htmlThroughReact(implicitParse(source));
 };
 
+var htmlFromMarkdown = function(source) {
+    var html = defaultHtmlOutput(implicitParse(source));
+    var simplifiedHtml = html.replace(/\s+/g, ' ');
+    return simplifiedHtml;
+};
+
 var assertParsesToReact = function(source, html) {
+    var actualHtml = htmlFromReactMarkdown(source);
+    assert.strictEqual(actualHtml, html);
+};
+
+var assertParsesToHtml = function(source, html) {
     var actualHtml = htmlFromMarkdown(source);
     assert.strictEqual(actualHtml, html);
 };
@@ -2468,7 +2479,7 @@ describe("simple markdown", function() {
                 });
 
                 var parsed2 = parser2("_hi_", {inline: true});
-                validateParse(parsed1, [
+                validateParse(parsed2, [
                     {content: "hi", type: "em1"},
                 ]);
             });
@@ -2477,12 +2488,12 @@ describe("simple markdown", function() {
 
     describe("react output", function() {
         it("should sanitize dangerous links", function() {
-            var html = htmlFromMarkdown(
+            var html = htmlFromReactMarkdown(
                 "[link](javascript:alert%28%27hi%27%29)"
             );
             assert.strictEqual(html, "<a>link</a>");
 
-            var html2 = htmlFromMarkdown(
+            var html2 = htmlFromReactMarkdown(
                 "[link][1]\n\n" +
                 "[1]: javascript:alert('hi');\n\n"
             );
@@ -2493,7 +2504,7 @@ describe("simple markdown", function() {
         });
 
         it("should not sanitize safe links", function() {
-            var html = htmlFromMarkdown(
+            var html = htmlFromReactMarkdown(
                 "[link](https://www.google.com)"
             );
             assert.strictEqual(
@@ -2501,7 +2512,7 @@ describe("simple markdown", function() {
                 "<a href=\"https://www.google.com\">link</a>"
             );
 
-            var html2 = htmlFromMarkdown(
+            var html2 = htmlFromReactMarkdown(
                 "[link][1]\n\n" +
                 "[1]: https://www.google.com\n\n"
             );
@@ -2551,7 +2562,7 @@ describe("simple markdown", function() {
         });
 
         it("should output codeblocks", function() {
-            var html = htmlFromMarkdown(
+            var html = htmlFromReactMarkdown(
                 "    var microwave = new TimeMachine();\n\n"
             );
             assert.strictEqual(
@@ -2559,7 +2570,7 @@ describe("simple markdown", function() {
                 "<pre><code>var microwave = new TimeMachine();</code></pre>"
             );
 
-            var html2 = htmlFromMarkdown(
+            var html2 = htmlFromReactMarkdown(
                 "~~~\n" +
                 "var computer = new IBN(5100);\n" +
                 "~~~\n\n"
@@ -2569,7 +2580,7 @@ describe("simple markdown", function() {
                 "<pre><code>var computer = new IBN(5100);</code></pre>"
             );
 
-            var html3 = htmlFromMarkdown(
+            var html3 = htmlFromReactMarkdown(
                 "```yavascript\n" +
                 "var undefined = function() { return 5; }" +
                 "```\n\n"
@@ -2683,7 +2694,7 @@ describe("simple markdown", function() {
         // TODO(aria): Figure out how to test the newline rule here
 
         it("should output paragraphs", function() {
-            var html = htmlFromMarkdown(
+            var html = htmlFromReactMarkdown(
                 "hi\n\n"
             );
             assert.strictEqual(
@@ -2691,7 +2702,7 @@ describe("simple markdown", function() {
                 '<div class="paragraph">hi</div>'
             );
 
-            var html2 = htmlFromMarkdown(
+            var html2 = htmlFromReactMarkdown(
                 "hi\n\n" +
                 "bye\n\n"
             );
@@ -2813,6 +2824,346 @@ describe("simple markdown", function() {
             var parsed = SimpleMarkdown.defaultInlineParse("hi, there!");
             var elements = SimpleMarkdown.defaultReactOutput(parsed);
             assert.deepEqual(elements, ["hi, there!"]);
+        });
+    });
+
+    describe("html output", function() {
+        it("should sanitize dangerous links", function() {
+            var markdown = "[link](javascript:alert%28%27hi%27%29)";
+            assertParsesToHtml(
+                markdown,
+                "<a>link</a>"
+            );
+
+            var markdown2 = "[link][1]\n\n" +
+                "[1]: javascript:alert('hi');\n\n";
+            assertParsesToHtml(
+                markdown2,
+                "<div class=\"paragraph\"><a>link</a></div>"
+            );
+        });
+
+        it("should not sanitize safe links", function() {
+            var html = htmlFromMarkdown(
+                "[link](https://www.google.com)"
+            );
+            assert.strictEqual(
+                html,
+                "<a href=\"https://www.google.com\">link</a>"
+            );
+
+            var html2 = htmlFromMarkdown(
+                "[link][1]\n\n" +
+                "[1]: https://www.google.com\n\n"
+            );
+            assert.strictEqual(
+                html2,
+                "<div class=\"paragraph\">" +
+                    "<a href=\"https://www.google.com\">link</a>" +
+                "</div>"
+            );
+        });
+
+        it("should output headings", function() {
+            assertParsesToHtml(
+                "### Heading!\n\n",
+                "<h3>Heading!</h3>"
+            );
+
+            assertParsesToHtml(
+                "## hi! ##\n\n",
+                "<h2>hi!</h2>"
+            );
+
+            assertParsesToHtml(
+                "Yay!\n====\n\n",
+                "<h1>Yay!</h1>"
+            );
+
+            assertParsesToHtml(
+                "Success\n---\n\n",
+                "<h2>Success</h2>"
+            );
+        });
+
+        it("should output hrs", function() {
+            assertParsesToHtml(
+                "-----\n\n",
+                "<hr>"
+            );
+            assertParsesToHtml(
+                " * * * \n\n",
+                "<hr>"
+            );
+            assertParsesToHtml(
+                "___\n\n",
+                "<hr>"
+            );
+        });
+
+        it("should output codeblocks", function() {
+            var html = htmlFromMarkdown(
+                "    var microwave = new TimeMachine();\n\n"
+            );
+            assert.strictEqual(
+                html,
+                "<pre><code>var microwave = new TimeMachine();</code></pre>"
+            );
+
+            var html2 = htmlFromMarkdown(
+                "~~~\n" +
+                "var computer = new IBN(5100);\n" +
+                "~~~\n\n"
+            );
+            assert.strictEqual(
+                html2,
+                "<pre><code>var computer = new IBN(5100);</code></pre>"
+            );
+
+            var html3 = htmlFromMarkdown(
+                "```yavascript\n" +
+                "var undefined = function() { return 5; }" +
+                "```\n\n"
+            );
+            assert.strictEqual(
+                html3,
+                '<pre><code class="markdown-code-yavascript">' +
+                'var undefined = function() { return 5; }' +
+                '</code></pre>'
+            );
+        });
+
+        it("should output blockQuotes", function() {
+            assertParsesToHtml(
+                "> hi there this is a\ntest\n\n",
+                '<blockquote><div class="paragraph">' +
+                'hi there this is a test' +
+                '</div></blockquote>'
+            );
+
+            assertParsesToHtml(
+                "> hi there this is a\n> test\n\n",
+                '<blockquote><div class="paragraph">' +
+                'hi there this is a test' +
+                '</div></blockquote>'
+            );
+        });
+
+        it("should output lists", function() {
+            assertParsesToHtml(
+                " * first\n" +
+                " * second\n" +
+                " * third\n\n",
+                '<ul>' +
+                '<li>first</li>' +
+                '<li>second</li>' +
+                '<li>third</li>' +
+                '</ul>'
+            );
+
+            assertParsesToHtml(
+                "1. first\n" +
+                "2. second\n" +
+                "3. third\n\n",
+                '<ol start="1">' +
+                '<li>first</li>' +
+                '<li>second</li>' +
+                '<li>third</li>' +
+                '</ol>'
+            );
+
+            assertParsesToHtml(
+                " * first\n" +
+                " * second\n" +
+                "    * inner\n" +
+                " * third\n\n",
+                '<ul>' +
+                '<li>first</li>' +
+                '<li>second <ul><li>inner</li></ul></li>' +
+                '<li>third</li>' +
+                '</ul>'
+            );
+        });
+
+        it("should output tables", function() {
+            assertParsesToHtml(
+                "h1 | h2 | h3\n" +
+                "---|----|---\n" +
+                "d1 | d2 | d3\n" +
+                "\n",
+                '<table><thead>' +
+                '<tr><th>h1</th><th>h2</th><th>h3</th></tr>' +
+                '</thead><tbody>' +
+                '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
+                '</tbody></table>'
+            );
+
+            assertParsesToHtml(
+                "| h1 | h2 | h3 |\n" +
+                "|----|----|----|\n" +
+                "| d1 | d2 | d3 |\n" +
+                "\n",
+                '<table><thead>' +
+                '<tr><th>h1</th><th>h2</th><th>h3</th></tr>' +
+                '</thead><tbody>' +
+                '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
+                '</tbody></table>'
+            );
+
+            assertParsesToHtml(
+                "h1 | h2 | h3\n" +
+                ":--|:--:|--:\n" +
+                "d1 | d2 | d3\n" +
+                "\n",
+                '<table><thead>' +
+                '<tr>' +
+                '<th style="text-align:left;">h1</th>' +
+                '<th style="text-align:center;">h2</th>' +
+                '<th style="text-align:right;">h3</th>' +
+                '</tr>' +
+                '</thead><tbody>' +
+                '<tr>' +
+                '<td style="text-align:left;">d1</td>' +
+                '<td style="text-align:center;">d2</td>' +
+                '<td style="text-align:right;">d3</td>' +
+                '</tr>' +
+                '</tbody></table>'
+            );
+        });
+
+        // TODO(aria): Figure out how to test the newline rule here
+
+        it("should output paragraphs", function() {
+            var html = htmlFromMarkdown(
+                "hi\n\n"
+            );
+            assert.strictEqual(
+                html,
+                '<div class="paragraph">hi</div>'
+            );
+
+            var html2 = htmlFromMarkdown(
+                "hi\n\n" +
+                "bye\n\n"
+            );
+            assert.strictEqual(
+                html2,
+                '<div class="paragraph">hi</div>' +
+                '<div class="paragraph">bye</div>'
+            );
+        });
+
+        it("should output escaped text", function() {
+            assertParsesToHtml(
+                "\\#escaping\\^symbols\\*is\\[legal](yes)",
+                '#escaping^symbols*is[legal](yes)'
+            );
+        });
+
+        it("should output links", function() {
+            assertParsesToHtml(
+                "<https://www.khanacademy.org>",
+                '<a href="https://www.khanacademy.org">' +
+                'https://www.khanacademy.org' +
+                '</a>'
+            );
+
+            assertParsesToHtml(
+                "<aria@khanacademy.org>",
+                '<a href="mailto:aria@khanacademy.org">' +
+                'aria@khanacademy.org' +
+                '</a>'
+            );
+
+            assertParsesToHtml(
+                "https://www.khanacademy.org",
+                '<a href="https://www.khanacademy.org">' +
+                'https://www.khanacademy.org' +
+                '</a>'
+            );
+
+            assertParsesToHtml(
+                "[KA](https://www.khanacademy.org)",
+                '<a href="https://www.khanacademy.org">' +
+                'KA' +
+                '</a>'
+            );
+
+            assertParsesToHtml(
+                "[KA][1]\n\n[1]: https://www.khanacademy.org\n\n",
+                '<div class="paragraph">' +
+                '<a href="https://www.khanacademy.org">' +
+                'KA' +
+                '</a>' +
+                '</div>'
+            );
+        });
+
+        it("should output strong", function() {
+            assertParsesToHtml(
+                "**bold**",
+                '<strong>bold</strong>'
+            );
+        });
+
+        it("should output u", function() {
+            assertParsesToHtml(
+                "__underscore__",
+                '<u>underscore</u>'
+            );
+        });
+
+        it("should output em", function() {
+            assertParsesToHtml(
+                "*italics*",
+                '<em>italics</em>'
+            );
+        });
+
+        it("should output simple combined bold/italics", function() {
+            assertParsesToHtml(
+                "***bolditalics***",
+                '<strong><em>bolditalics</em></strong>'
+            );
+            assertParsesToHtml(
+                "**bold *italics***",
+                '<strong>bold <em>italics</em></strong>'
+            );
+        });
+
+        // TODO(aria): Make this pass:
+        it.skip("should output complex combined bold/italics", function() {
+            assertParsesToHtml(
+                "***bold** italics*",
+                '<em><strong>bold</strong> italics</em>'
+            );
+        });
+
+        it("should output del", function() {
+            assertParsesToHtml(
+                "~~strikethrough~~",
+                '<del>strikethrough</del>'
+            );
+        });
+
+        it("should output inline code", function() {
+            assertParsesToHtml(
+                "here is some `inline code`.",
+                'here is some <code>inline code</code>.'
+            );
+        });
+
+        it("should output text", function() {
+            assertParsesToHtml(
+                "Yay text!",
+                'Yay text!'
+            );
+        });
+
+        it("shouldn't split text into multiple spans", function() {
+            var parsed = SimpleMarkdown.defaultInlineParse("hi, there!");
+            var elements = SimpleMarkdown.defaultHtmlOutput(parsed);
+            assert.deepEqual(elements, "hi, there!");
         });
     });
 });

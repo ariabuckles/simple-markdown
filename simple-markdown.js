@@ -209,6 +209,20 @@ var reactFor = function(outputFunc) {
     return nestedOutput;
 };
 
+var htmlFor = function(outputFunc) {
+    var nestedOutput = function(ast, state) {
+        state = state || {};
+        if (Array.isArray(ast)) {
+            return ast.map(function(node) {
+                return nestedOutput(node, state);
+            }).join("");
+        } else {
+            return outputFunc(ast, nestedOutput, state);
+        }
+    };
+    return nestedOutput;
+};
+
 var reactElement = function(element) {
     // Debugging assertions. To be commented out when committed
     // TODO(aria): Figure out a better way of having dev asserts
@@ -238,6 +252,35 @@ var reactElement = function(element) {
         originalProps: element.props
     };
     return element;
+};
+
+// Returns a closed HTML tag.
+// tagName: Name of HTML tag (eg. "em" or "a")
+// content: Inner content of tag
+// attributes: Optional extra attributes of tag as an object of key-value pairs
+//   eg. { "href": "http://google.com" }. Falsey attributes are filtered out.
+// isClosed: boolean that controls whether tag is closed or not (eg. img tags).
+//   defaults to true
+var htmlTag = function(tagName, content, attributes, isClosed) {
+    attributes = attributes || {};
+    isClosed = typeof isClosed !== 'undefined' ? isClosed : true;
+
+    var attributeString = "";
+    for (var attr in attributes) {
+        // Removes falsey attributes
+        if (Object.prototype.hasOwnProperty.call(attributes, attr) &&
+                attributes[attr]) {
+            attributeString += " " + attr + '="' + attributes[attr] + '"';
+        }
+    }
+
+    var unclosedTag = "<" + tagName + attributeString + ">";
+
+    if (isClosed) {
+        return unclosedTag + content + "</" + tagName + ">";
+    } else {
+        return unclosedTag;
+    }
 };
 
 var EMPTY_PROPS = {};
@@ -488,6 +531,9 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null
             });
+        },
+        html: function(node, output, state) {
+            return htmlTag("h" + node.level, output(node.content, state));
         }
     },
     nptable: {
@@ -517,6 +563,9 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            return "<hr>";
         }
     },
     codeBlock: {
@@ -552,6 +601,16 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null
             });
+        },
+        html: function(node, output, state) {
+            var className = node.lang ?
+                "markdown-code-" + node.lang :
+                undefined;
+
+            var codeBlock = htmlTag("code", node.content, {
+                class: className
+            });
+            return htmlTag("pre", codeBlock);
         }
     },
     fence: {
@@ -582,6 +641,9 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null
             });
+        },
+        html: function(node, output, state) {
+            return htmlTag("blockquote", output(node.content, state));
         }
     },
     list: {
@@ -701,6 +763,17 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            var listItems = node.items.map(function(item) {
+                return htmlTag("li", output(item, state));
+            }).join("");
+
+            var listTag = node.ordered ? "ol" : "ul";
+            var attributes = {
+                start: node.start
+            };
+            return htmlTag(listTag, listItems, attributes);
         }
     },
     def: {
@@ -751,7 +824,8 @@ var defaultRules = {
                 title: title,
             };
         },
-        react: function() { return null; }
+        react: function() { return null; },
+        html: function() { return null; }
     },
     table: {
         match: blockRegex(/^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/),
@@ -831,12 +905,38 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            var getStyle = function(colIndex) {
+                return node.align[colIndex] == null ? "" :
+                    "text-align:" + node.align[colIndex] + ";";
+            };
+
+            var headers = node.header.map(function(content, i) {
+                return htmlTag("th", output(content, state),
+                    { style: getStyle(i) });
+            }).join("");
+
+            var rows = node.cells.map(function(row) {
+                var cols = row.map(function(content, c) {
+                    return htmlTag("td", output(content, state),
+                        { style: getStyle(c) });
+                }).join("");
+
+                return htmlTag("tr", cols);
+            }).join("");
+
+            var thead = htmlTag("thead", htmlTag("tr", headers));
+            var tbody = htmlTag("tbody", rows);
+
+            return htmlTag("table", thead + tbody);
         }
     },
     newline: {
         match: blockRegex(/^(?:\n *)*\n/),
         parse: ignoreCapture,
-        react: function(node, output, state) { return "\n"; }
+        react: function(node, output, state) { return "\n"; },
+        html: function(node, output, state) { return "\n"; }
     },
     paragraph: {
         match: blockRegex(/^((?:[^\n]|\n(?! *\n))+)(?:\n *)+\n/),
@@ -852,6 +952,12 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            var attributes = {
+                class: 'paragraph'
+            };
+            return htmlTag("div", output(node.content, state), attributes);
         }
     },
     escape: {
@@ -939,6 +1045,14 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            var attributes = {
+                href: sanitizeUrl(node.target),
+                title: node.title
+            };
+
+            return htmlTag("a", output(node.content, state), attributes);
         }
     },
     image: {
@@ -965,6 +1079,15 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            var attributes = {
+                src: sanitizeUrl(node.target),
+                alt: node.alt,
+                title: node.title
+            };
+
+            return htmlTag("img", "", attributes, false);
         }
     },
     reflink: {
@@ -1008,6 +1131,9 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            return htmlTag("strong", output(node.content, state));
         }
     },
     u: {
@@ -1023,6 +1149,9 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            return htmlTag("u", output(node.content, state));
         }
     },
     em: {
@@ -1063,6 +1192,9 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            return htmlTag("em", output(node.content, state));
         }
     },
     del: {
@@ -1078,6 +1210,9 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            return htmlTag("del", output(node.content, state));
         }
     },
     inlineCode: {
@@ -1097,6 +1232,9 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            return htmlTag("code", node.content);
         }
     },
     br: {
@@ -1110,6 +1248,9 @@ var defaultRules = {
                 _isReactElement: true,
                 _store: null,
             });
+        },
+        html: function(node, output, state) {
+            return "<br>";
         }
     },
     text: {
@@ -1127,6 +1268,9 @@ var defaultRules = {
         },
         react: function(node, output, state) {
             return node.content;
+        },
+        html: function(node, output, state) {
+            return node.content;
         }
     }
 };
@@ -1141,8 +1285,10 @@ var ruleOutput = function(rules, property) {
             "'html' as the second argument."
         );
     }
+
     // deprecated:
     property = property || "react";
+
     var nestedRuleOutput = function(ast, outputFunc, state) {
         return rules[ast.type][property](ast, outputFunc, state);
     };
@@ -1167,12 +1313,14 @@ var defaultImplicitParse = function(source) {
 };
 
 var defaultReactOutput = reactFor(ruleOutput(defaultRules, "react"));
+var defaultHtmlOutput = htmlFor(ruleOutput(defaultRules, "html"));
 
 var SimpleMarkdown = {
     defaultRules: defaultRules,
     parserFor: parserFor,
     ruleOutput: ruleOutput,
     reactFor: reactFor,
+    htmlFor: htmlFor,
 
     inlineRegex: inlineRegex,
     blockRegex: blockRegex,
@@ -1186,6 +1334,7 @@ var SimpleMarkdown = {
     defaultImplicitParse: defaultImplicitParse,
 
     defaultReactOutput: defaultReactOutput,
+    defaultHtmlOutput: defaultHtmlOutput,
 
     sanitizeUrl: sanitizeUrl,
 
