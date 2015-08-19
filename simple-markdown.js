@@ -847,6 +847,7 @@ var defaultRules = {
                 key: state.key,
                 props: {
                     className: 'paragraph',
+                    "data-key": state.key,
                     children: output(node.content, state)
                 },
                 _isReactElement: true,
