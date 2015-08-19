@@ -1172,7 +1172,7 @@ var defaultRules = {
                 //          want ' *' to close an italics--it might
                 //          start a list)
                 //  - non-whitespace, non-* characters
-                "(?:\\*\\*|\\s+[^\\*\\s]|[^\\s\\*])+?" +
+                "(?:\\*\\*|\\s+[^\\*\\s]|[^\\s\\*])*?" +
                 // followed by a non-space, non-* then *
                 "[^\\s\\*])\\*(?!\\*)"
             )

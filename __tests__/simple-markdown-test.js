@@ -106,6 +106,17 @@ describe("simple markdown", function() {
             }]);
         });
 
+        it("should parse a single italic character", function() {
+            var parsed = inlineParse("*h*");
+            validateParse(parsed, [{
+                type: "em",
+                content: [{
+                    type: "text",
+                    content: "h"
+                }]
+            }]);
+        });
+
         it("should parse strikethrough", function() {
             var parsed = inlineParse("~~hi~~");
             validateParse(parsed, [{
