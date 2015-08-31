@@ -2317,6 +2317,77 @@ describe("simple markdown", function() {
         });
     });
 
+    describe("preprocess step", function() {
+        it("should strip `\\f`s", function() {
+            var parsed = blockParse("hi\n\n\fbye\n\n");
+            validateParse(parsed, [
+                {
+                    type: "paragraph",
+                    content: [
+                        { content: "hi", type: "text" },
+                    ],
+                },
+                {
+                    type: "paragraph",
+                    content: [
+                        { content: "bye", type: "text" },
+                    ],
+                },
+            ]);
+
+            var parsed2 = blockParse("hi\n\f\nbye\n\n");
+            validateParse(parsed2, [
+                {
+                    type: "paragraph",
+                    content: [
+                        { content: "hi", type: "text" },
+                    ],
+                },
+                {
+                    type: "paragraph",
+                    content: [
+                        { content: "bye", type: "text" },
+                    ],
+                },
+            ]);
+        });
+
+        it("should handle \\r nicely", function() {
+            var parsed = blockParse("hi\r\nbye\n\n");
+            validateParse(parsed, [{
+                type: "paragraph",
+                content: [
+                    { content: "hi\nbye", type: "text" },
+                ]
+            }]);
+
+            var parsed2 = blockParse("hi\r\rbye\n\n");
+            validateParse(parsed2, [
+                {
+                    type: "paragraph",
+                    content: [
+                        { content: "hi", type: "text" },
+                    ],
+                },
+                {
+                    type: "paragraph",
+                    content: [
+                        { content: "bye", type: "text" },
+                    ],
+                },
+            ]);
+        });
+
+        it("should treat \\t as four spaces", function() {
+            var parsed = blockParse("\tcode\n\n");
+            validateParse(parsed, [{
+                type: "codeBlock",
+                lang: undefined,
+                content: "code",
+            }]);
+        });
+    });
+
     describe("parser extension api", function() {
         it("should parse a simple %variable% extension", function() {
             var percentVarRule = {

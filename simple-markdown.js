@@ -45,6 +45,16 @@
  */
 (function() {
 
+var CR_NEWLINE_R = /\r\n?/g;
+var TAB_R = /\t/g;
+var FORMFEED_R = /\f/g
+// Turn various crazy whitespace into easy to process things
+var preprocess = function(source) {
+    return source.replace(CR_NEWLINE_R, '\n')
+            .replace(FORMFEED_R, '')
+            .replace(TAB_R, '    ');
+};
+
 /**
  * Creates a parser for a given set of rules, with the precedence
  * specified as a list of rules.
@@ -140,7 +150,11 @@ var parserFor = function(rules) {
         }
         return result;
     };
-    return nestedParse;
+
+    var outerParse = function(source, state) {
+        return nestedParse(preprocess(source), state);
+    };
+    return outerParse;
 };
 
 // Creates a match function for an inline scoped element from a regex
@@ -1336,6 +1350,7 @@ var SimpleMarkdown = {
     defaultReactOutput: defaultReactOutput,
     defaultHtmlOutput: defaultHtmlOutput,
 
+    preprocess: preprocess,
     sanitizeUrl: sanitizeUrl,
 
     // deprecated:
