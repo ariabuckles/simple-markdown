@@ -237,6 +237,11 @@ var htmlFor = function(outputFunc) {
     return nestedOutput;
 };
 
+var TYPE_SYMBOL =
+    (typeof Symbol === 'function' && Symbol.for &&
+     Symbol.for('react.element')) ||
+    0xeac7;
+
 var reactElement = function(element) {
     // Debugging assertions. To be commented out when committed
     // TODO(aria): Figure out a better way of having dev asserts
@@ -244,9 +249,9 @@ var reactElement = function(element) {
     if (typeof element.props !== "object") {
         throw new Error("props of " + element.type + " must be an object");
     }
-    if (!element._isReactElement) {
+    if (!element.$$typeof) {
         throw new Error(
-            "must set _isReactElement on element " +
+            "must set $$typeof on element " +
             element.type
         );
     }
@@ -542,7 +547,7 @@ var defaultRules = {
                 props: {
                     children: output(node.content, state)
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null
             });
         },
@@ -574,7 +579,7 @@ var defaultRules = {
                 type: 'hr',
                 key: state.key,
                 props: EMPTY_PROPS,
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -608,11 +613,11 @@ var defaultRules = {
                             className: className,
                             children: node.content
                         },
-                        _isReactElement: true,
+                        $$typeof: TYPE_SYMBOL,
                         _store: null
                     })
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null
             });
         },
@@ -652,7 +657,7 @@ var defaultRules = {
                 props: {
                     children: output(node.content, state)
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null
             });
         },
@@ -769,12 +774,12 @@ var defaultRules = {
                             props: {
                                 children: output(item, state)
                             },
-                            _isReactElement: true,
+                            $$typeof: TYPE_SYMBOL,
                             _store: null,
                         });
                     })
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -859,7 +864,7 @@ var defaultRules = {
                         style: getStyle(i),
                         children: output(content, state)
                     },
-                    _isReactElement: true,
+                    $$typeof: TYPE_SYMBOL,
                     _store: null
                 });
             });
@@ -877,12 +882,12 @@ var defaultRules = {
                                     style: getStyle(c),
                                     children: output(content, state)
                                 },
-                                _isReactElement: true,
+                                $$typeof: TYPE_SYMBOL,
                                 _store: null,
                             });
                         })
                     },
-                    _isReactElement: true,
+                    $$typeof: TYPE_SYMBOL,
                     _store: null,
                 });
             });
@@ -900,11 +905,11 @@ var defaultRules = {
                                 props: {
                                     children: headers
                                 },
-                                _isReactElement: true,
+                                $$typeof: TYPE_SYMBOL,
                                 _store: null,
                             })
                         },
-                        _isReactElement: true,
+                        $$typeof: TYPE_SYMBOL,
                         _store: null,
                     }), reactElement({
                         type: 'tbody',
@@ -912,11 +917,11 @@ var defaultRules = {
                         props: {
                             children: rows
                         },
-                        _isReactElement: true,
+                        $$typeof: TYPE_SYMBOL,
                         _store: null,
                     })]
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -963,7 +968,7 @@ var defaultRules = {
                     className: 'paragraph',
                     children: output(node.content, state)
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -1056,7 +1061,7 @@ var defaultRules = {
                     title: node.title,
                     children: output(node.content, state)
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -1090,7 +1095,7 @@ var defaultRules = {
                     alt: node.alt,
                     title: node.title
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -1142,7 +1147,7 @@ var defaultRules = {
                 props: {
                     children: output(node.content, state)
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -1160,7 +1165,7 @@ var defaultRules = {
                 props: {
                     children: output(node.content, state)
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -1203,7 +1208,7 @@ var defaultRules = {
                 props: {
                     children: output(node.content, state)
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -1221,7 +1226,7 @@ var defaultRules = {
                 props: {
                     children: output(node.content, state)
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -1243,7 +1248,7 @@ var defaultRules = {
                 props: {
                     children: node.content
                 },
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },
@@ -1259,7 +1264,7 @@ var defaultRules = {
                 type: 'br',
                 key: state.key,
                 props: EMPTY_PROPS,
-                _isReactElement: true,
+                $$typeof: TYPE_SYMBOL,
                 _store: null,
             });
         },

@@ -23,6 +23,6 @@
     "mocha": "^1.21.5",
     "react-tools": ">=0.13.0-rc2",
     "underscore": "^1.4.4",
-    "react": ">=0.13.0-rc2"
+    "react": ">=0.14.0-rc1"
   }
 }

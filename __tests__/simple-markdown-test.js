@@ -2631,15 +2631,15 @@ describe("simple markdown", function() {
         it("should output hrs", function() {
             assertParsesToReact(
                 "-----\n\n",
-                "<hr>"
+                "<hr/>"
             );
             assertParsesToReact(
                 " * * * \n\n",
-                "<hr>"
+                "<hr/>"
             );
             assertParsesToReact(
                 "___\n\n",
-                "<hr>"
+                "<hr/>"
             );
         });
 
