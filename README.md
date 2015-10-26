@@ -56,14 +56,14 @@ Then let's get a basic markdown parser and outputter.
 generic markdown:
 
 ```javascript
-    var mdParser = SimpleMarkdown.defaultBlockParser;
+    var mdParser = SimpleMarkdown.defaultImplicitParse;
     var mdOutput = SimpleMarkdown.defaultOutput;
 ```
 
-`mdParse` can give us a syntax tree:
+`mdParser` can give us a syntax tree:
 
 ```javascript
-    var syntaxTree = mdParse("Here is a paragraph and an *em tag*.");
+    var syntaxTree = mdParser("Here is a paragraph and an *em tag*.");
 ```
 
 Let's inspect our syntax tree:
