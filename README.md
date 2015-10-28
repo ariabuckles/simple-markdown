@@ -153,9 +153,17 @@ third `_`.
         
         // Finally transform this syntax node into a
         // React element
-        output: function(node, output) {
+        react: function(node, output) {
             return React.DOM.u(null, output(node.content));
-        }
+        },
+
+        // Or an html element:
+        // (Note: you may only need to make one of `react:` or
+        // `html:`, as long as you never ask for an outputter
+        // for the other type.)
+        html: function(node, output) {
+            return '<u>' + output(node.content) + '</u>';
+        },
     };
 ```
 
@@ -167,7 +175,7 @@ Then, we need to add this rule to the other rules:
     });
 ```
 
-Finally, we need to build our parser and outputter:
+Finally, we need to build our parser and outputters:
 
 ```javascript
     var rawBuiltParser = SimpleMarkdown.parserFor(rules);
@@ -175,7 +183,10 @@ Finally, we need to build our parser and outputter:
         var blockSource = source + "\n\n";
         return rawBuiltParser(blockSource, {inline: false});
     };
-    var output = SimpleMarkdown.outputFor(SimpleMarkdown.ruleOutput(rules));
+    // You probably only need one of these: choose depending on
+    // whether you want react nodes or an html string:
+    var reactOutput = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'react'));
+    var htmlOutput = SimpleMarkdown.htmlFor(SimpleMarkdown.ruleOutput(rules, 'html'));
 ```
 
 Now we can use our custom `parse` and `output` functions to parse
@@ -201,13 +212,17 @@ markdown with underlines!
         }
     ]
     
-    output(syntaxTree)
+    reactOutput(syntaxTree)
     => [ { type: 'div',
         key: null,
         ref: null,
         _owner: null,
         _context: {},
         _store: { validated: false, props: [Object] } } ]
+
+    htmlOutput(syntaxTree)
+
+    => '<div class="paragraph"><u>hello underlines</u></div>'
 ```
 
 
@@ -243,7 +258,8 @@ Extension Overview
 
 Elements in simple-markdown are generally created from rules.
 For parsing, rules must specify `match` and `parse` methods.
-For output, rules must specify an `output` method.
+For output, rules must specify a `react` or `html` method
+(or both), depending on which outputter you create afterwards.
 
 Here is an example rule, a slightly modified version of what
 simple-markdown uses for parsing **strong** (**bold**) text:
@@ -258,9 +274,12 @@ simple-markdown uses for parsing **strong** (**bold**) text:
                 content: recurseParse(capture[1], state)
             };
         },
-        output: function(node, recurseOutput) {
+        react: function(node, recurseOutput) {
             return React.DOM.strong(null, recurseOutput(node.content));
-        }
+        },
+        html: function(node, recurseOutput) {
+            return '<strong>' + recurseOutput(node.content) + '</strong>';
+        },
     },
 ```
 
@@ -308,7 +327,8 @@ tree node object, which we'll call `node` here.
 state to recursively parse the sub-content. This returns an array.
 
 `state` is the mutable state threading object, which can be examined
-or modified, and should be passed through to any `recurseParse` calls.
+or modified, and should be passed as the third argument to any
+`recurseParse` calls.
 
 For example, to parse inline sub-content, you can add `inline: true`
 to state, or `inline: false` to force block parsing (to leave the
@@ -330,9 +350,9 @@ current rule's type (the common case). If you have multiple ways
 to parse a single element, it can be useful to have multiple rules
 that all return nodes of the same type.
 
-#### `output(node, recurseOutput)`
+#### `react(node, recurseOutput, state)`
 
-`output` takes a syntax tree `node` and transforms it into
+`react` takes a syntax tree `node` and transforms it into
 React-renderable output.
 
 `node` is the return value from `parse`, which has a type
@@ -341,6 +361,10 @@ custom fields created by `parse`.
 
 `recurseOutput` is a function to recursively output sub-tree
 nodes created by using `recurseParse` in `parse`.
+
+`state` is the mutable state threading object, which can be
+examined or modified, and should be passed as the second
+argument to any recurseOutput calls.
 
 The simple-markdown API contains several helper methods for
 creating rules, as well as methods for creating parsers and
@@ -361,8 +385,8 @@ intermediate steps in the parsing/output process, if necessary.
 
 The default rules, specified as an object, where the keys are
 the rule types, and the values are objects containing `order`,
-`match`, `parse`, and `output` fields (these rules can be used
-for both parsing and outputting).
+`match`, `parse`, `react`, and `html` fields (these rules can
+be used for both parsing and outputting).
 
 #### `SimpleMarkdown.parserFor(rules)`
 
@@ -373,26 +397,41 @@ In the case of order field ties, rules are ordered
 lexicographically by rule name. Each of the rules in the `rules`
 object must contain a `match` and a `parse` function.
 
-#### `SimpleMarkdown.ruleOutput(rules)`
+#### `SimpleMarkdown.ruleOutput(rules, key)`
 
 Takes a `rules` object, containing an `output` function for
-each rule, and returns a function that can output a single
-syntax tree node of any type that is in the `rules` object,
-given a node and a recursive output function. This is not
-the final output function because it doesn't handle arrays
-of nodes or recursion (see `outputFor`).
+each rule, and a `key` into individual elements in that rules
+rules argument (either `'react''` or `'html'`, unless you are
+defining a custom output type), and returns a function that can
+output a single syntax tree node of any type that is in the
+`rules` object, given a node and a recursive output function.
+This is not the final output function because it doesn't handle
+arrays of nodes or recursion (see `reactFor` and `htmlFor`).
 
-#### `SimpleMarkdown.outputFor(singleNodeOutputFunction)`
+#### `SimpleMarkdown.reactFor(singleNodeOutputFunction)`
 
-Takes a function that can output any single syntax tree
-node and returns a function that maps over syntax tree
-arrays correctly.
+Takes a function that can output react-renderable output for
+any single syntax tree node and returns a function that maps
+over syntax tree arrays correctly.
 
 The most common use case is to pass the output of
-`ruleOutput` as the parameter to `outputFor`:
+`ruleOutput` as the parameter to `reactFor`:
 
 ```javascript
-    var output = SimpleMarkdown.outputFor(SimpleMarkdown.ruleOutput(rules));
+    var output = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'react'));
+```
+
+#### `SimpleMarkdown.htmlFor(singleNodeOutputFunction)`
+
+Takes a function that can output an html string for
+any single syntax tree node and returns a function that maps
+over syntax tree arrays correctly.
+
+The most common use case is to pass the output of
+`ruleOutput` as the parameter to `htmlFor`:
+
+```javascript
+    var output = SimpleMarkdown.htmlFor(SimpleMarkdown.ruleOutput(rules, 'html'));
 ```
 
 #### Putting it all together
@@ -410,14 +449,17 @@ undefined).
     var rules = SimpleMarkdown.defaultRules; // for example
 
     var parser = SimpleMarkdown.parserFor(rules);
-    var output = SimpleMarkdown.outputFor(SimpleMarkdown.ruleOutput(rules));
+    var reactOutput = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'react'));
+    var htmlOutput = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'html'));
     
     var blockParseAndOutput = function(source) {
         // Many rules require content to end in \n\n to be interpreted
         // as a block.
         var blockSource = source + "\n\n";
         var parseTree = parser(blockSource, {inline: false});
-        var outputResult = output(parseTree);
+        var outputResult = htmlOutput(parseTree);
+        // Or for react output, use:
+        // var outputResult = reactOutput(parseTree);
         return outputResult;
     };
 ```
