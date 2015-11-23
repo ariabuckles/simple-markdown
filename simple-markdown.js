@@ -78,14 +78,23 @@ var parserFor = function(rules) {
     // Sorts rules in order of increasing order, then
     // ascending rule name in case of ties.
     var ruleList = Object.keys(rules);
+    ruleList.forEach(function(type) {
+        var order = rules[type].order;
+        if ((typeof order !== 'number' || !isFinite(order)) &&
+                typeof console !== 'undefined') {
+            console.warn(
+                "simple-markdown: Invalid order for rule `" + type + "`: " +
+                order
+            );
+        }
+    });
+
     ruleList.sort(function(typeA, typeB) {
         var orderA = rules[typeA].order;
         var orderB = rules[typeB].order;
 
         // First sort based on increasing order
-        if (typeof orderA === 'number' && typeof orderB === 'number' &&
-                isFinite(orderA) && isFinite(orderB) &&
-                orderA !== orderB) {
+        if (orderA !== orderB) {
             return orderA - orderB;
 
         // Then based on increasing unicode lexicographic ordering

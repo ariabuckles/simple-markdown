@@ -2565,6 +2565,26 @@ describe("simple markdown", function() {
                     {content: "hi", type: "em1"},
                 ]);
             });
+
+            it("should output a warning for non-numeric orders", function() {
+                var oldconsolewarn = console.warn;
+                var warnings = [];
+                console.warn = function(warning) { warnings.push(warning); };
+                var parser1 = SimpleMarkdown.parserFor({
+                    em1: _.extend({}, emRule, {
+                        order: 1/0 - 1/0
+                    }),
+                    text: textRule
+                });
+
+                assert.strictEqual(warnings.length, 1);
+                assert.strictEqual(
+                    warnings[0],
+                    "simple-markdown: Invalid order for rule `em1`: NaN"
+                );
+
+                console.warn = oldconsolewarn;
+            });
         });
     });
 
