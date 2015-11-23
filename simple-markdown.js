@@ -83,7 +83,9 @@ var parserFor = function(rules) {
         var orderB = rules[typeB].order;
 
         // First sort based on increasing order
-        if (orderA !== orderB) {
+        if (typeof orderA === 'number' && typeof orderB === 'number' &&
+                isFinite(orderA) && isFinite(orderB) &&
+                orderA !== orderB) {
             return orderA - orderB;
 
         // Then based on increasing unicode lexicographic ordering
