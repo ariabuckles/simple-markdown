@@ -223,6 +223,41 @@ describe("simple markdown", function() {
             }]);
         });
 
+        it("should allow escaped underscores in underscore italics", function() {
+            var parsed1 = inlineParse("_ABC\\_DEF_");
+            validateParse(parsed1, [{
+                type: "em",
+                content: [{
+                    type: "text",
+                    content: "ABC",
+                }, {
+                    type: "text",
+                    content: "_",
+                }, {
+                    type: "text",
+                    content: "DEF",
+                }]
+            }]);
+
+            var parsed2 = inlineParse("_**ABC\\_DEF**_");
+            validateParse(parsed2, [{
+                type: "em",
+                content: [{
+                    type: "strong",
+                    content: [{
+                        type: "text",
+                        content: "ABC",
+                    }, {
+                        type: "text",
+                        content: "_",
+                    }, {
+                        type: "text",
+                        content: "DEF",
+                    }]
+                }]
+            }]);
+        });
+
         // TODO(aria): Make this pass:
         it.skip("should parse complex combined bold/italics", function() {
             var parsed = inlineParse("***bold** italics*");
