@@ -256,6 +256,32 @@ describe("simple markdown", function() {
                     }]
                 }]
             }]);
+
+            var parsed3 = inlineParse("_**ABC\\$DEF**_");
+            validateParse(parsed3, [{
+                type: "em",
+                content: [{
+                    type: "strong",
+                    content: [{
+                        type: "text",
+                        content: "ABC",
+                    }, {
+                        type: "text",
+                        content: "$",
+                    }, {
+                        type: "text",
+                        content: "DEF",
+                    }]
+                }]
+            }]);
+
+            validateParse(inlineParse("_\\\\_"), [{
+                type: "em",
+                content: [{
+                    type: "text",
+                    content: "\\",
+                }]
+            }]);
         });
 
         // TODO(aria): Make this pass:
@@ -311,6 +337,20 @@ describe("simple markdown", function() {
                     }]
                 }
             ]);
+
+            validateParse(inlineParse("_italics __bold___"), [{
+                type: "em",
+                content: [{
+                    type: "text",
+                    content: "italics ",
+                }, {
+                    type: "u",
+                    content: [{
+                        type: "text",
+                        content: "bold",
+                    }]
+                }]
+            }]);
         });
 
         it("should parse inline code", function() {
