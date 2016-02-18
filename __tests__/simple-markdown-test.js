@@ -2390,6 +2390,14 @@ describe("simple markdown", function() {
                 { content: "hi  bye", type: "text" },
             ]);
         });
+
+        it("should parse unicode characters in a word", function() {
+            var parsed = inlineParse("string with parse öppurtunitiés");
+            validateParse(parsed, [{
+                type: "text",
+                content: "string with parse öppurtunitiés"
+            }]);
+        });
     });
 
     describe("preprocess step", function() {
