@@ -1289,7 +1289,7 @@ var defaultRules = {
         // We break on any symbol characters so that this grammar
         // is easy to extend without needing to modify this regex
         match: inlineRegex(
-            /^[\s\S]+?(?=[^0-9A-Za-z\s\u00C0-\u00FF]|\n\n| {2,}\n|\w+:\S|$)/
+            /^[\s\S]+?(?=[^0-9A-Za-z\s\u00c0-\uffff]|\n\n| {2,}\n|\w+:\S|$)/
         ),
         parse: function(capture, parse, state) {
             return {
