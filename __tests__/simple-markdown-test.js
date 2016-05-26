@@ -1,6 +1,7 @@
 var assert = require("assert");
 var _ = require("underscore");
 var React = require("react");
+var ReactDOMServer = require("react-dom/server");
 
 var SimpleMarkdown = require("../simple-markdown.js");
 var blockParse = SimpleMarkdown.defaultBlockParse;
@@ -41,7 +42,7 @@ var validateParse = function(parsed, expected) {
 
 var htmlThroughReact = function(parsed) {
     var output = defaultOutput(parsed);
-    var rawHtml = React.renderToStaticMarkup(
+    var rawHtml = ReactDOMServer.renderToStaticMarkup(
         React.DOM.div(null, output)
     );
     var innerHtml = rawHtml

@@ -27,11 +27,9 @@
   "homepage": "https://github.com/Khan/simple-markdown",
   "devDependencies": {
     "mocha": "^2.5.3",
-    "react-tools": ">=0.13.0-rc2",
-    "underscore": "^1.4.4",
-    "react": ">=0.14.0-rc1"
-  },
-  "dependencies": {
-    "uglify-js": "^2.6.2"
+    "react": "^15.1.0",
+    "react-dom": "^15.1.0",
+    "uglify-js": "^2.6.2",
+    "underscore": "^1.4.4"
   }
 }
