@@ -1189,7 +1189,7 @@ var defaultRules = {
             new RegExp(
                 // only match _s surrounding words.
                 "^\\b_" +
-                "((?:__|\\\\_|[^\\_])+?)_" +
+                "((?:__|\\\\[_\\\\]|[^\\_])+?)_" +
                 "\\b" +
                 // Or match *s:
                 "|" +
