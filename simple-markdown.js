@@ -137,14 +137,19 @@ var parserFor = function(rules) {
                     // store references to the objects they return and
                     // modify them later. (oops sorry! but this adds a lot
                     // of power--see reflinks.)
-                    // We also let rules override the default type of
-                    // their parsed node if they would like to, so that
-                    // there can be a single output function for all links,
-                    // even if there are several rules to parse them.
-                    if (parsed.type == null) {
-                        parsed.type = ruleType;
+                    if (parsed instanceof Array) {
+                      Array.prototype.push.apply(result, parsed);
                     }
-                    result.push(parsed);
+                    else {
+                      // We also let rules override the default type of
+                      // their parsed node if they would like to, so that
+                      // there can be a single output function for all links,
+                      // even if there are several rules to parse them.
+                      if (parsed.type == null) {
+                        parsed.type = ruleType;
+                      }
+                      result.push(parsed);
+                    }
 
                     prevCapture = currCaptureString;
                     break;
