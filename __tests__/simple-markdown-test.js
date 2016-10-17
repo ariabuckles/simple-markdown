@@ -105,6 +105,23 @@ describe("simple markdown", function() {
                     content: "hi"
                 }]
             }]);
+
+            var parsed2 = inlineParse("*test i*");
+            validateParse(parsed2, [{
+                type: "em",
+                content: [{
+                    type: "text",
+                    content: "test i"
+                }]
+            }]);
+        });
+
+        it("should not parse ** as empty italics", function() {
+            var parsed = inlineParse("**");
+            validateParse(parsed, [
+              { type: "text", content: "*" },
+              { type: "text", content: "*" },
+            ]);
         });
 
         it("should parse a single italic character", function() {
@@ -154,9 +171,9 @@ describe("simple markdown", function() {
         it("should parse nested bold/italics", function() {
             var parsed = inlineParse("***hi***");
             validateParse(parsed, [{
-                type: "strong",
+                type: "em",
                 content: [{
-                    type: "em",
+                    type: "strong",
                     content: [{
                         type: "text",
                         content: "hi"
@@ -168,9 +185,9 @@ describe("simple markdown", function() {
         it("should parse nested bold/italics/underline", function() {
             var parsed1 = inlineParse("***__hi__***");
             validateParse(parsed1, [{
-                type: "strong",
+                type: "em",
                 content: [{
-                    type: "em",
+                    type: "strong",
                     content: [{
                         type: "u",
                         content: [{
@@ -198,9 +215,9 @@ describe("simple markdown", function() {
 
             var parsed3 = inlineParse("***bolditalics***");
             validateParse(parsed3, [{
-                type: "strong",
+                type: "em",
                 content: [{
-                    type: "em",
+                    type: "strong",
                     content: [{
                         type: "text",
                         content: "bolditalics",
@@ -286,7 +303,7 @@ describe("simple markdown", function() {
         });
 
         // TODO(aria): Make this pass:
-        it.skip("should parse complex combined bold/italics", function() {
+        it("should parse complex combined bold/italics", function() {
             var parsed = inlineParse("***bold** italics*");
             validateParse(parsed, [{
                 type: "em",
@@ -299,6 +316,21 @@ describe("simple markdown", function() {
                 }, {
                     type: "text",
                     content: " italics",
+                }]
+            }]);
+
+            var parsed2 = inlineParse("*hi **there you***");
+            validateParse(parsed2, [{
+                type: "em",
+                content: [{
+                    type: "text",
+                    content: "hi ",
+                }, {
+                    type: "strong",
+                    content: [{
+                        type: "text",
+                        content: "there you",
+                    }]
                 }]
             }]);
         });
@@ -2969,7 +3001,7 @@ describe("simple markdown", function() {
         it("should output simple combined bold/italics", function() {
             assertParsesToReact(
                 "***bolditalics***",
-                '<strong><em>bolditalics</em></strong>'
+                '<em><strong>bolditalics</strong></em>'
             );
             assertParsesToReact(
                 "**bold *italics***",
@@ -2978,10 +3010,14 @@ describe("simple markdown", function() {
         });
 
         // TODO(aria): Make this pass:
-        it.skip("should output complex combined bold/italics", function() {
+        it("should output complex combined bold/italics", function() {
             assertParsesToReact(
                 "***bold** italics*",
                 '<em><strong>bold</strong> italics</em>'
+            );
+            assertParsesToReact(
+                "*hi **there you***",
+                '<em>hi <strong>there you</strong></em>'
             );
         });
 
@@ -3309,7 +3345,7 @@ describe("simple markdown", function() {
         it("should output simple combined bold/italics", function() {
             assertParsesToHtml(
                 "***bolditalics***",
-                '<strong><em>bolditalics</em></strong>'
+                '<em><strong>bolditalics</strong></em>'
             );
             assertParsesToHtml(
                 "**bold *italics***",
@@ -3318,10 +3354,14 @@ describe("simple markdown", function() {
         });
 
         // TODO(aria): Make this pass:
-        it.skip("should output complex combined bold/italics", function() {
+        it("should output complex combined bold/italics", function() {
             assertParsesToHtml(
                 "***bold** italics*",
                 '<em><strong>bold</strong> italics</em>'
+            );
+            assertParsesToHtml(
+                "*hi **there you***",
+                '<em>hi <strong>there you</strong></em>'
             );
         });
 
