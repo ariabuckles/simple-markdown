@@ -105,6 +105,23 @@ describe("simple markdown", function() {
                     content: "hi"
                 }]
             }]);
+
+            var parsed2 = inlineParse("*test i*");
+            validateParse(parsed2, [{
+                type: "em",
+                content: [{
+                    type: "text",
+                    content: "test i"
+                }]
+            }]);
+        });
+
+        it("should not parse ** as empty italics", function() {
+            var parsed = inlineParse("**");
+            validateParse(parsed, [
+              { type: "text", content: "*" },
+              { type: "text", content: "*" },
+            ]);
         });
 
         it("should parse a single italic character", function() {

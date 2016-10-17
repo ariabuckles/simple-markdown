@@ -1195,16 +1195,16 @@ var defaultRules = {
                 "|" +
                 // Only match *s that are followed by a non-space:
                 "^\\*(?=\\S)(" +
-                // Match any of:
+                // Match at least one of:
                 //  - `**`: so that bolds inside italics don't close the
                 //          italics
-                //  - whitespace: if it's not followed by a * (we don't
+                //  - whitespace: followed by a non-* (we don't
                 //          want ' *' to close an italics--it might
                 //          start a list)
                 //  - non-whitespace, non-* characters
-                "(?:\\*\\*|\\s+[^\\*\\s]|[^\\s\\*])*?" +
+                "(?:\\*\\*|\\s+[^\\*\\s]|[^\\s\\*])+?" +
                 // followed by a non-space, non-* then *
-                "[^\\s\\*])\\*(?!\\*)"
+                ")\\*(?!\\*)"
             )
         ),
         parse: function(capture, parse, state) {
