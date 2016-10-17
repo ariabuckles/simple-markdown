@@ -1148,6 +1148,49 @@ var defaultRules = {
             });
         }
     },
+    em: {
+        match: inlineRegex(
+            new RegExp(
+                // only match _s surrounding words.
+                "^\\b_" +
+                "((?:__|\\\\[\\s\\S]|[^\\\\_])+?)_" +
+                "\\b" +
+                // Or match *s:
+                "|" +
+                // Only match *s that are followed by a non-space:
+                "^\\*(?=\\S)(" +
+                // Match at least one of:
+                //  - `**`: so that bolds inside italics don't close the
+                //          italics
+                //  - whitespace: followed by a non-* (we don't
+                //          want ' *' to close an italics--it might
+                //          start a list)
+                //  - non-whitespace, non-* characters
+                "(?:\\*\\*|\\s+(?:[^\\*\\s]|\\*\\*)|[^\\s\\*])+?" +
+                // followed by a non-space, non-* then *
+                ")\\*(?!\\*)"
+            )
+        ),
+        parse: function(capture, parse, state) {
+            return {
+                content: parse(capture[2] || capture[1], state)
+            };
+        },
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'em',
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                $$typeof: TYPE_SYMBOL,
+                _store: null,
+            });
+        },
+        html: function(node, output, state) {
+            return htmlTag("em", output(node.content, state));
+        }
+    },
     strong: {
         match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
         parse: parseCaptureInline,
@@ -1182,49 +1225,6 @@ var defaultRules = {
         },
         html: function(node, output, state) {
             return htmlTag("u", output(node.content, state));
-        }
-    },
-    em: {
-        match: inlineRegex(
-            new RegExp(
-                // only match _s surrounding words.
-                "^\\b_" +
-                "((?:__|\\\\[\\s\\S]|[^\\\\_])+?)_" +
-                "\\b" +
-                // Or match *s:
-                "|" +
-                // Only match *s that are followed by a non-space:
-                "^\\*(?=\\S)(" +
-                // Match at least one of:
-                //  - `**`: so that bolds inside italics don't close the
-                //          italics
-                //  - whitespace: followed by a non-* (we don't
-                //          want ' *' to close an italics--it might
-                //          start a list)
-                //  - non-whitespace, non-* characters
-                "(?:\\*\\*|\\s+[^\\*\\s]|[^\\s\\*])+?" +
-                // followed by a non-space, non-* then *
-                ")\\*(?!\\*)"
-            )
-        ),
-        parse: function(capture, parse, state) {
-            return {
-                content: parse(capture[2] || capture[1], state)
-            };
-        },
-        react: function(node, output, state) {
-            return reactElement({
-                type: 'em',
-                key: state.key,
-                props: {
-                    children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
-        },
-        html: function(node, output, state) {
-            return htmlTag("em", output(node.content, state));
         }
     },
     del: {
