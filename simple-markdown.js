@@ -1148,6 +1148,64 @@ var defaultRules = {
             });
         }
     },
+    strongEm: {
+        match: function(source, state, prevCapture) {
+            const emRes = defaultRules.em.match(source, state, prevCapture);
+            const strongRes = defaultRules.strong.match(source, state, prevCapture);
+            emRes && (emRes.type = 'em');
+            strongRes && (strongRes.type = 'strong');
+            if (!emRes) {
+                return strongRes;
+            } else if (!strongRes) {
+                return emRes;
+            } else if (emRes[0].length > strongRes[0].length) {
+                return emRes;
+            } else {
+                return strongRes;
+            }
+        },
+        parse: function(capture, parse, state) {
+            var res = defaultRules[capture.type].parse(capture, parse, state);
+            res.type = capture.type;
+            return res;
+        },
+    },
+    strong: {
+        match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
+        parse: parseCaptureInline,
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'strong',
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                $$typeof: TYPE_SYMBOL,
+                _store: null,
+            });
+        },
+        html: function(node, output, state) {
+            return htmlTag("strong", output(node.content, state));
+        }
+    },
+    u: {
+        match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
+        parse: parseCaptureInline,
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'u',
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                $$typeof: TYPE_SYMBOL,
+                _store: null,
+            });
+        },
+        html: function(node, output, state) {
+            return htmlTag("u", output(node.content, state));
+        }
+    },
     em: {
         match: inlineRegex(
             new RegExp(
@@ -1189,42 +1247,6 @@ var defaultRules = {
         },
         html: function(node, output, state) {
             return htmlTag("em", output(node.content, state));
-        }
-    },
-    strong: {
-        match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
-        parse: parseCaptureInline,
-        react: function(node, output, state) {
-            return reactElement({
-                type: 'strong',
-                key: state.key,
-                props: {
-                    children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
-        },
-        html: function(node, output, state) {
-            return htmlTag("strong", output(node.content, state));
-        }
-    },
-    u: {
-        match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
-        parse: parseCaptureInline,
-        react: function(node, output, state) {
-            return reactElement({
-                type: 'u',
-                key: state.key,
-                props: {
-                    children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
-        },
-        html: function(node, output, state) {
-            return htmlTag("u", output(node.content, state));
         }
     },
     del: {
@@ -1308,6 +1330,10 @@ var defaultRules = {
 Object.keys(defaultRules).forEach(function(type, i) {
     defaultRules[type].order = i;
 });
+
+// Hack to make `strongEm` not mess with any rule privilege that
+// extension authors have written to come before `strong`
+defaultRules.strongEm.order += 0.75;
 
 var ruleOutput = function(rules, property) {
     if (!property && typeof console !== "undefined") {

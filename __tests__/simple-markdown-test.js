@@ -171,9 +171,9 @@ describe("simple markdown", function() {
         it("should parse nested bold/italics", function() {
             var parsed = inlineParse("***hi***");
             validateParse(parsed, [{
-                type: "em",
+                type: "strong",
                 content: [{
-                    type: "strong",
+                    type: "em",
                     content: [{
                         type: "text",
                         content: "hi"
@@ -185,9 +185,9 @@ describe("simple markdown", function() {
         it("should parse nested bold/italics/underline", function() {
             var parsed1 = inlineParse("***__hi__***");
             validateParse(parsed1, [{
-                type: "em",
+                type: "strong",
                 content: [{
-                    type: "strong",
+                    type: "em",
                     content: [{
                         type: "u",
                         content: [{
@@ -215,9 +215,9 @@ describe("simple markdown", function() {
 
             var parsed3 = inlineParse("***bolditalics***");
             validateParse(parsed3, [{
-                type: "em",
+                type: "strong",
                 content: [{
-                    type: "strong",
+                    type: "em",
                     content: [{
                         type: "text",
                         content: "bolditalics",
@@ -330,6 +330,36 @@ describe("simple markdown", function() {
                     content: [{
                         type: "text",
                         content: "there you",
+                    }]
+                }]
+            }]);
+
+            var parsed3 = inlineParse("***like* this**");
+            validateParse(parsed3, [{
+                type: "strong",
+                content: [{
+                    type: "em",
+                    content: [{
+                        type: "text",
+                        content: "like",
+                    }]
+                }, {
+                    type: "text",
+                    content: " this",
+                }]
+            }]);
+
+            var parsed4 = inlineParse("**bold *and italics***");
+            validateParse(parsed4, [{
+                type: "strong",
+                content: [{
+                    type: "text",
+                    content: "bold ",
+                }, {
+                    type: "em",
+                    content: [{
+                        type: "text",
+                        content: "and italics",
                     }]
                 }]
             }]);
@@ -3001,7 +3031,7 @@ describe("simple markdown", function() {
         it("should output simple combined bold/italics", function() {
             assertParsesToReact(
                 "***bolditalics***",
-                '<em><strong>bolditalics</strong></em>'
+                '<strong><em>bolditalics</em></strong>'
             );
             assertParsesToReact(
                 "**bold *italics***",
@@ -3345,7 +3375,7 @@ describe("simple markdown", function() {
         it("should output simple combined bold/italics", function() {
             assertParsesToHtml(
                 "***bolditalics***",
-                '<em><strong>bolditalics</strong></em>'
+                '<strong><em>bolditalics</em></strong>'
             );
             assertParsesToHtml(
                 "**bold *italics***",
