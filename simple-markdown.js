@@ -90,12 +90,22 @@ var parserFor = function(rules) {
     });
 
     ruleList.sort(function(typeA, typeB) {
-        var orderA = rules[typeA].order;
-        var orderB = rules[typeB].order;
+        var ruleA = rules[typeA];
+        var ruleB = rules[typeB];
+        var orderA = ruleA.order;
+        var orderB = ruleB.order;
 
         // First sort based on increasing order
         if (orderA !== orderB) {
             return orderA - orderB;
+
+        }
+
+        var secondaryOrderA = ruleA.secondaryOrder || 0;
+        var secondaryOrderB = ruleB.secondaryOrder || 0;
+
+        if (secondaryOrderA !== secondaryOrderB) {
+            return secondaryOrderA - secondaryOrderB;
 
         // Then based on increasing unicode lexicographic ordering
         } else if (typeA < typeB) {
@@ -120,15 +130,25 @@ var parserFor = function(rules) {
         var prevCapture = "";
         while (source) {
             var i = 0;
+            var ruleType = null;
+            var rule = null;
+            var capture = null;
+
             while (i < ruleList.length) {
-                var ruleType = ruleList[i];
-                var rule = rules[ruleType];
-                var capture;
-                if (rule.match) {
-                    capture = rule.match(source, state, prevCapture);
-                } else {
-                    capture = rule.regex.exec(source);
-                }
+                var order = rules[ruleList[i]].order;
+
+                do {
+                    var currRuleType = ruleList[i];
+                    var currRule = rules[currRuleType];
+                    var currCapture = currRule.match(source, state, prevCapture);
+                    if (currCapture && (!capture || currCapture[0].length > capture[0].length)) {
+                        ruleType = currRuleType;
+                        rule = currRule;
+                        capture = currCapture;
+                    }
+                    i++;
+                } while (i < ruleList.length && rules[ruleList[i]].order === order);
+
                 if (capture) {
                     var currCaptureString = capture[0];
                     source = source.substring(currCaptureString.length);
@@ -149,11 +169,10 @@ var parserFor = function(rules) {
                     prevCapture = currCaptureString;
                     break;
                 }
-                i++;
             }
 
             // TODO(aria): Write tests for this
-            if (i === ruleList.length) {
+            if (capture === null) {
                 throw new Error(
                     "could not find rule to match content: " + source
                 );
@@ -1148,28 +1167,6 @@ var defaultRules = {
             });
         }
     },
-    strongEm: {
-        match: function(source, state, prevCapture) {
-            const emRes = defaultRules.em.match(source, state, prevCapture);
-            const strongRes = defaultRules.strong.match(source, state, prevCapture);
-            emRes && (emRes.type = 'em');
-            strongRes && (strongRes.type = 'strong');
-            if (!emRes) {
-                return strongRes;
-            } else if (!strongRes) {
-                return emRes;
-            } else if (emRes[0].length > strongRes[0].length) {
-                return emRes;
-            } else {
-                return strongRes;
-            }
-        },
-        parse: function(capture, parse, state) {
-            var res = defaultRules[capture.type].parse(capture, parse, state);
-            res.type = capture.type;
-            return res;
-        },
-    },
     strong: {
         match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
         parse: parseCaptureInline,
@@ -1331,9 +1328,12 @@ Object.keys(defaultRules).forEach(function(type, i) {
     defaultRules[type].order = i;
 });
 
-// Hack to make `strongEm` not mess with any rule privilege that
-// extension authors have written to come before `strong`
-defaultRules.strongEm.order += 0.75;
+// Make strong, em, and u parse at the same level, competing with each other
+// on capture length
+defaultRules.strong.secondaryOrder = defaultRules.strong.order;
+defaultRules.em.secondaryOrder = defaultRules.em.order;
+defaultRules.u.secondaryOrder = defaultRules.u.order;
+defaultRules.strong.order = defaultRules.em.order = defaultRules.u.order;
 
 var ruleOutput = function(rules, property) {
     if (!property && typeof console !== "undefined") {
