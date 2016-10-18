@@ -2702,6 +2702,31 @@ describe("simple markdown", function() {
                 console.warn = oldconsolewarn;
             });
         });
+
+        it("should append arrays returned from `parse` to the AST", function() {
+            var parser1 = SimpleMarkdown.parserFor({
+                fancy: {
+                    order: SimpleMarkdown.defaultRules.text.order - 1,
+                    match: function(source) {
+                        return /^.*/.exec(source);
+                    },
+                    parse: function(capture, parse, state) {
+                        return capture[0].split(' ').map(function(word) {
+                            return { type: "text", content: word };
+                        });
+                    },
+                },
+                text: SimpleMarkdown.defaultRules.text
+            });
+
+            var parsed1 = parser1("this is some text", {inline: true});
+            validateParse(parsed1, [
+                {content: "this", type: "text"},
+                {content: "is", type: "text"},
+                {content: "some", type: "text"},
+                {content: "text", type: "text"},
+            ]);
+        });
     });
 
     describe("react output", function() {

@@ -137,7 +137,7 @@ var parserFor = function(rules) {
                     // store references to the objects they return and
                     // modify them later. (oops sorry! but this adds a lot
                     // of power--see reflinks.)
-                    if (parsed instanceof Array) {
+                    if (Array.isArray(parsed)) {
                       Array.prototype.push.apply(result, parsed);
                     }
                     else {
