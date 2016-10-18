@@ -90,12 +90,22 @@ var parserFor = function(rules) {
     });
 
     ruleList.sort(function(typeA, typeB) {
-        var orderA = rules[typeA].order;
-        var orderB = rules[typeB].order;
+        var ruleA = rules[typeA];
+        var ruleB = rules[typeB];
+        var orderA = ruleA.order;
+        var orderB = ruleB.order;
 
         // First sort based on increasing order
         if (orderA !== orderB) {
             return orderA - orderB;
+
+        }
+
+        var secondaryOrderA = ruleA.quality ? 0 : 1;
+        var secondaryOrderB = ruleB.quality ? 0 : 1;
+
+        if (secondaryOrderA !== secondaryOrderB) {
+            return secondaryOrderA - secondaryOrderB;
 
         // Then based on increasing unicode lexicographic ordering
         } else if (typeA < typeB) {
@@ -119,50 +129,89 @@ var parserFor = function(rules) {
         // text (see the list rule for more information).
         var prevCapture = "";
         while (source) {
-            var i = 0;
-            while (i < ruleList.length) {
-                var ruleType = ruleList[i];
-                var rule = rules[ruleType];
-                var capture;
-                if (rule.match) {
-                    capture = rule.match(source, state, prevCapture);
-                } else {
-                    capture = rule.regex.exec(source);
-                }
-                if (capture) {
-                    var currCaptureString = capture[0];
-                    source = source.substring(currCaptureString.length);
-                    var parsed = rule.parse(capture, nestedParse, state);
-                    // We maintain the same object here so that rules can
-                    // store references to the objects they return and
-                    // modify them later. (oops sorry! but this adds a lot
-                    // of power--see reflinks.)
-                    if (Array.isArray(parsed)) {
-                      Array.prototype.push.apply(result, parsed);
-                    }
-                    else {
-                      // We also let rules override the default type of
-                      // their parsed node if they would like to, so that
-                      // there can be a single output function for all links,
-                      // even if there are several rules to parse them.
-                      if (parsed.type == null) {
-                        parsed.type = ruleType;
-                      }
-                      result.push(parsed);
-                    }
+            // store the best match, it's rule, and quality:
+            var ruleType = null;
+            var rule = null;
+            var capture = null;
+            var quality = NaN;
 
-                    prevCapture = currCaptureString;
-                    break;
+            // loop control variables:
+            var i = 0;
+            var currRuleType = ruleList[0];
+            var currRule = rules[currRuleType];
+
+            do {
+                var currOrder = currRule.order;
+                var currCapture = currRule.match(source, state, prevCapture);
+
+                if (currCapture) {
+                    var currQuality = currRule.quality ? currRule.quality(
+                        currCapture,
+                        state,
+                        prevCapture
+                    ) : 0;
+                    // This should always be true the first time because
+                    // the initial quality is NaN (that's why there's the
+                    // condition negation).
+                    if (!(currQuality <= quality)) {
+                        ruleType = currRuleType;
+                        rule = currRule;
+                        capture = currCapture;
+                        quality = currQuality;
+                    }
                 }
+
+                // Move on to the next item.
+                // Note that this makes `currRule` be the next item
                 i++;
-            }
+                currRuleType = ruleList[i];
+                currRule = rules[currRuleType];
+
+            } while (
+                // keep looping while we're still within the ruleList
+                currRule && (
+                    // if we don't have a match yet, continue
+                    !capture || (
+                        // or if we have a match, but the next rule is
+                        // at the same order, and has a quality measurement
+                        // functions, then this rule must have a quality
+                        // measurement function (since they are sorted before
+                        // those without), and we need to check if there is
+                        // a better quality match
+                        currRule.order === currOrder &&
+                        currRule.quality
+                    )
+                )
+            );
 
             // TODO(aria): Write tests for this
-            if (i === ruleList.length) {
+            if (!capture) {
                 throw new Error(
                     "could not find rule to match content: " + source
                 );
             }
+
+            var parsed = rule.parse(capture, nestedParse, state);
+            // We maintain the same object here so that rules can
+            // store references to the objects they return and
+            // modify them later. (oops sorry! but this adds a lot
+            // of power--see reflinks.)
+            if (Array.isArray(parsed)) {
+                Array.prototype.push.apply(result, parsed);
+            }
+            else {
+                // We also let rules override the default type of
+                // their parsed node if they would like to, so that
+                // there can be a single output function for all links,
+                // even if there are several rules to parse them.
+                if (parsed.type == null) {
+                    parsed.type = ruleType;
+                }
+                result.push(parsed);
+            }
+
+            prevCapture = capture[0];
+            source = source.substring(prevCapture.length);
         }
         return result;
     };
@@ -1183,6 +1232,10 @@ var defaultRules = {
                 ")\\*(?!\\*)"
             )
         ),
+        quality: function(capture) {
+            // precedence by length, `em` wins ties:
+            return capture[0].length + 0.2;
+        },
         parse: function(capture, parse, state) {
             return {
                 content: parse(capture[2] || capture[1], state)
@@ -1205,6 +1258,10 @@ var defaultRules = {
     },
     strong: {
         match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
+        quality: function(capture) {
+            // precedence by length, wins ties vs `u`:
+            return capture[0].length + 0.1;
+        },
         parse: parseCaptureInline,
         react: function(node, output, state) {
             return reactElement({
@@ -1223,6 +1280,10 @@ var defaultRules = {
     },
     u: {
         match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
+        quality: function(capture) {
+            // precedence by length, loses all ties
+            return capture[0].length;
+        },
         parse: parseCaptureInline,
         react: function(node, output, state) {
             return reactElement({
@@ -1320,6 +1381,10 @@ var defaultRules = {
 Object.keys(defaultRules).forEach(function(type, i) {
     defaultRules[type].order = i;
 });
+
+// Make strong, em, and u parse at the same level, competing with each other
+// on capture length
+defaultRules.strong.order = defaultRules.em.order = defaultRules.u.order;
 
 var ruleOutput = function(rules, property) {
     if (!property && typeof console !== "undefined") {
