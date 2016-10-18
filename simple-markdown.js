@@ -90,12 +90,22 @@ var parserFor = function(rules) {
     });
 
     ruleList.sort(function(typeA, typeB) {
-        var orderA = rules[typeA].order;
-        var orderB = rules[typeB].order;
+        var ruleA = rules[typeA];
+        var ruleB = rules[typeB];
+        var orderA = ruleA.order;
+        var orderB = ruleB.order;
 
         // First sort based on increasing order
         if (orderA !== orderB) {
             return orderA - orderB;
+
+        }
+
+        var secondaryOrderA = ruleA.secondaryOrder || 0;
+        var secondaryOrderB = ruleB.secondaryOrder || 0;
+
+        if (secondaryOrderA !== secondaryOrderB) {
+            return secondaryOrderA - secondaryOrderB;
 
         // Then based on increasing unicode lexicographic ordering
         } else if (typeA < typeB) {
@@ -120,15 +130,25 @@ var parserFor = function(rules) {
         var prevCapture = "";
         while (source) {
             var i = 0;
+            var ruleType = null;
+            var rule = null;
+            var capture = null;
+
             while (i < ruleList.length) {
-                var ruleType = ruleList[i];
-                var rule = rules[ruleType];
-                var capture;
-                if (rule.match) {
-                    capture = rule.match(source, state, prevCapture);
-                } else {
-                    capture = rule.regex.exec(source);
-                }
+                var order = rules[ruleList[i]].order;
+
+                do {
+                    var currRuleType = ruleList[i];
+                    var currRule = rules[currRuleType];
+                    var currCapture = currRule.match(source, state, prevCapture);
+                    if (currCapture && (!capture || currCapture[0].length > capture[0].length)) {
+                        ruleType = currRuleType;
+                        rule = currRule;
+                        capture = currCapture;
+                    }
+                    i++;
+                } while (i < ruleList.length && rules[ruleList[i]].order === order);
+
                 if (capture) {
                     var currCaptureString = capture[0];
                     source = source.substring(currCaptureString.length);
@@ -154,11 +174,10 @@ var parserFor = function(rules) {
                     prevCapture = currCaptureString;
                     break;
                 }
-                i++;
             }
 
             // TODO(aria): Write tests for this
-            if (i === ruleList.length) {
+            if (capture === null) {
                 throw new Error(
                     "could not find rule to match content: " + source
                 );
@@ -1153,6 +1172,42 @@ var defaultRules = {
             });
         }
     },
+    strong: {
+        match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
+        parse: parseCaptureInline,
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'strong',
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                $$typeof: TYPE_SYMBOL,
+                _store: null,
+            });
+        },
+        html: function(node, output, state) {
+            return htmlTag("strong", output(node.content, state));
+        }
+    },
+    u: {
+        match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
+        parse: parseCaptureInline,
+        react: function(node, output, state) {
+            return reactElement({
+                type: 'u',
+                key: state.key,
+                props: {
+                    children: output(node.content, state)
+                },
+                $$typeof: TYPE_SYMBOL,
+                _store: null,
+            });
+        },
+        html: function(node, output, state) {
+            return htmlTag("u", output(node.content, state));
+        }
+    },
     em: {
         match: inlineRegex(
             new RegExp(
@@ -1194,42 +1249,6 @@ var defaultRules = {
         },
         html: function(node, output, state) {
             return htmlTag("em", output(node.content, state));
-        }
-    },
-    strong: {
-        match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
-        parse: parseCaptureInline,
-        react: function(node, output, state) {
-            return reactElement({
-                type: 'strong',
-                key: state.key,
-                props: {
-                    children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
-        },
-        html: function(node, output, state) {
-            return htmlTag("strong", output(node.content, state));
-        }
-    },
-    u: {
-        match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
-        parse: parseCaptureInline,
-        react: function(node, output, state) {
-            return reactElement({
-                type: 'u',
-                key: state.key,
-                props: {
-                    children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
-        },
-        html: function(node, output, state) {
-            return htmlTag("u", output(node.content, state));
         }
     },
     del: {
@@ -1313,6 +1332,13 @@ var defaultRules = {
 Object.keys(defaultRules).forEach(function(type, i) {
     defaultRules[type].order = i;
 });
+
+// Make strong, em, and u parse at the same level, competing with each other
+// on capture length
+defaultRules.strong.secondaryOrder = defaultRules.strong.order;
+defaultRules.em.secondaryOrder = defaultRules.em.order;
+defaultRules.u.secondaryOrder = defaultRules.u.order;
+defaultRules.strong.order = defaultRules.em.order = defaultRules.u.order;
 
 var ruleOutput = function(rules, property) {
     if (!property && typeof console !== "undefined") {
