@@ -525,6 +525,21 @@ describe("simple markdown", function() {
             ]);
         });
 
+        it("should allow escaping of link urls with `\\`", function() {
+            var parsed = inlineParse("[test link](https://test.link/\\(test\\))");
+            validateParse(parsed, [
+                {
+                    type: "link",
+                    content: [{
+                        type: "text",
+                        content: "test link"
+                    }],
+                    target: "https://test.link/(test)",
+                    title: undefined
+                },
+            ]);
+        });
+
         it("should parse basic <autolinks>", function() {
             var parsed = inlineParse("<http://www.google.com>");
             validateParse(parsed, [{

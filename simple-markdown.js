@@ -340,6 +340,12 @@ var sanitizeUrl = function(url) {
     return url;
 };
 
+var UNESCAPE_URL_R = /\\([^0-9A-Za-z\s])/g;
+
+var unescapeUrl = function(rawUrlString) {
+    return rawUrlString.replace(UNESCAPE_URL_R, "$1");
+};
+
 // Parse some content with the parser `parse`, with state.inline
 // set to true. Useful for block elements; not generally necessary
 // to be used by inline elements (where state.inline is already true.
@@ -513,7 +519,7 @@ var TABLES = (function() {
 
 var LINK_INSIDE = "(?:\\[[^\\]]*\\]|[^\\]]|\\](?=[^\\[]*\\]))*";
 var LINK_HREF_AND_TITLE =
-        "\\s*<?([^\\s]*?)>?(?:\\s+['\"]([\\s\\S]*?)['\"])?\\s*";
+        "\\s*<?((?:[^\\s\\\\]|\\\\.)*?)>?(?:\\s+['\"]([\\s\\S]*?)['\"])?\\s*";
 var AUTOLINK_MAILTO_CHECK_R = /mailto:/i;
 
 var parseRef = function(capture, state, refNode) {
@@ -1063,7 +1069,7 @@ var defaultRules = {
         parse: function(capture, parse, state) {
             var link ={
                 content: parse(capture[1], state),
-                target: capture[2],
+                target: unescapeUrl(capture[2]),
                 title: capture[3]
             };
             return link;
@@ -1097,7 +1103,7 @@ var defaultRules = {
         parse: function(capture, parse, state) {
             var image = {
                 alt: capture[1],
-                target: capture[2],
+                target: unescapeUrl(capture[2]),
                 title: capture[3]
             };
             return image;
@@ -1373,6 +1379,7 @@ var SimpleMarkdown = {
 
     preprocess: preprocess,
     sanitizeUrl: sanitizeUrl,
+    unescapeUrl: unescapeUrl,
 
     // deprecated:
     defaultParse: defaultImplicitParse,
