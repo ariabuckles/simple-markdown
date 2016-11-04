@@ -884,6 +884,7 @@ var defaultRules = {
                     key: i,
                     props: {
                         style: getStyle(i),
+                        scope: 'col',
                         children: output(content, state)
                     },
                     $$typeof: TYPE_SYMBOL,
@@ -955,7 +956,7 @@ var defaultRules = {
 
             var headers = node.header.map(function(content, i) {
                 return htmlTag("th", output(content, state),
-                    { style: getStyle(i) });
+                    { style: getStyle(i), scope: "col" });
             }).join("");
 
             var rows = node.cells.map(function(row) {
