@@ -2910,7 +2910,7 @@ describe("simple markdown", function() {
                 "d1 | d2 | d3\n" +
                 "\n",
                 '<table><thead>' +
-                '<tr><th>h1</th><th>h2</th><th>h3</th></tr>' +
+                '<tr><th scope="col">h1</th><th scope="col">h2</th><th scope="col">h3</th></tr>' +
                 '</thead><tbody>' +
                 '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
                 '</tbody></table>'
@@ -2922,7 +2922,7 @@ describe("simple markdown", function() {
                 "| d1 | d2 | d3 |\n" +
                 "\n",
                 '<table><thead>' +
-                '<tr><th>h1</th><th>h2</th><th>h3</th></tr>' +
+                '<tr><th scope="col">h1</th><th scope="col">h2</th><th scope="col">h3</th></tr>' +
                 '</thead><tbody>' +
                 '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
                 '</tbody></table>'
@@ -2935,9 +2935,9 @@ describe("simple markdown", function() {
                 "\n",
                 '<table><thead>' +
                 '<tr>' +
-                '<th style="text-align:left;">h1</th>' +
-                '<th style="text-align:center;">h2</th>' +
-                '<th style="text-align:right;">h3</th>' +
+                '<th style="text-align:left;" scope="col">h1</th>' +
+                '<th style="text-align:center;" scope="col">h2</th>' +
+                '<th style="text-align:right;" scope="col">h3</th>' +
                 '</tr>' +
                 '</thead><tbody>' +
                 '<tr>' +
@@ -3254,7 +3254,7 @@ describe("simple markdown", function() {
                 "d1 | d2 | d3\n" +
                 "\n",
                 '<table><thead>' +
-                '<tr><th>h1</th><th>h2</th><th>h3</th></tr>' +
+                '<tr><th scope="col">h1</th><th scope="col">h2</th><th scope="col">h3</th></tr>' +
                 '</thead><tbody>' +
                 '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
                 '</tbody></table>'
@@ -3266,7 +3266,7 @@ describe("simple markdown", function() {
                 "| d1 | d2 | d3 |\n" +
                 "\n",
                 '<table><thead>' +
-                '<tr><th>h1</th><th>h2</th><th>h3</th></tr>' +
+                '<tr><th scope="col">h1</th><th scope="col">h2</th><th scope="col">h3</th></tr>' +
                 '</thead><tbody>' +
                 '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
                 '</tbody></table>'
@@ -3279,9 +3279,9 @@ describe("simple markdown", function() {
                 "\n",
                 '<table><thead>' +
                 '<tr>' +
-                '<th style="text-align:left;">h1</th>' +
-                '<th style="text-align:center;">h2</th>' +
-                '<th style="text-align:right;">h3</th>' +
+                '<th style="text-align:left;" scope="col">h1</th>' +
+                '<th style="text-align:center;" scope="col">h2</th>' +
+                '<th style="text-align:right;" scope="col">h3</th>' +
                 '</tr>' +
                 '</thead><tbody>' +
                 '<tr>' +
