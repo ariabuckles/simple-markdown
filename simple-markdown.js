@@ -985,10 +985,9 @@ var defaultRules = {
         parse: parseCaptureInline,
         react: function(node, output, state) {
             return reactElement({
-                type: 'div',
+                type: 'p',
                 key: state.key,
                 props: {
-                    className: 'paragraph',
                     children: output(node.content, state)
                 },
                 $$typeof: TYPE_SYMBOL,
@@ -996,10 +995,7 @@ var defaultRules = {
             });
         },
         html: function(node, output, state) {
-            var attributes = {
-                class: 'paragraph'
-            };
-            return htmlTag("div", output(node.content, state), attributes);
+            return htmlTag("div", output(node.content, state));
         }
     },
     escape: {
