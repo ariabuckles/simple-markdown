@@ -1076,6 +1076,7 @@ var defaultRules = {
                 type: 'a',
                 key: state.key,
                 props: {
+                    target: '_blank',
                     href: sanitizeUrl(node.target),
                     title: node.title,
                     children: output(node.content, state)
@@ -1086,6 +1087,7 @@ var defaultRules = {
         },
         html: function(node, output, state) {
             var attributes = {
+                target: '_blank',
                 href: sanitizeUrl(node.target),
                 title: node.title
             };
