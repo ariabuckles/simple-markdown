@@ -333,6 +333,36 @@ describe("simple markdown", function() {
                     }]
                 }]
             }]);
+
+            var parsed3 = inlineParse("***like* this**");
+            validateParse(parsed3, [{
+                type: "strong",
+                content: [{
+                    type: "em",
+                    content: [{
+                        type: "text",
+                        content: "like",
+                    }]
+                }, {
+                    type: "text",
+                    content: " this",
+                }]
+            }]);
+
+            var parsed4 = inlineParse("**bold *and italics***");
+            validateParse(parsed4, [{
+                type: "strong",
+                content: [{
+                    type: "text",
+                    content: "bold ",
+                }, {
+                    type: "em",
+                    content: [{
+                        type: "text",
+                        content: "and italics",
+                    }]
+                }]
+            }]);
         });
 
         it("should parse multiple bold/italics/underlines", function() {
@@ -2563,6 +2593,14 @@ describe("simple markdown", function() {
                     };
                 }
             };
+            var strongRule = {
+                match: SimpleMarkdown.defaultRules.strong.match,
+                parse: function(capture, parse, state) {
+                    return {
+                        content: capture[1]
+                    };
+                }
+            };
             var textRule = _.extend({}, SimpleMarkdown.defaultRules.text, {
                 order: 10
             });
@@ -2715,6 +2753,83 @@ describe("simple markdown", function() {
                 );
 
                 console.warn = oldconsolewarn;
+            });
+
+            it("should break ties with quality", function() {
+                var parser1 = SimpleMarkdown.parserFor({
+                    em1: _.extend({}, emRule, {
+                        order: 0,
+                        quality: function() { return 1; },
+                    }),
+                    em2: _.extend({}, emRule, {
+                        order: 0,
+                        quality: function() { return 2; },
+                    }),
+                    text: textRule
+                });
+
+                var parsed1 = parser1("_hi_", {inline: true});
+                validateParse(parsed1, [
+                    {content: "hi", type: "em2"},
+                ]);
+
+                // ...regardless of their order in the
+                // original rule definition
+                var parser2 = SimpleMarkdown.parserFor({
+                    em2: _.extend({}, emRule, {
+                        order: 0,
+                        quality: function() { return 2; },
+                    }),
+                    em1: _.extend({}, emRule, {
+                        order: 0,
+                        quality: function() { return 1; },
+                    }),
+                    text: textRule
+                });
+
+                var parsed2 = parser2("_hi_", {inline: true});
+                validateParse(parsed2, [
+                    {content: "hi", type: "em2"},
+                ]);
+            });
+
+            it("rules with quality should always win the tie", function() {
+                var parser1 = SimpleMarkdown.parserFor({
+                    em1: _.extend({}, emRule, {
+                        order: 0,
+                    }),
+                    em2: _.extend({}, emRule, {
+                        order: 0,
+                        quality: function() { return 2; },
+                    }),
+                    text: textRule
+                });
+
+                var parsed1 = parser1("_hi_", {inline: true});
+                validateParse(parsed1, [
+                    {content: "hi", type: "em2"},
+                ]);
+
+                // except if they don't match
+                var parser2 = SimpleMarkdown.parserFor({
+                    em: _.extend({}, emRule, {
+                        order: 0,
+                    }),
+                    strong: _.extend({}, strongRule, {
+                        order: 0,
+                        quality: function() { return 2; },
+                    }),
+                    text: textRule
+                });
+
+                var parsed2 = parser2("_hi_", {inline: true});
+                validateParse(parsed2, [
+                    {content: "hi", type: "em"},
+                ]);
+                var parsed2b = parser2("**hi**", {inline: true});
+                validateParse(parsed2b, [
+                    {content: "hi", type: "strong"},
+                ]);
             });
         });
 
