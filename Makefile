@@ -1,6 +1,6 @@
-.PHONY: all install test minify
+.PHONY: all install test check minify
 
-all: install test
+all: install check test minify
 
 install:
 	npm install
@@ -8,6 +8,9 @@ install:
 minify: simple-markdown.min.js
 
 FIND_TESTS := find __tests__ -type f -regex '.*\.js'
+
+check:
+	./node_modules/.bin/flow
 
 test:
 	$(FIND_TESTS) | xargs ./node_modules/.bin/mocha --reporter spec

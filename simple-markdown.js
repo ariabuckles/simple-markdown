@@ -45,6 +45,60 @@
  */
 (function() {
 
+// flow types
+/*::
+opaque type Capture = any;
+
+type SingleASTNode = {
+    type: string,
+    [string]: any,
+};
+
+type ASTNode = SingleASTNode | Array<SingleASTNode>;
+
+type UnTypedASTNode = { [string]: any } | ASTNode;
+
+type State = {[string]: any};
+type ReactElement = {
+    type: string,
+    key?: string | number,
+    props: { [string]: any },
+    $$typeof: Symbol | number,
+    _store: ?{
+        validated: true,
+        originalProps: { [string]: any },
+    },
+};
+
+type ReactElements = ReactElement | string | null | Array<ReactElements>;
+
+type MatchFunction = (source: string, state: State, prevCapture: string) => ?Capture;
+type ParseFunction = (capture: Capture, nestedParse: ParseFunction, state: any) => UnTypedASTNode;
+type ReactOutput = (node: ASTNode, state: any) => ReactElements;
+type ReactNodeOutput = (node: SingleASTNode, nestedOutput: ReactOutput, state: any) => ReactElements;
+type HtmlOutput = (node: ASTNode, state: any) => string;
+type HtmlNodeOutput = (node: SingleASTNode, nestedOutput: HtmlOutput, state: any) => string;
+
+type Rule = {
+    order?: number,
+    match: MatchFunction,
+    quality?: (capture: Capture, state: State, prevCapture: string) => number,
+    parse: ParseFunction,
+    react?: ReactNodeOutput,
+    html?: HtmlNodeOutput,
+};
+
+type Rules = { [type: string]: Rule };
+
+type RefNode = {
+    type: string,
+    content?: ASTNode,
+    target?: string,
+    title?: string,
+};
+
+*/
+
 var CR_NEWLINE_R = /\r\n?/g;
 var TAB_R = /\t/g;
 var FORMFEED_R = /\f/g
@@ -74,17 +128,18 @@ var preprocess = function(source) {
  *     some nesting is. For an example use-case, see passage-ref
  *     parsing in src/widgets/passage/passage-markdown.jsx
  */
-var parserFor = function(rules) {
+var parserFor = function(rules /*: Rules */) {
     // Sorts rules in order of increasing order, then
     // ascending rule name in case of ties.
     var ruleList = Object.keys(rules);
     ruleList.forEach(function(type) {
-        var order = rules[type].order;
+        var rule /* : Rule */ = (rules[type] /* : Rule */);
+        var order = rule.order;
         if ((typeof order !== 'number' || !isFinite(order)) &&
                 typeof console !== 'undefined') {
             console.warn(
                 "simple-markdown: Invalid order for rule `" + type + "`: " +
-                order
+                String(order)
             );
         }
     });
@@ -92,13 +147,12 @@ var parserFor = function(rules) {
     ruleList.sort(function(typeA, typeB) {
         var ruleA = rules[typeA];
         var ruleB = rules[typeB];
-        var orderA = ruleA.order;
-        var orderB = ruleB.order;
+        var orderA = +ruleA.order;
+        var orderB = +ruleB.order;
 
         // First sort based on increasing order
         if (orderA !== orderB) {
             return orderA - orderB;
-
         }
 
         var secondaryOrderA = ruleA.quality ? 0 : 1;
@@ -120,9 +174,9 @@ var parserFor = function(rules) {
         }
     });
 
-    var nestedParse = function(source, state) {
+    var nestedParse = function(source, stateParam /* : ?State */) {
         var result = [];
-        state = state || {};
+        var state /* : State */ = stateParam || {};
         // We store the previous capture so that match functions can
         // use some limited amount of lookbehind. Lists use this to
         // ensure they don't match arbitrary '- ' or '* ' in inline
@@ -185,13 +239,13 @@ var parserFor = function(rules) {
             );
 
             // TODO(aria): Write tests for this
-            if (!capture) {
+            if (!rule || !capture || !ruleType) {
                 throw new Error(
                     "could not find rule to match content: " + source
                 );
             }
 
-            var parsed = rule.parse(capture, nestedParse, state);
+            var parsed /* : UnTypedASTNode */ = rule.parse(capture, nestedParse, state);
             // We maintain the same object here so that rules can
             // store references to the objects they return and
             // modify them later. (oops sorry! but this adds a lot
@@ -223,8 +277,8 @@ var parserFor = function(rules) {
 };
 
 // Creates a match function for an inline scoped element from a regex
-var inlineRegex = function(regex) {
-    var match = function(source, state) {
+var inlineRegex = function(regex /* : RegExp */) {
+    var match /* : MatchFunction */ = function(source, state) {
         if (state.inline) {
             return regex.exec(source);
         } else {
@@ -236,8 +290,8 @@ var inlineRegex = function(regex) {
 };
 
 // Creates a match function for a block scoped element from a regex
-var blockRegex = function(regex) {
-    var match = function(source, state) {
+var blockRegex = function(regex /* : RegExp */) {
+    var match /* : MatchFunction */ = function(source, state) {
         if (state.inline) {
             return null;
         } else {
@@ -249,16 +303,16 @@ var blockRegex = function(regex) {
 };
 
 // Creates a match function from a regex, ignoring block/inline scope
-var anyScopeRegex = function(regex) {
-    var match = function(source, state) {
+var anyScopeRegex = function(regex /* : RegExp */) {
+    var match /* : MatchFunction */ = function(source, state) {
         return regex.exec(source);
     };
     match.regex = regex;
     return match;
 };
 
-var reactFor = function(outputFunc) {
-    var nestedOutput = function(ast, state) {
+var reactFor = function(outputFunc /* ReactOutput */) /* : ReactOutput */ {
+    var nestedOutput /* : ReactOutput */ = function(ast, state) {
         state = state || {};
         if (Array.isArray(ast)) {
             var oldKey = state.key;
@@ -266,17 +320,15 @@ var reactFor = function(outputFunc) {
 
             // map nestedOutput over the ast, except group any text
             // nodes together into a single string output.
-            var lastWasString = false;
             for (var i = 0; i < ast.length; i++) {
                 state.key = i;
                 var nodeOut = nestedOutput(ast[i], state);
-                var isString = (typeof nodeOut === "string");
-                if (isString && lastWasString) {
-                    result[result.length - 1] += nodeOut;
+                var lastResult = result[result.length - 1];
+                if (typeof nodeOut === "string" && typeof lastResult === "string") {
+                    result[result.length - 1] = lastResult + nodeOut;
                 } else {
                     result.push(nodeOut);
                 }
-                lastWasString = isString;
             }
 
             state.key = oldKey;
@@ -288,8 +340,8 @@ var reactFor = function(outputFunc) {
     return nestedOutput;
 };
 
-var htmlFor = function(outputFunc) {
-    var nestedOutput = function(ast, state) {
+var htmlFor = function(outputFunc /* HtmlOutput */) /* : HtmlOutput */ {
+    var nestedOutput /* : HtmlOutput */ = function(ast, state) {
         state = state || {};
         if (Array.isArray(ast)) {
             return ast.map(function(node) {
@@ -307,7 +359,7 @@ var TYPE_SYMBOL =
      Symbol.for('react.element')) ||
     0xeac7;
 
-var reactElement = function(element) {
+var reactElement /* : (ReactElement) => ReactElement */ = function(element /* : ReactElement */) {
     // Debugging assertions. To be commented out when committed
     // TODO(aria): Figure out a better way of having dev asserts
 /*
@@ -571,7 +623,7 @@ var LINK_HREF_AND_TITLE =
         "\\s*<?((?:[^\\s\\\\]|\\\\.)*?)>?(?:\\s+['\"]([\\s\\S]*?)['\"])?\\s*";
 var AUTOLINK_MAILTO_CHECK_R = /mailto:/i;
 
-var parseRef = function(capture, state, refNode) {
+var parseRef = function(capture, state, refNode /* : RefNode */) {
     var ref = (capture[2] || capture[1])
         .replace(/\s+/g, ' ')
         .toLowerCase();
@@ -602,7 +654,7 @@ var parseRef = function(capture, state, refNode) {
     return refNode;
 };
 
-var defaultRules = {
+var defaultRules /* : Rules */ = {
     heading: {
         match: blockRegex(/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
@@ -1386,7 +1438,7 @@ Object.keys(defaultRules).forEach(function(type, i) {
 // on capture length
 defaultRules.strong.order = defaultRules.em.order = defaultRules.u.order;
 
-var ruleOutput = function(rules, property) {
+var ruleOutput = function(rules /* : Rules */, property /* : string */) {
     if (!property && typeof console !== "undefined") {
         console.warn("simple-markdown ruleOutput should take 'react' or " +
             "'html' as the second argument."
@@ -1419,8 +1471,8 @@ var defaultImplicitParse = function(source) {
     });
 };
 
-var defaultReactOutput = reactFor(ruleOutput(defaultRules, "react"));
-var defaultHtmlOutput = htmlFor(ruleOutput(defaultRules, "html"));
+var defaultReactOutput /* : ReactOutput */ = reactFor((ruleOutput(defaultRules, "react") /* : any */));
+var defaultHtmlOutput /* : HtmlOutput */ = htmlFor((ruleOutput(defaultRules, "html") /* : any */));
 
 var SimpleMarkdown = {
     defaultRules: defaultRules,
