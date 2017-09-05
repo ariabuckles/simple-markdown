@@ -915,7 +915,7 @@ var defaultRules = {
             };
         },
         react: function() { return null; },
-        html: function() { return null; }
+        html: function() { return ""; }
     },
     table: {
         match: blockRegex(/^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/),
