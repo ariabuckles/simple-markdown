@@ -1,6 +1,6 @@
 {
   "name": "simple-markdown",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Javascript markdown parsing, made simple",
   "main": "simple-markdown.js",
   "scripts": {
@@ -27,9 +27,9 @@
   "homepage": "https://github.com/Khan/simple-markdown",
   "devDependencies": {
     "mocha": "^2.5.3",
-    "react": "^15.1.0",
-    "react-dom": "^15.1.0",
+    "react": ">=15.1.0",
+    "react-dom": ">=15.1.0",
     "uglify-js": "^2.6.2",
-    "underscore": "^1.4.4"
+    "underscore": "^1.8.3"
   }
 }
