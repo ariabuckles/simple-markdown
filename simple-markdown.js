@@ -332,14 +332,16 @@ var reactFor = function(outputFunc /* ReactOutput */) /* : ReactOutput */ {
 
             // map nestedOutput over the ast, except group any text
             // nodes together into a single string output.
+            var lastResult = null;
             for (var i = 0; i < ast.length; i++) {
                 state.key = i;
                 var nodeOut = nestedOutput(ast[i], state);
-                var lastResult = result[result.length - 1];
                 if (typeof nodeOut === "string" && typeof lastResult === "string") {
-                    result[result.length - 1] = lastResult + nodeOut;
+                    lastResult = lastResult + nodeOut;
+                    result[result.length - 1] = lastResult;
                 } else {
                     result.push(nodeOut);
+                    lastResult = nodeOut;
                 }
             }
 
