@@ -80,7 +80,7 @@ type HtmlOutput = (node: ASTNode, state: any) => string;
 type HtmlNodeOutput = (node: SingleASTNode, nestedOutput: HtmlOutput, state: any) => string;
 
 type Rule = {
-    order?: number,
+    order: number,
     match: MatchFunction,
     quality?: (capture: Capture, state: State, prevCapture: string) => number,
     parse: ParseFunction,
@@ -654,8 +654,10 @@ var parseRef = function(capture, state, refNode /* : RefNode */) {
     return refNode;
 };
 
+var currOrder = 0;
 var defaultRules /* : Rules */ = {
     heading: {
+        order: currOrder++,
         match: blockRegex(/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
@@ -679,12 +681,14 @@ var defaultRules /* : Rules */ = {
         }
     },
     nptable: {
+        order: currOrder++,
         match: blockRegex(TABLES.NPTABLE_REGEX),
         // For perseus-markdown temporary backcompat:
         regex: TABLES.NPTABLE_REGEX,
         parse: TABLES.parseNpTable
     },
     lheading: {
+        order: currOrder++,
         match: blockRegex(/^([^\n]+)\n *(=|-){3,} *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
@@ -695,6 +699,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     hr: {
+        order: currOrder++,
         match: blockRegex(/^( *[-*_]){3,} *(?:\n *)+\n/),
         parse: ignoreCapture,
         react: function(node, output, state) {
@@ -711,6 +716,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     codeBlock: {
+        order: currOrder++,
         match: blockRegex(/^(?:    [^\n]+\n*)+(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             var content = capture[0]
@@ -756,6 +762,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     fence: {
+        order: currOrder++,
         match: blockRegex(/^ *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\1 *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
@@ -766,6 +773,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     blockQuote: {
+        order: currOrder++,
         match: blockRegex(/^( *>[^\n]+(\n[^\n]+)*\n*)+\n{2,}/),
         parse: function(capture, parse, state) {
             var content = capture[0].replace(/^ *> ?/gm, '');
@@ -789,6 +797,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     list: {
+        order: currOrder++,
         match: function(source, state, prevCapture) {
             // We only want to break into a list if we are at the start of a
             // line. This is to avoid parsing "hi * there" with "* there"
@@ -919,6 +928,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     def: {
+        order: currOrder++,
         // TODO(aria): This will match without a blank line before the next
         // block element, which is inconsistent with most of the rest of
         // simple-markdown.
@@ -970,6 +980,7 @@ var defaultRules /* : Rules */ = {
         html: function() { return ""; }
     },
     table: {
+        order: currOrder++,
         match: blockRegex(/^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/),
         parse: TABLES.parseTable,
         react: function(node, output, state) {
@@ -1076,12 +1087,14 @@ var defaultRules /* : Rules */ = {
         }
     },
     newline: {
+        order: currOrder++,
         match: blockRegex(/^(?:\n *)*\n/),
         parse: ignoreCapture,
         react: function(node, output, state) { return "\n"; },
         html: function(node, output, state) { return "\n"; }
     },
     paragraph: {
+        order: currOrder++,
         match: blockRegex(/^((?:[^\n]|\n(?! *\n))+)(?:\n *)+\n/),
         parse: parseCaptureInline,
         react: function(node, output, state) {
@@ -1104,6 +1117,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     escape: {
+        order: currOrder++,
         // We don't allow escaping numbers, letters, or spaces here so that
         // backslashes used in plain text still get rendered. But allowing
         // escaping anything else provides a very flexible escape mechanism,
@@ -1117,6 +1131,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     autolink: {
+        order: currOrder++,
         match: inlineRegex(/^<([^ >]+:\/[^ >]+)>/),
         parse: function(capture, parse, state) {
             return {
@@ -1130,6 +1145,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     mailto: {
+        order: currOrder++,
         match: inlineRegex(/^<([^ >]+@[^ >]+)>/),
         parse: function(capture, parse, state) {
             var address = capture[1];
@@ -1151,6 +1167,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     url: {
+        order: currOrder++,
         match: inlineRegex(/^(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/),
         parse: function(capture, parse, state) {
             return {
@@ -1165,6 +1182,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     link: {
+        order: currOrder++,
         match: inlineRegex(new RegExp(
             "^\\[(" + LINK_INSIDE + ")\\]\\(" + LINK_HREF_AND_TITLE + "\\)"
         )),
@@ -1199,6 +1217,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     image: {
+        order: currOrder++,
         match: inlineRegex(new RegExp(
             "^!\\[(" + LINK_INSIDE + ")\\]\\(" + LINK_HREF_AND_TITLE + "\\)"
         )),
@@ -1234,6 +1253,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     reflink: {
+        order: currOrder++,
         match: inlineRegex(new RegExp(
             // The first [part] of the link
             "^\\[(" + LINK_INSIDE + ")\\]" +
@@ -1248,6 +1268,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     refimage: {
+        order: currOrder++,
         match: inlineRegex(new RegExp(
             // The first [part] of the link
             "^!\\[(" + LINK_INSIDE + ")\\]" +
@@ -1262,6 +1283,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     em: {
+        order: currOrder /* same as strong/u */,
         match: inlineRegex(
             new RegExp(
                 // only match _s surrounding words.
@@ -1309,6 +1331,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     strong: {
+        order: currOrder /* same as em */,
         match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
         quality: function(capture) {
             // precedence by length, wins ties vs `u`:
@@ -1331,6 +1354,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     u: {
+        order: currOrder++ /* same as em&strong; increment for next rule */,
         match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
         quality: function(capture) {
             // precedence by length, loses all ties
@@ -1353,6 +1377,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     del: {
+        order: currOrder++,
         match: inlineRegex(/^~~(?=\S)([\s\S]*?\S)~~/),
         parse: parseCaptureInline,
         react: function(node, output, state) {
@@ -1371,6 +1396,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     inlineCode: {
+        order: currOrder++,
         match: inlineRegex(/^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/),
         parse: function(capture, parse, state) {
             return {
@@ -1393,6 +1419,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     br: {
+        order: currOrder++,
         match: anyScopeRegex(/^ {2,}\n/),
         parse: ignoreCapture,
         react: function(node, output, state) {
@@ -1409,6 +1436,7 @@ var defaultRules /* : Rules */ = {
         }
     },
     text: {
+        order: currOrder++,
         // Here we look for anything followed by non-symbols,
         // double newlines, or double-space-newlines
         // We break on any symbol characters so that this grammar
@@ -1429,14 +1457,6 @@ var defaultRules /* : Rules */ = {
         }
     }
 };
-
-Object.keys(defaultRules).forEach(function(type, i) {
-    defaultRules[type].order = i;
-});
-
-// Make strong, em, and u parse at the same level, competing with each other
-// on capture length
-defaultRules.strong.order = defaultRules.em.order = defaultRules.u.order;
 
 var ruleOutput = function(rules /* : Rules */, property /* : string */) {
     if (!property && typeof console !== "undefined") {
