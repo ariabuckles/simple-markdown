@@ -74,21 +74,33 @@ type ReactElements = ReactElement | string | null | Array<ReactElements>;
 
 type MatchFunction = (source: string, state: State, prevCapture: string) => ?Capture;
 type ParseFunction = (capture: Capture, nestedParse: ParseFunction, state: any) => UnTypedASTNode;
-type ReactOutput = (node: ASTNode, state: any) => ReactElements;
-type ReactNodeOutput = (node: SingleASTNode, nestedOutput: ReactOutput, state: any) => ReactElements;
-type HtmlOutput = (node: ASTNode, state: any) => string;
-type HtmlNodeOutput = (node: SingleASTNode, nestedOutput: HtmlOutput, state: any) => string;
+type Output<Result> = (node: ASTNode, state: any) => Result;
+type NodeOutput<Result> = (node: SingleASTNode, nestedOutput: Output<Result>, state: any) => Result;
+type ReactOutput = Output<ReactElements>;
+type ReactNodeOutput = NodeOutput<ReactElements>;
+type HtmlOutput = Output<string>;
+type HtmlNodeOutput = NodeOutput<string>;
 
-type Rule = {
+type ParserRule = {
     order: number,
     match: MatchFunction,
     quality?: (capture: Capture, state: State, prevCapture: string) => number,
     parse: ParseFunction,
-    react?: ReactNodeOutput,
-    html?: HtmlNodeOutput,
 };
 
-type Rules = { [type: string]: Rule };
+type ReactOutputRule = {
+    react: ReactNodeOutput | null, // null for things that never should be parse types
+};
+
+type HtmlOutputRule = {
+    html: HtmlNodeOutput | null,
+};
+
+type ParserRules = { [type: string]: ParserRule };
+type OutputRules<Rule> = { [type: string]: Rule };
+
+type DefaultRule = ParserRule & ReactOutputRule & HtmlOutputRule;
+type DefaultRules = OutputRules<DefaultRule>;
 
 type RefNode = {
     type: string,
@@ -128,12 +140,12 @@ var preprocess = function(source) {
  *     some nesting is. For an example use-case, see passage-ref
  *     parsing in src/widgets/passage/passage-markdown.jsx
  */
-var parserFor = function(rules /*: Rules */) {
+var parserFor = function(rules /*: ParserRules */) {
     // Sorts rules in order of increasing order, then
     // ascending rule name in case of ties.
     var ruleList = Object.keys(rules);
     ruleList.forEach(function(type) {
-        var rule /* : Rule */ = (rules[type] /* : Rule */);
+        var rule /* : ParserRule */ = rules[type];
         var order = rule.order;
         if ((typeof order !== 'number' || !isFinite(order)) &&
                 typeof console !== 'undefined') {
@@ -245,7 +257,7 @@ var parserFor = function(rules /*: Rules */) {
                 );
             }
 
-            var parsed /* : UnTypedASTNode */ = rule.parse(capture, nestedParse, state);
+            var parsed = rule.parse(capture, nestedParse, state);
             // We maintain the same object here so that rules can
             // store references to the objects they return and
             // modify them later. (oops sorry! but this adds a lot
@@ -359,7 +371,7 @@ var TYPE_SYMBOL =
      Symbol.for('react.element')) ||
     0xeac7;
 
-var reactElement /* : (ReactElement) => ReactElement */ = function(element /* : ReactElement */) {
+var reactElement = function(element /* : ReactElement */) {
     // Debugging assertions. To be commented out when committed
     // TODO(aria): Figure out a better way of having dev asserts
 /*
@@ -655,7 +667,7 @@ var parseRef = function(capture, state, refNode /* : RefNode */) {
 };
 
 var currOrder = 0;
-var defaultRules /* : Rules */ = {
+var defaultRules /* : DefaultRules & ParserRules */ = {
     heading: {
         order: currOrder++,
         match: blockRegex(/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/),
@@ -683,9 +695,9 @@ var defaultRules /* : Rules */ = {
     nptable: {
         order: currOrder++,
         match: blockRegex(TABLES.NPTABLE_REGEX),
-        // For perseus-markdown temporary backcompat:
-        regex: TABLES.NPTABLE_REGEX,
-        parse: TABLES.parseNpTable
+        parse: TABLES.parseNpTable,
+        react: null,
+        html: null
     },
     lheading: {
         order: currOrder++,
@@ -696,7 +708,9 @@ var defaultRules /* : Rules */ = {
                 level: capture[2] === '=' ? 1 : 2,
                 content: parseInline(parse, capture[1], state)
             };
-        }
+        },
+        react: null,
+        html: null
     },
     hr: {
         order: currOrder++,
@@ -770,7 +784,9 @@ var defaultRules /* : Rules */ = {
                 lang: capture[2] || undefined,
                 content: capture[3]
             };
-        }
+        },
+        react: null,
+        html: null
     },
     blockQuote: {
         order: currOrder++,
@@ -1128,7 +1144,9 @@ var defaultRules /* : Rules */ = {
                 type: "text",
                 content: capture[1]
             };
-        }
+        },
+        react: null,
+        html: null
     },
     autolink: {
         order: currOrder++,
@@ -1142,7 +1160,9 @@ var defaultRules /* : Rules */ = {
                 }],
                 target: capture[1]
             };
-        }
+        },
+        react: null,
+        html: null
     },
     mailto: {
         order: currOrder++,
@@ -1164,7 +1184,9 @@ var defaultRules /* : Rules */ = {
                 }],
                 target: target
             };
-        }
+        },
+        react: null,
+        html: null
     },
     url: {
         order: currOrder++,
@@ -1179,7 +1201,9 @@ var defaultRules /* : Rules */ = {
                 target: capture[1],
                 title: undefined
             };
-        }
+        },
+        react: null,
+        html: null
     },
     link: {
         order: currOrder++,
@@ -1265,7 +1289,9 @@ var defaultRules /* : Rules */ = {
                 type: "link",
                 content: parse(capture[1], state)
             });
-        }
+        },
+        react: null,
+        html: null
     },
     refimage: {
         order: currOrder++,
@@ -1280,7 +1306,9 @@ var defaultRules /* : Rules */ = {
                 type: "image",
                 alt: capture[1]
             });
-        }
+        },
+        react: null,
+        html: null
     },
     em: {
         order: currOrder /* same as strong/u */,
@@ -1458,17 +1486,14 @@ var defaultRules /* : Rules */ = {
     }
 };
 
-var ruleOutput = function(rules /* : Rules */, property /* : string */) {
+var ruleOutput = function/* :: <Rule : Object> */(rules /* : OutputRules<Rule> */, property /* : $Keys<Rule> */) /* : * */ {
     if (!property && typeof console !== "undefined") {
         console.warn("simple-markdown ruleOutput should take 'react' or " +
             "'html' as the second argument."
         );
     }
 
-    // deprecated:
-    property = property || "react";
-
-    var nestedRuleOutput = function(ast, outputFunc, state) {
+    var nestedRuleOutput = function(ast /* : SingleASTNode */, outputFunc /* : Output<any> */, state /* : any */) /* : any */ {
         return rules[ast.type][property](ast, outputFunc, state);
     };
     return nestedRuleOutput;
@@ -1491,8 +1516,8 @@ var defaultImplicitParse = function(source) {
     });
 };
 
-var defaultReactOutput /* : ReactOutput */ = reactFor((ruleOutput(defaultRules, "react") /* : any */));
-var defaultHtmlOutput /* : HtmlOutput */ = htmlFor((ruleOutput(defaultRules, "html") /* : any */));
+var defaultReactOutput /* : ReactOutput */ = reactFor((ruleOutput(defaultRules, "react")));
+var defaultHtmlOutput /* : HtmlOutput */ = htmlFor((ruleOutput(defaultRules, "html")));
 
 var SimpleMarkdown = {
     defaultRules: defaultRules,
