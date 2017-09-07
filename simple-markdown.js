@@ -47,7 +47,9 @@
 /*::
 // Flow Type Definitions:
 
-export opaque type Capture = any;
+export type Capture = {
+  [number]: string,
+};
 
 type SingleASTNode = {
     type: string,
@@ -527,7 +529,7 @@ var htmlTag = function(tagName, content, attributes, isClosed) {
 
 var EMPTY_PROPS = {};
 
-var sanitizeUrl = function(url /* : string */) {
+var sanitizeUrl = function(url /* : ?string */) {
     if (url == null) {
         return null;
     }
@@ -934,6 +936,10 @@ var defaultRules /* : DefaultRules */ = {
                 .replace(LIST_BLOCK_END_R, "\n")
                 .match(LIST_ITEM_R);
 
+            // We know this will match here, because of how the regexes are
+            // defined
+            /*:: items = ((items : any) : Array<string>) */
+
             var lastItemWasAParagraph = false;
             var itemContent = items.map(function(item, i) {
                 // We need to see how far indented this item is:
@@ -948,6 +954,9 @@ var defaultRules /* : DefaultRules */ = {
                         .replace(spaceRegex, '')
                          // remove the bullet:
                         .replace(LIST_ITEM_PREFIX_R, '');
+
+                // I'm not sur4 why this is necessary again?
+                /*:: items = ((items : any) : Array<string>) */
 
                 // Handling "loose" lists, like:
                 //
@@ -1629,29 +1638,29 @@ var defaultHtmlOutput /* : HtmlOutput */ = htmlFor(
 
 /*:: // Flow exports:
 type Exports = {
-    defaultRules: typeof defaultRules,
-    parserFor: (rules: ParserRules) => Parser,
-    ruleOutput: typeof ruleOutput,
-    reactFor: typeof reactFor,
-    htmlFor: typeof htmlFor,
+    +defaultRules: typeof defaultRules,
+    +parserFor: (rules: ParserRules) => Parser,
+    +ruleOutput: typeof ruleOutput,
+    +reactFor: typeof reactFor,
+    +htmlFor: typeof htmlFor,
 
-    inlineRegex: (regex: RegExp) => MatchFunction,
-    blockRegex: (regex: RegExp) => MatchFunction,
-    anyScopeRegex: (regex: RegExp) => MatchFunction,
-    parseInline: (parse: Parser, content: string, state: State) => ASTNode,
-    parseBlock: (parse: Parser, content: string, state: State) => ASTNode,
+    +inlineRegex: (regex: RegExp) => MatchFunction,
+    +blockRegex: (regex: RegExp) => MatchFunction,
+    +anyScopeRegex: (regex: RegExp) => MatchFunction,
+    +parseInline: (parse: Parser, content: string, state: State) => ASTNode,
+    +parseBlock: (parse: Parser, content: string, state: State) => ASTNode,
 
-    defaultRawParse: (source: string) => ASTNode,
-    defaultBlockParse: (source: string) => ASTNode,
-    defaultInlineParse: (source: string) => ASTNode,
-    defaultImplicitParse: (source: string) => ASTNode,
+    +defaultRawParse: (source: string) => Array<SingleASTNode>,
+    +defaultBlockParse: (source: string) => Array<SingleASTNode>,
+    +defaultInlineParse: (source: string) => Array<SingleASTNode>,
+    +defaultImplicitParse: (source: string) => Array<SingleASTNode>,
 
-    defaultReactOutput: ReactOutput,
-    defaultHtmlOutput: HtmlOutput,
+    +defaultReactOutput: ReactOutput,
+    +defaultHtmlOutput: HtmlOutput,
 
-    preprocess: (source: string) => string,
-    sanitizeUrl: (url: string) => string,
-    unescapeUrl: (url: string) => string,
+    +preprocess: (source: string) => string,
+    +sanitizeUrl: (url: ?string) => ?string,
+    +unescapeUrl: (url: string) => string,
 };
 */
 
