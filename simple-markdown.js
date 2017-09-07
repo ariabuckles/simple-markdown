@@ -62,10 +62,10 @@ type ASTNode = SingleASTNode | Array<SingleASTNode>;
 
 type State = {[string]: any};
 type ReactElementLiteral = {
-    type: string,
-    key?: string | number,
-    props: { [string]: any },
-    $$typeof: Symbol | number,
+    +type: string,
+    +key?: string | number,
+    +props: { [string]: any },
+    +$$typeof: Symbol | number,
     _store: ?{
         validated: true,
         originalProps: { [string]: any },
@@ -115,18 +115,20 @@ export type HtmlOutput = Output<string>;
 export type HtmlNodeOutput = NodeOutput<string>;
 
 export type ParserRule = {
-    order: number,
-    match: MatchFunction,
-    quality?: (capture: Capture, state: State, prevCapture: string) => number,
-    parse: ParseFunction,
+    +order: number,
+    +match: MatchFunction,
+    +quality?: (capture: Capture, state: State, prevCapture: string) => number,
+    +parse: ParseFunction,
 };
 
 type SingleNodeParserRule = {
-    order: number,
-    match: MatchFunction,
-    quality?: (capture: Capture, state: State, prevCapture: string) => number,
-    parse: SingleNodeParseFunction,
+    +order: number,
+    +match: MatchFunction,
+    +quality?: (capture: Capture, state: State, prevCapture: string) => number,
+    +parse: SingleNodeParseFunction,
 };
+
+// Let's ensure some things:
 
 type GuaranteedReactOutputRule = {
     +react: ReactNodeOutput,
@@ -159,33 +161,33 @@ type DefaultInOutRule = SingleNodeParserRule & ElementReactOutputRule & Guarante
 type LenientInOutRule = SingleNodeParserRule & GuaranteedReactOutputRule & GuaranteedHtmlOutputRule;
 
 type DefaultRules = {
-    heading: DefaultInOutRule,
-    nptable: DefaultInRule,
-    lheading: DefaultInRule,
-    hr: DefaultInOutRule,
-    codeBlock: DefaultInOutRule,
-    fence: DefaultInRule,
-    blockQuote: DefaultInOutRule,
-    list: DefaultInOutRule,
-    def: LenientInOutRule,
-    table: DefaultInOutRule,
-    newline: LenientInOutRule,
-    paragraph: DefaultInOutRule,
-    escape: DefaultInRule,
-    autolink: DefaultInRule,
-    mailto: DefaultInRule,
-    url: DefaultInRule,
-    link: DefaultInOutRule,
-    image: DefaultInOutRule,
-    reflink: DefaultInRule,
-    refimage: DefaultInRule,
-    em: DefaultInOutRule,
-    strong: DefaultInOutRule,
-    u: DefaultInOutRule,
-    del: DefaultInOutRule,
-    inlineCode: DefaultInOutRule,
-    br: DefaultInOutRule,
-    text: DefaultInOutRule,
+    +heading: DefaultInOutRule,
+    +nptable: DefaultInRule,
+    +lheading: DefaultInRule,
+    +hr: DefaultInOutRule,
+    +codeBlock: DefaultInOutRule,
+    +fence: DefaultInRule,
+    +blockQuote: DefaultInOutRule,
+    +list: DefaultInOutRule,
+    +def: LenientInOutRule,
+    +table: DefaultInOutRule,
+    +newline: LenientInOutRule,
+    +paragraph: DefaultInOutRule,
+    +escape: DefaultInRule,
+    +autolink: DefaultInRule,
+    +mailto: DefaultInRule,
+    +url: DefaultInRule,
+    +link: DefaultInOutRule,
+    +image: DefaultInOutRule,
+    +reflink: DefaultInRule,
+    +refimage: DefaultInRule,
+    +em: DefaultInOutRule,
+    +strong: DefaultInOutRule,
+    +u: DefaultInOutRule,
+    +del: DefaultInOutRule,
+    +inlineCode: DefaultInOutRule,
+    +br: DefaultInOutRule,
+    +text: DefaultInOutRule,
 };
 
 type RefNode = {
