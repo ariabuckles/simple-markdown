@@ -43,11 +43,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-(function() {
 
-// flow types
 /*::
-opaque type Capture = any;
+// Flow Type Definitions:
+
+export opaque type Capture = any;
 
 type SingleASTNode = {
     type: string,
@@ -59,7 +59,7 @@ type ASTNode = SingleASTNode | Array<SingleASTNode>;
 type UnTypedASTNode = { [string]: any } | ASTNode;
 
 type State = {[string]: any};
-type ReactElement = {
+type ReactElementLiteral = {
     type: string,
     key?: string | number,
     props: { [string]: any },
@@ -70,34 +70,59 @@ type ReactElement = {
     },
 };
 
-type ReactElements = ReactElement | string | null | Array<ReactElements>;
+type ReactElement = ReactElementLiteral | React$Element<any>;
+type ReactElements = React$Node | ReactElement | Array<ReactElements>;
 
-type MatchFunction = (source: string, state: State, prevCapture: string) => ?Capture;
-type ParseFunction = (capture: Capture, nestedParse: ParseFunction, state: any) => UnTypedASTNode;
-type Output<Result> = (node: ASTNode, state: any) => Result;
-type NodeOutput<Result> = (node: SingleASTNode, nestedOutput: Output<Result>, state: any) => Result;
-type ReactOutput = Output<ReactElements>;
-type ReactNodeOutput = NodeOutput<ReactElements>;
-type HtmlOutput = Output<string>;
-type HtmlNodeOutput = NodeOutput<string>;
+export type MatchFunction = (
+    source: string,
+    state: State,
+    prevCapture: string
+) => ?Capture;
 
-type ParserRule = {
+export type ParseFunction = (
+    capture: Capture,
+    nestedParse: ParseFunction,
+    state: any
+) => UnTypedASTNode;
+
+export type Output<Result> = (
+    node: ASTNode,
+    state: any
+) => Result;
+
+export type NodeOutput<Result> = (
+    node: SingleASTNode,
+    nestedOutput: Output<Result>,
+    state: any
+) => Result;
+
+export type ReactOutput = Output<ReactElements>;
+export type ReactNodeOutput = NodeOutput<ReactElements>;
+export type HtmlOutput = Output<string>;
+export type HtmlNodeOutput = NodeOutput<string>;
+
+export type ParserRule = {
     order: number,
     match: MatchFunction,
     quality?: (capture: Capture, state: State, prevCapture: string) => number,
     parse: ParseFunction,
 };
 
-type ReactOutputRule = {
-    react: ReactNodeOutput | null, // null for things that never should be parse types
+export type ReactOutputRule = {
+    // we allow null because some rules are never output results, and that's
+    // legal as long as no parsers return an AST node matching that rule.
+    // We don't use ? because this makes it be explicitly defined as either
+    // a valid function or null, so it can't be forgotten.
+    react: ReactNodeOutput | null,
 };
 
-type HtmlOutputRule = {
+export type HtmlOutputRule = {
     html: HtmlNodeOutput | null,
 };
 
-type ParserRules = { [type: string]: ParserRule };
-type OutputRules<Rule> = { [type: string]: Rule };
+export type ParserRules = { [type: string]: ParserRule };
+export type OutputRules<Rule> = { [type: string]: Rule };
+export type ReactOutputRules = OutputRules<ReactOutput>;
 
 type DefaultRule = ParserRule & ReactOutputRule & HtmlOutputRule;
 type DefaultRules = OutputRules<DefaultRule>;
@@ -109,7 +134,10 @@ type RefNode = {
     title?: string,
 };
 
+// End Flow Definitions
 */
+
+(function() {
 
 var CR_NEWLINE_R = /\r\n?/g;
 var TAB_R = /\t/g;
@@ -328,7 +356,7 @@ var reactFor = function(outputFunc /* ReactOutput */) /* : ReactOutput */ {
         state = state || {};
         if (Array.isArray(ast)) {
             var oldKey = state.key;
-            var result = [];
+            var result /* : Array<ReactElements> */ = [];
 
             // map nestedOutput over the ast, except group any text
             // nodes together into a single string output.
@@ -373,7 +401,7 @@ var TYPE_SYMBOL =
      Symbol.for('react.element')) ||
     0xeac7;
 
-var reactElement = function(element /* : ReactElement */) {
+var reactElement = function(element /* : ReactElementLiteral */) {
     // Debugging assertions. To be commented out when committed
     // TODO(aria): Figure out a better way of having dev asserts
 /*
@@ -1488,14 +1516,21 @@ var defaultRules /* : DefaultRules & ParserRules */ = {
     }
 };
 
-var ruleOutput = function/* :: <Rule : Object> */(rules /* : OutputRules<Rule> */, property /* : $Keys<Rule> */) /* : * */ {
+var ruleOutput = function/* :: <Rule : Object> */(
+    rules /* : OutputRules<Rule> */,
+    property /* : $Keys<Rule> */
+) {
     if (!property && typeof console !== "undefined") {
         console.warn("simple-markdown ruleOutput should take 'react' or " +
             "'html' as the second argument."
         );
     }
 
-    var nestedRuleOutput = function(ast /* : SingleASTNode */, outputFunc /* : Output<any> */, state /* : any */) /* : any */ {
+    var nestedRuleOutput = function(
+        ast /* : SingleASTNode */,
+        outputFunc /* : Output<any> */,
+        state /* : any */
+    ) {
         return rules[ast.type][property](ast, outputFunc, state);
     };
     return nestedRuleOutput;
@@ -1518,8 +1553,12 @@ var defaultImplicitParse = function(source) {
     });
 };
 
-var defaultReactOutput /* : ReactOutput */ = reactFor((ruleOutput(defaultRules, "react")));
-var defaultHtmlOutput /* : HtmlOutput */ = htmlFor((ruleOutput(defaultRules, "html")));
+var defaultReactOutput /* : ReactOutput */ = reactFor(
+    ruleOutput(defaultRules, "react")
+);
+var defaultHtmlOutput /* : HtmlOutput */ = htmlFor(
+    ruleOutput(defaultRules, "html")
+);
 
 var SimpleMarkdown = {
     defaultRules: defaultRules,
