@@ -73,7 +73,7 @@ type ReactElementLiteral = {
 };
 
 type ReactElement = React$Element<any>;
-type ReactElements = React$Node;// | ReactElement | Array<ReactElements>;
+type ReactElements = React$Node;
 
 export type MatchFunction = (
     source: string,
@@ -1641,17 +1641,17 @@ type Exports = {
     parseInline: (parse: Parser, content: string, state: State) => ASTNode,
     parseBlock: (parse: Parser, content: string, state: State) => ASTNode,
 
-    defaultRawParse: defaultRawParse,
-    defaultBlockParse: defaultBlockParse,
-    defaultInlineParse: defaultInlineParse,
-    defaultImplicitParse: defaultImplicitParse,
+    defaultRawParse: (source: string) => ASTNode,
+    defaultBlockParse: (source: string) => ASTNode,
+    defaultInlineParse: (source: string) => ASTNode,
+    defaultImplicitParse: (source: string) => ASTNode,
 
-    defaultReactOutput: defaultReactOutput,
-    defaultHtmlOutput: defaultHtmlOutput,
+    defaultReactOutput: ReactOutput,
+    defaultHtmlOutput: HtmlOutput,
 
-    preprocess: preprocess,
-    sanitizeUrl: sanitizeUrl,
-    unescapeUrl: unescapeUrl,
+    preprocess: (source: string) => string,
+    sanitizeUrl: (url: string) => string,
+    unescapeUrl: (url: string) => string,
 };
 */
 
