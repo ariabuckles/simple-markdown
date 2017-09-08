@@ -84,7 +84,7 @@ var parserFor = function(rules) {
                 typeof console !== 'undefined') {
             console.warn(
                 "simple-markdown: Invalid order for rule `" + type + "`: " +
-                order
+                String(order)
             );
         }
     });
@@ -98,7 +98,6 @@ var parserFor = function(rules) {
         // First sort based on increasing order
         if (orderA !== orderB) {
             return orderA - orderB;
-
         }
 
         var secondaryOrderA = ruleA.quality ? 0 : 1;
@@ -185,7 +184,7 @@ var parserFor = function(rules) {
             );
 
             // TODO(aria): Write tests for this
-            if (!capture) {
+            if (!rule || !capture || !ruleType) {
                 throw new Error(
                     "could not find rule to match content: " + source
                 );
@@ -266,17 +265,17 @@ var reactFor = function(outputFunc) {
 
             // map nestedOutput over the ast, except group any text
             // nodes together into a single string output.
-            var lastWasString = false;
+            var lastResult = null;
             for (var i = 0; i < ast.length; i++) {
                 state.key = '' + i;
                 var nodeOut = nestedOutput(ast[i], state);
-                var isString = (typeof nodeOut === "string");
-                if (isString && lastWasString) {
-                    result[result.length - 1] += nodeOut;
+                if (typeof nodeOut === "string" && typeof lastResult === "string") {
+                    lastResult = lastResult + nodeOut;
+                    result[result.length - 1] = lastResult;
                 } else {
                     result.push(nodeOut);
+                    lastResult = nodeOut;
                 }
-                lastWasString = isString;
             }
 
             state.key = oldKey;
@@ -590,8 +589,10 @@ var parseRef = function(capture, state, refNode) {
     return refNode;
 };
 
+var currOrder = 0;
 var defaultRules = {
     heading: {
+        order: currOrder++,
         match: blockRegex(/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
@@ -613,12 +614,14 @@ var defaultRules = {
         }
     },
     nptable: {
+        order: currOrder++,
         match: blockRegex(TABLES.NPTABLE_REGEX),
-        // For perseus-markdown temporary backcompat:
-        regex: TABLES.NPTABLE_REGEX,
-        parse: TABLES.parseNpTable
+        parse: TABLES.parseNpTable,
+        react: null,
+        html: null
     },
     lheading: {
+        order: currOrder++,
         match: blockRegex(/^([^\n]+)\n *(=|-){3,} *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
@@ -626,9 +629,12 @@ var defaultRules = {
                 level: capture[2] === '=' ? 1 : 2,
                 content: parseInline(parse, capture[1], state)
             };
-        }
+        },
+        react: null,
+        html: null
     },
     hr: {
+        order: currOrder++,
         match: blockRegex(/^( *[-*_]){3,} *(?:\n *)+\n/),
         parse: ignoreCapture,
         react: function(node, output, state) {
@@ -643,6 +649,7 @@ var defaultRules = {
         }
     },
     codeBlock: {
+        order: currOrder++,
         match: blockRegex(/^(?:    [^\n]+\n*)+(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             var content = capture[0]
@@ -685,6 +692,7 @@ var defaultRules = {
         }
     },
     fence: {
+        order: currOrder++,
         match: blockRegex(/^ *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\1 *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
@@ -692,9 +700,12 @@ var defaultRules = {
                 lang: capture[2] || undefined,
                 content: capture[3]
             };
-        }
+        },
+        react: null,
+        html: null
     },
     blockQuote: {
+        order: currOrder++,
         match: blockRegex(/^( *>[^\n]+(\n[^\n]+)*\n*)+\n{2,}/),
         parse: function(capture, parse, state) {
             var content = capture[0].replace(/^ *> ?/gm, '');
@@ -716,6 +727,7 @@ var defaultRules = {
         }
     },
     list: {
+        order: currOrder++,
         match: function(source, state, prevCapture) {
             // We only want to break into a list if we are at the start of a
             // line. This is to avoid parsing "hi * there" with "* there"
@@ -844,6 +856,7 @@ var defaultRules = {
         }
     },
     def: {
+        order: currOrder++,
         // TODO(aria): This will match without a blank line before the next
         // block element, which is inconsistent with most of the rest of
         // simple-markdown.
@@ -895,6 +908,7 @@ var defaultRules = {
         html: function() { return ""; }
     },
     table: {
+        order: currOrder++,
         match: blockRegex(/^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/),
         parse: TABLES.parseTable,
         react: function(node, output, state) {
@@ -988,12 +1002,14 @@ var defaultRules = {
         }
     },
     newline: {
+        order: currOrder++,
         match: blockRegex(/^(?:\n *)*\n/),
         parse: ignoreCapture,
         react: function(node, output, state) { return "\n"; },
         html: function(node, output, state) { return "\n"; }
     },
     paragraph: {
+        order: currOrder++,
         match: blockRegex(/^((?:[^\n]|\n(?! *\n))+)(?:\n *)+\n/),
         parse: parseCaptureInline,
         react: function(node, output, state) {
@@ -1014,6 +1030,7 @@ var defaultRules = {
         }
     },
     escape: {
+        order: currOrder++,
         // We don't allow escaping numbers, letters, or spaces here so that
         // backslashes used in plain text still get rendered. But allowing
         // escaping anything else provides a very flexible escape mechanism,
@@ -1024,9 +1041,12 @@ var defaultRules = {
                 type: "text",
                 content: capture[1]
             };
-        }
+        },
+        react: null,
+        html: null
     },
     autolink: {
+        order: currOrder++,
         match: inlineRegex(/^<([^ >]+:\/[^ >]+)>/),
         parse: function(capture, parse, state) {
             return {
@@ -1037,9 +1057,12 @@ var defaultRules = {
                 }],
                 target: capture[1]
             };
-        }
+        },
+        react: null,
+        html: null
     },
     mailto: {
+        order: currOrder++,
         match: inlineRegex(/^<([^ >]+@[^ >]+)>/),
         parse: function(capture, parse, state) {
             var address = capture[1];
@@ -1058,9 +1081,12 @@ var defaultRules = {
                 }],
                 target: target
             };
-        }
+        },
+        react: null,
+        html: null
     },
     url: {
+        order: currOrder++,
         match: inlineRegex(/^(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/),
         parse: function(capture, parse, state) {
             return {
@@ -1072,9 +1098,12 @@ var defaultRules = {
                 target: capture[1],
                 title: undefined
             };
-        }
+        },
+        react: null,
+        html: null
     },
     link: {
+        order: currOrder++,
         match: inlineRegex(new RegExp(
             "^\\[(" + LINK_INSIDE + ")\\]\\(" + LINK_HREF_AND_TITLE + "\\)"
         )),
@@ -1107,6 +1136,7 @@ var defaultRules = {
         }
     },
     image: {
+        order: currOrder++,
         match: inlineRegex(new RegExp(
             "^!\\[(" + LINK_INSIDE + ")\\]\\(" + LINK_HREF_AND_TITLE + "\\)"
         )),
@@ -1140,6 +1170,7 @@ var defaultRules = {
         }
     },
     reflink: {
+        order: currOrder++,
         match: inlineRegex(new RegExp(
             // The first [part] of the link
             "^\\[(" + LINK_INSIDE + ")\\]" +
@@ -1151,9 +1182,12 @@ var defaultRules = {
                 type: "link",
                 content: parse(capture[1], state)
             });
-        }
+        },
+        react: null,
+        html: null
     },
     refimage: {
+        order: currOrder++,
         match: inlineRegex(new RegExp(
             // The first [part] of the link
             "^!\\[(" + LINK_INSIDE + ")\\]" +
@@ -1165,9 +1199,12 @@ var defaultRules = {
                 type: "image",
                 alt: capture[1]
             });
-        }
+        },
+        react: null,
+        html: null
     },
     em: {
+        order: currOrder /* same as strong/u */,
         match: inlineRegex(
             new RegExp(
                 // only match _s surrounding words.
@@ -1213,6 +1250,7 @@ var defaultRules = {
         }
     },
     strong: {
+        order: currOrder /* same as em */,
         match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
         quality: function(capture) {
             // precedence by length, wins ties vs `u`:
@@ -1233,6 +1271,7 @@ var defaultRules = {
         }
     },
     u: {
+        order: currOrder++ /* same as em&strong; increment for next rule */,
         match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
         quality: function(capture) {
             // precedence by length, loses all ties
@@ -1253,6 +1292,7 @@ var defaultRules = {
         }
     },
     del: {
+        order: currOrder++,
         match: inlineRegex(/^~~(?=\S)([\s\S]*?\S)~~/),
         parse: parseCaptureInline,
         react: function(node, output, state) {
@@ -1269,6 +1309,7 @@ var defaultRules = {
         }
     },
     inlineCode: {
+        order: currOrder++,
         match: inlineRegex(/^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/),
         parse: function(capture, parse, state) {
             return {
@@ -1289,6 +1330,7 @@ var defaultRules = {
         }
     },
     br: {
+        order: currOrder++,
         match: anyScopeRegex(/^ {2,}\n/),
         parse: ignoreCapture,
         react: function(node, output, state) {
@@ -1303,6 +1345,7 @@ var defaultRules = {
         }
     },
     text: {
+        order: currOrder++,
         // Here we look for anything followed by non-symbols,
         // double newlines, or double-space-newlines
         // We break on any symbol characters so that this grammar
@@ -1324,25 +1367,22 @@ var defaultRules = {
     }
 };
 
-Object.keys(defaultRules).forEach(function(type, i) {
-    defaultRules[type].order = i;
-});
 
-// Make strong, em, and u parse at the same level, competing with each other
-// on capture length
-defaultRules.strong.order = defaultRules.em.order = defaultRules.u.order;
-
-var ruleOutput = function(rules, property) {
+var ruleOutput = function(
+    rules,
+    property
+) {
     if (!property && typeof console !== "undefined") {
         console.warn("simple-markdown ruleOutput should take 'react' or " +
             "'html' as the second argument."
         );
     }
 
-    // deprecated:
-    property = property || "react";
-
-    var nestedRuleOutput = function(ast, outputFunc, state) {
+    var nestedRuleOutput = function(
+        ast,
+        outputFunc,
+        state
+    ) {
         return rules[ast.type][property](ast, outputFunc, state);
     };
     return nestedRuleOutput;
@@ -1365,8 +1405,12 @@ var defaultImplicitParse = function(source) {
     });
 };
 
-var defaultReactOutput = reactFor(ruleOutput(defaultRules, "react"));
-var defaultHtmlOutput = htmlFor(ruleOutput(defaultRules, "html"));
+var defaultReactOutput = reactFor(
+    ruleOutput(defaultRules, "react")
+);
+var defaultHtmlOutput = htmlFor(
+    ruleOutput(defaultRules, "html")
+);
 
 var SimpleMarkdown = {
     defaultRules: defaultRules,

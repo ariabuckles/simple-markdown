@@ -43,7 +43,7 @@ var validateParse = function(parsed, expected) {
 var htmlThroughReact = function(parsed) {
     var output = defaultOutput(parsed);
     var rawHtml = ReactDOMServer.renderToStaticMarkup(
-        React.createElement('div', null, output)
+        React.createElement('div', {}, output)
     );
     var innerHtml = rawHtml
         .replace(/^<div>/, '')
