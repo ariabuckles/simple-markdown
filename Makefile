@@ -11,8 +11,14 @@ minify: simple-markdown.min.js
 FIND_TESTS := find __tests__ -type f -regex '.*\.js'
 
 .PHONY: test
-test:
+test: check runtests size
 
+.PHONY: check
+check:
+	./node_modules/.bin/flow
+
+.PHONY: runtests
+runtests:
 	$(FIND_TESTS) | xargs ./node_modules/.bin/mocha --reporter spec
 .PHONY: shorttest
 shorttest:
