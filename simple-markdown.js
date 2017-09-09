@@ -613,6 +613,7 @@ var defaultRules = {
         },
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'h' + node.level,
                 key: state.key,
                 props: {
@@ -647,6 +648,7 @@ var defaultRules = {
         parse: ignoreCapture,
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'hr',
                 key: state.key,
                 props: EMPTY_PROPS,
@@ -675,10 +677,12 @@ var defaultRules = {
                 undefined;
 
             return reactElement({
+                ref: null,
                 type: 'pre',
                 key: state.key,
                 props: {
                     children: reactElement({
+                        ref: null,
                         type: 'code',
                         props: {
                             className: className,
@@ -723,6 +727,7 @@ var defaultRules = {
         },
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'blockquote',
                 key: state.key,
                 props: {
@@ -834,12 +839,14 @@ var defaultRules = {
             var ListWrapper = node.ordered ? "ol" : "ul";
 
             return reactElement({
+                ref: null,
                 type: ListWrapper,
                 key: state.key,
                 props: {
                     start: node.start,
                     children: node.items.map(function(item, i) {
                         return reactElement({
+                            ref: null,
                             type: 'li',
                             key: i,
                             props: {
@@ -929,6 +936,7 @@ var defaultRules = {
 
             var headers = node.header.map(function(content, i) {
                 return reactElement({
+                    ref: null,
                     type: 'th',
                     key: i,
                     props: {
@@ -943,11 +951,13 @@ var defaultRules = {
 
             var rows = node.cells.map(function(row, r) {
                 return reactElement({
+                    ref: null,
                     type: 'tr',
                     key: r,
                     props: {
                         children: row.map(function(content, c) {
                             return reactElement({
+                                ref: null,
                                 type: 'td',
                                 key: c,
                                 props: {
@@ -965,14 +975,17 @@ var defaultRules = {
             });
 
             return reactElement({
+                ref: null,
                 type: 'table',
                 key: state.key,
                 props: {
                     children: [reactElement({
+                        ref: null,
                         type: 'thead',
                         key: 'thead',
                         props: {
                             children: reactElement({
+                                ref: null,
                                 type: 'tr',
                                 props: {
                                     children: headers
@@ -984,6 +997,7 @@ var defaultRules = {
                         $$typeof: TYPE_SYMBOL,
                         _store: null,
                     }), reactElement({
+                        ref: null,
                         type: 'tbody',
                         key: 'tbody',
                         props: {
@@ -1034,6 +1048,7 @@ var defaultRules = {
         parse: parseCaptureInline,
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'div',
                 key: state.key,
                 props: {
@@ -1126,6 +1141,7 @@ var defaultRules = {
         },
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'a',
                 key: state.key,
                 props: {
@@ -1160,6 +1176,7 @@ var defaultRules = {
         },
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'img',
                 key: state.key,
                 props: {
@@ -1243,6 +1260,7 @@ var defaultRules = {
         },
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'em',
                 key: state.key,
                 props: {
@@ -1265,6 +1283,7 @@ var defaultRules = {
         parse: parseCaptureInline,
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'strong',
                 key: state.key,
                 props: {
@@ -1287,6 +1306,7 @@ var defaultRules = {
         parse: parseCaptureInline,
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'u',
                 key: state.key,
                 props: {
@@ -1305,6 +1325,7 @@ var defaultRules = {
         parse: parseCaptureInline,
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'del',
                 key: state.key,
                 props: {
@@ -1327,6 +1348,7 @@ var defaultRules = {
         },
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'code',
                 key: state.key,
                 props: {
@@ -1345,6 +1367,7 @@ var defaultRules = {
         parse: ignoreCapture,
         react: function(node, output, state) {
             return reactElement({
+                ref: null,
                 type: 'br',
                 key: state.key,
                 props: EMPTY_PROPS,
