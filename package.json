@@ -29,7 +29,8 @@
   "homepage": "https://github.com/Khan/simple-markdown",
   "devDependencies": {
     "flow-bin": "0.61.*",
-    "mocha": "^2.5.3",
+    "flow-typed": "^2.1.5",
+    "mocha": "^3.5.0",
     "react": "^16.1.0",
     "react-dom": "^16.1.0",
     "size-limit": "^0.13.1",
