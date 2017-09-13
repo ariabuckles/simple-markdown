@@ -43,13 +43,174 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-(function() {
+
+/*::
+// Flow Type Definitions:
+
+export type Capture = {
+  [number]: string,
+};
+
+type Attr = string | number | boolean;
+
+type SingleASTNode = {
+    type: string,
+    [string]: any,
+};
+
+type UnTypedASTNode = {
+    [string]: any
+};
+
+type ASTNode = SingleASTNode | Array<SingleASTNode>;
+
+type State = {[string]: any};
+
+type ReactElement = React$Element<any>;
+type ReactElements = React$Node;
+
+export type MatchFunction = (
+    source: string,
+    state: State,
+    prevCapture: string
+) => ?Capture;
+
+export type Parser = (
+    source: string,
+    state: ?State
+) => ASTNode;
+
+export type ParseFunction = (
+    capture: Capture,
+    nestedParse: Parser,
+    state: State,
+) => (UnTypedASTNode | ASTNode);
+
+export type SingleNodeParseFunction = (
+    capture: Capture,
+    nestedParse: Parser,
+    state: State,
+) => UnTypedASTNode;
+
+export type Output<Result> = (
+    node: ASTNode,
+    state: ?State
+) => Result;
+
+export type NestedOutput<Result> = (
+    node: ASTNode,
+    state: State
+) => Result;
+
+export type NodeOutput<Result> = (
+    node: SingleASTNode,
+    nestedOutput: NestedOutput<Result>,
+    state: State
+) => Result;
+
+export type ReactOutput = Output<ReactElements>;
+export type ReactNodeOutput = NodeOutput<ReactElements>;
+export type HtmlOutput = Output<string>;
+export type HtmlNodeOutput = NodeOutput<string>;
+
+export type ParserRule = {
+    +order: number,
+    +match: MatchFunction,
+    +quality?: (capture: Capture, state: State, prevCapture: string) => number,
+    +parse: ParseFunction,
+};
+
+type SingleNodeParserRule = {
+    +order: number,
+    +match: MatchFunction,
+    +quality?: (capture: Capture, state: State, prevCapture: string) => number,
+    +parse: SingleNodeParseFunction,
+};
+
+export type ReactOutputRule = {
+    // we allow null because some rules are never output results, and that's
+    // legal as long as no parsers return an AST node matching that rule.
+    // We don't use ? because this makes it be explicitly defined as either
+    // a valid function or null, so it can't be forgotten.
+    +react: ReactNodeOutput | null,
+};
+
+export type HtmlOutputRule = {
+    +html: HtmlNodeOutput | null,
+};
+
+// We want to clarify our types a little bit more so clients can reuse
+// defaultRules built-ins. So we make some stronger guarantess when
+// we can:
+type NonNullReactOutputRule = {
+    +react: ReactNodeOutput,
+};
+type ElementReactOutputRule = {
+    +react: NodeOutput<ReactElement>,
+};
+type TextReactOutputRule = {
+    +react: NodeOutput<string>,
+};
+type NonNullHtmlOutputRule = {
+    +html: HtmlNodeOutput,
+};
+
+export type ParserRules = { +[type: string]: ParserRule };
+export type OutputRules<Rule> = { +[type: string]: Rule };
+
+type DefaultInRule = SingleNodeParserRule & ReactOutputRule & HtmlOutputRule;
+type TextInOutRule = SingleNodeParserRule & TextReactOutputRule & NonNullHtmlOutputRule;
+type LenientInOutRule = SingleNodeParserRule & NonNullReactOutputRule & NonNullHtmlOutputRule;
+type DefaultInOutRule = SingleNodeParserRule & ElementReactOutputRule & NonNullHtmlOutputRule;
+
+type DefaultRules = {
+    +heading: DefaultInOutRule,
+    +nptable: DefaultInRule,
+    +lheading: DefaultInRule,
+    +hr: DefaultInOutRule,
+    +codeBlock: DefaultInOutRule,
+    +fence: DefaultInRule,
+    +blockQuote: DefaultInOutRule,
+    +list: DefaultInOutRule,
+    +def: LenientInOutRule,
+    +table: DefaultInOutRule,
+    +newline: TextInOutRule,
+    +paragraph: DefaultInOutRule,
+    +escape: DefaultInRule,
+    +autolink: DefaultInRule,
+    +mailto: DefaultInRule,
+    +url: DefaultInRule,
+    +link: DefaultInOutRule,
+    +image: DefaultInOutRule,
+    +reflink: DefaultInRule,
+    +refimage: DefaultInRule,
+    +em: DefaultInOutRule,
+    +strong: DefaultInOutRule,
+    +u: DefaultInOutRule,
+    +del: DefaultInOutRule,
+    +inlineCode: DefaultInOutRule,
+    +br: DefaultInOutRule,
+    +text: TextInOutRule,
+};
+
+type RefNode = {
+    type: string,
+    content?: ASTNode,
+    target?: string,
+    title?: string,
+};
+
+// End Flow Definitions
+*/
+
+// Open IIFE, and immediately close it in flow
+(function() { /*::})*/
 
 var CR_NEWLINE_R = /\r\n?/g;
 var TAB_R = /\t/g;
 var FORMFEED_R = /\f/g
 // Turn various crazy whitespace into easy to process things
-var preprocess = function(source) {
+var preprocess = function(source /* : string */) {
     return source.replace(CR_NEWLINE_R, '\n')
             .replace(FORMFEED_R, '')
             .replace(TAB_R, '    ');
@@ -74,7 +235,7 @@ var preprocess = function(source) {
  *     some nesting is. For an example use-case, see passage-ref
  *     parsing in src/widgets/passage/passage-markdown.jsx
  */
-var parserFor = function(rules) {
+var parserFor = function(rules /*: ParserRules */) {
     // Sorts rules in order of increasing order, then
     // ascending rule name in case of ties.
     var ruleList = Object.keys(rules);
@@ -119,7 +280,7 @@ var parserFor = function(rules) {
         }
     });
 
-    var nestedParse = function(source, state) {
+    var nestedParse = function(source /* : string */, state /* : ?State */) {
         var result = [];
         state = state || {};
         // We store the previous capture so that match functions can
@@ -215,15 +376,15 @@ var parserFor = function(rules) {
         return result;
     };
 
-    var outerParse = function(source, state) {
+    var outerParse = function(source /* : string */, state /* : ?State */) {
         return nestedParse(preprocess(source), state);
     };
     return outerParse;
 };
 
 // Creates a match function for an inline scoped element from a regex
-var inlineRegex = function(regex) {
-    var match = function(source, state) {
+var inlineRegex = function(regex /* : RegExp */) {
+    var match /* : MatchFunction */ = function(source, state) {
         if (state.inline) {
             return regex.exec(source);
         } else {
@@ -235,8 +396,8 @@ var inlineRegex = function(regex) {
 };
 
 // Creates a match function for a block scoped element from a regex
-var blockRegex = function(regex) {
-    var match = function(source, state) {
+var blockRegex = function(regex /* : RegExp */) {
+    var match /* : MatchFunction */ = function(source, state) {
         if (state.inline) {
             return null;
         } else {
@@ -248,20 +409,20 @@ var blockRegex = function(regex) {
 };
 
 // Creates a match function from a regex, ignoring block/inline scope
-var anyScopeRegex = function(regex) {
-    var match = function(source, state) {
+var anyScopeRegex = function(regex /* : RegExp */) {
+    var match /* : MatchFunction */ = function(source, state) {
         return regex.exec(source);
     };
     match.regex = regex;
     return match;
 };
 
-var reactFor = function(outputFunc) {
-    var nestedOutput = function(ast, state) {
+var reactFor = function(outputFunc /* : ReactNodeOutput */) /* : ReactOutput */ {
+    var nestedOutput /* : ReactOutput */ = function(ast, state) {
         state = state || {};
         if (Array.isArray(ast)) {
             var oldKey = state.key;
-            var result = [];
+            var result /* : Array<ReactElements> */ = [];
 
             // map nestedOutput over the ast, except group any text
             // nodes together into a single string output.
@@ -287,8 +448,8 @@ var reactFor = function(outputFunc) {
     return nestedOutput;
 };
 
-var htmlFor = function(outputFunc) {
-    var nestedOutput = function(ast, state) {
+var htmlFor = function(outputFunc /* : HtmlNodeOutput */) /* : HtmlOutput */ {
+    var nestedOutput /* : HtmlOutput */ = function(ast, state) {
         state = state || {};
         if (Array.isArray(ast)) {
             return ast.map(function(node) {
@@ -306,18 +467,12 @@ var TYPE_SYMBOL =
      Symbol.for('react.element')) ||
     0xeac7;
 
-var reactElement = function(type, key, props) {
-    // Debugging assertions. To be commented out when committed
-    // TODO(aria): Figure out a better way of having dev asserts
-/*
-    if (props === null || typeof props !== "object") {
-        throw new Error("props of " + type + " must be an object");
-    }
-    if (key !== null && typeof key !== "string") {
-        throw new Error("key of " + type + " must be a string, got " + key);
-    }
-*/
-    return {
+var reactElement = function(
+    type /* : string */,
+    key /* : string | null */,
+    props /* : { [string]: any } */
+) {
+    var element = {
         $$typeof: TYPE_SYMBOL,
         type: type,
         key: key,
@@ -325,6 +480,7 @@ var reactElement = function(type, key, props) {
         props: props,
         _owner: null
     };
+    return /* :: (( */ element /* :: : any ) : ReactElement) */;
 };
 
 // Returns a closed HTML tag.
@@ -334,7 +490,12 @@ var reactElement = function(type, key, props) {
 //   eg. { "href": "http://google.com" }. Falsey attributes are filtered out.
 // isClosed: boolean that controls whether tag is closed or not (eg. img tags).
 //   defaults to true
-var htmlTag = function(tagName, content, attributes, isClosed) {
+var htmlTag = function(
+    tagName /* : string */,
+    content /* : string */,
+    attributes /* : ?{[any]: ?Attr} */,
+    isClosed /* : ?boolean */
+) {
     attributes = attributes || {};
     isClosed = typeof isClosed !== 'undefined' ? isClosed : true;
 
@@ -358,7 +519,7 @@ var htmlTag = function(tagName, content, attributes, isClosed) {
 
 var EMPTY_PROPS = {};
 
-var sanitizeUrl = function(url) {
+var sanitizeUrl = function(url /* : ?string */) {
     if (url == null) {
         return null;
     }
@@ -380,7 +541,7 @@ var sanitizeUrl = function(url) {
 
 var UNESCAPE_URL_R = /\\([^0-9A-Za-z\s])/g;
 
-var unescapeUrl = function(rawUrlString) {
+var unescapeUrl = function(rawUrlString /* : string */) {
     return rawUrlString.replace(UNESCAPE_URL_R, "$1");
 };
 
@@ -558,7 +719,7 @@ var LINK_HREF_AND_TITLE =
         "\\s*<?((?:[^\\s\\\\]|\\\\.)*?)>?(?:\\s+['\"]([\\s\\S]*?)['\"])?\\s*";
 var AUTOLINK_MAILTO_CHECK_R = /mailto:/i;
 
-var parseRef = function(capture, state, refNode) {
+var parseRef = function(capture, state, refNode /* : RefNode */) {
     var ref = (capture[2] || capture[1])
         .replace(/\s+/g, ' ')
         .toLowerCase();
@@ -590,7 +751,7 @@ var parseRef = function(capture, state, refNode) {
 };
 
 var currOrder = 0;
-var defaultRules = {
+var defaultRules /* : DefaultRules */ = {
     heading: {
         order: currOrder++,
         match: blockRegex(/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/),
@@ -756,6 +917,10 @@ var defaultRules = {
                 .replace(LIST_BLOCK_END_R, "\n")
                 .match(LIST_ITEM_R);
 
+            // We know this will match here, because of how the regexes are
+            // defined
+            /*:: items = ((items : any) : Array<string>) */
+
             var lastItemWasAParagraph = false;
             var itemContent = items.map(function(item, i) {
                 // We need to see how far indented this item is:
@@ -770,6 +935,9 @@ var defaultRules = {
                         .replace(spaceRegex, '')
                          // remove the bullet:
                         .replace(LIST_ITEM_PREFIX_R, '');
+
+                // I'm not sur4 why this is necessary again?
+                /*:: items = ((items : any) : Array<string>) */
 
                 // Handling "loose" lists, like:
                 //
@@ -1367,10 +1535,9 @@ var defaultRules = {
     }
 };
 
-
-var ruleOutput = function(
-    rules,
-    property
+var ruleOutput = function/* :: <Rule : Object> */(
+    rules /* : OutputRules<Rule> */,
+    property /* : $Keys<Rule> */
 ) {
     if (!property && typeof console !== "undefined") {
         console.warn("simple-markdown ruleOutput should take 'react' or " +
@@ -1378,10 +1545,10 @@ var ruleOutput = function(
         );
     }
 
-    var nestedRuleOutput = function(
-        ast,
-        outputFunc,
-        state
+    var nestedRuleOutput /* : NodeOutput<any> */ = function(
+        ast /* : SingleASTNode */,
+        outputFunc /* : Output<any> */,
+        state /* : State */
     ) {
         return rules[ast.type][property](ast, outputFunc, state);
     };
@@ -1405,14 +1572,42 @@ var defaultImplicitParse = function(source) {
     });
 };
 
-var defaultReactOutput = reactFor(
+var defaultReactOutput /* : ReactOutput */ = reactFor(
     ruleOutput(defaultRules, "react")
 );
-var defaultHtmlOutput = htmlFor(
+var defaultHtmlOutput /* : HtmlOutput */ = htmlFor(
     ruleOutput(defaultRules, "html")
 );
 
-var SimpleMarkdown = {
+/*:: // Flow exports:
+type Exports = {
+    +defaultRules: typeof defaultRules,
+    +parserFor: (rules: ParserRules) => Parser,
+    +ruleOutput: <Rule : Object>(rules: OutputRules<Rule>, param: $Keys<Rule>) => NodeOutput<any>,
+    +reactFor: (ReactNodeOutput) => ReactOutput,
+    +htmlFor: (HtmlNodeOutput) => HtmlOutput,
+
+    +inlineRegex: (regex: RegExp) => MatchFunction,
+    +blockRegex: (regex: RegExp) => MatchFunction,
+    +anyScopeRegex: (regex: RegExp) => MatchFunction,
+    +parseInline: (parse: Parser, content: string, state: State) => ASTNode,
+    +parseBlock: (parse: Parser, content: string, state: State) => ASTNode,
+
+    +defaultRawParse: (source: string) => Array<SingleASTNode>,
+    +defaultBlockParse: (source: string) => Array<SingleASTNode>,
+    +defaultInlineParse: (source: string) => Array<SingleASTNode>,
+    +defaultImplicitParse: (source: string) => Array<SingleASTNode>,
+
+    +defaultReactOutput: ReactOutput,
+    +defaultHtmlOutput: HtmlOutput,
+
+    +preprocess: (source: string) => string,
+    +sanitizeUrl: (url: ?string) => ?string,
+    +unescapeUrl: (url: string) => string,
+};
+*/
+
+var SimpleMarkdown /* : Exports */ = {
     defaultRules: defaultRules,
     parserFor: parserFor,
     ruleOutput: ruleOutput,
@@ -1450,5 +1645,8 @@ if (typeof module !== "undefined" && module.exports) {
 } else {
     window.SimpleMarkdown = SimpleMarkdown;
 }
+/*:: module.exports = SimpleMarkdown; */
 
-})();
+// Close the IIFE
+/*:: (function() { */})();
+
