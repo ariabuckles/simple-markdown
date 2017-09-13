@@ -1,3 +1,5 @@
+// @flow
+
 var assert = require("assert");
 var _ = require("underscore");
 var React = require("react");
@@ -7,8 +9,17 @@ var SimpleMarkdown = require("../simple-markdown.js");
 var blockParse = SimpleMarkdown.defaultBlockParse;
 var inlineParse = SimpleMarkdown.defaultInlineParse;
 var implicitParse = SimpleMarkdown.defaultImplicitParse;
-var defaultOutput = SimpleMarkdown.defaultOutput;
+var defaultReactOutput = SimpleMarkdown.defaultReactOutput;
 var defaultHtmlOutput = SimpleMarkdown.defaultHtmlOutput;
+
+/*:: // Flow definitions & hackery
+
+var FLOW_IGNORE_COVARIANCE = {
+  console: {
+    warn: (console.warn : any),
+  },
+};
+*/
 
 // A pretty-printer that handles `undefined` and functions better
 // than JSON.stringify
@@ -41,7 +52,7 @@ var validateParse = function(parsed, expected) {
 };
 
 var htmlThroughReact = function(parsed) {
-    var output = defaultOutput(parsed);
+    var output = defaultReactOutput(parsed);
     var rawHtml = ReactDOMServer.renderToStaticMarkup(
         React.createElement('div', {}, output)
     );
@@ -2813,7 +2824,9 @@ describe("simple markdown", function() {
             it("should output a warning for non-numeric orders", function() {
                 var oldconsolewarn = console.warn;
                 var warnings = [];
-                console.warn = function(warning) { warnings.push(warning); };
+                /*::FLOW_IGNORE_COVARIANCE.*/ console.warn = function(warning) {
+                    warnings.push(warning);
+                };
                 var parser1 = SimpleMarkdown.parserFor({
                     em1: _.extend({}, emRule, {
                         order: 1/0 - 1/0
@@ -2827,7 +2840,7 @@ describe("simple markdown", function() {
                     "simple-markdown: Invalid order for rule `em1`: NaN"
                 );
 
-                console.warn = oldconsolewarn;
+                /*::FLOW_IGNORE_COVARIANCE.*/ console.warn = oldconsolewarn;
             });
 
             it("should break ties with quality", function() {
