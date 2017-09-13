@@ -1,10 +1,10 @@
 simple-markdown
 ===============
 
-[![Join the chat at https://gitter.im/Khan/simple-markdown](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Khan/simple-markdown?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 simple-markdown is a markdown-like parser designed for simplicity
 and extensibility.
+
+[Change log](https://github.com/Khan/simple-markdown/releases)
 
 Philosophy
 ----------
