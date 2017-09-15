@@ -111,6 +111,12 @@ export type NodeOutput<Result> = (
     state: State
 ) => Result;
 
+export type ArrayNodeOutput<Result> = (
+    node: Array<ASTNode>,
+    nestedOutput: Output<Result>,
+    state: State
+) => Result;
+
 export type ReactOutput = Output<ReactElements>;
 export type ReactNodeOutput = NodeOutput<ReactElements>;
 export type HtmlOutput = Output<string>;
@@ -158,8 +164,21 @@ type NonNullHtmlOutputRule = {
     +html: HtmlNodeOutput,
 };
 
-export type ParserRules = { +[type: string]: ParserRule };
-export type OutputRules<Rule> = { +[type: string]: Rule };
+type OnlyParserRules = {
+    +[type: string]: ParserRule,
+};
+export type ParserRules = {
+    +Array?: {
+        +[string]: ArrayNodeOutput<any>,
+    },
+    +[type: string]: ParserRule,
+};
+export type OutputRules<Rule> = {
+    +Array: {
+        +[string]: ArrayNodeOutput<any>,
+    },
+    +[type: string]: Rule
+};
 
 type DefaultInRule = SingleNodeParserRule & ReactOutputRule & HtmlOutputRule;
 type TextInOutRule = SingleNodeParserRule & TextReactOutputRule & NonNullHtmlOutputRule;
@@ -241,9 +260,12 @@ var preprocess = function(source /* : string */) {
 var parserFor = function(rules /*: ParserRules */) {
     // Sorts rules in order of increasing order, then
     // ascending rule name in case of ties.
-    var ruleList = Object.keys(rules);
-    ruleList.forEach(function(type) {
-        var order = rules[type].order;
+    var ruleList = Object.keys(rules).filter(function(type) {
+        var rule = rules[type];
+        if (rule === undefined || rule.match == null) {
+          return false;
+        }
+        var order = rule.order;
         if ((typeof order !== 'number' || !isFinite(order)) &&
                 typeof console !== 'undefined') {
             console.warn(
@@ -251,7 +273,12 @@ var parserFor = function(rules /*: ParserRules */) {
                 String(order)
             );
         }
+        return true;
     });
+
+    // We know ruleList only contains actual parse rules now, so
+    // casting >_<`
+    /*:: rules = ((rules : any) : OnlyParserRules); */
 
     ruleList.sort(function(typeA, typeB) {
         var ruleA = rules[typeA];
@@ -1635,6 +1662,12 @@ var htmlFor = function(outputFunc /* : HtmlNodeOutput */) /* : HtmlOutput */ {
     return nestedOutput;
 };
 
+var outputFor = function/* :: <Rule : Object> */(
+    rules /* : OutputRules<Rule> */,
+    property /* : $Keys<Rule> */
+) {
+
+};
 
 var defaultRawParse = parserFor(defaultRules);
 var defaultBlockParse = function(source) {
