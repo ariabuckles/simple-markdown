@@ -417,51 +417,6 @@ var anyScopeRegex = function(regex /* : RegExp */) {
     return match;
 };
 
-var reactFor = function(outputFunc /* : ReactNodeOutput */) /* : ReactOutput */ {
-    var nestedOutput /* : ReactOutput */ = function(ast, state) {
-        state = state || {};
-        if (Array.isArray(ast)) {
-            var oldKey = state.key;
-            var result /* : Array<ReactElements> */ = [];
-
-            // map nestedOutput over the ast, except group any text
-            // nodes together into a single string output.
-            var lastResult = null;
-            for (var i = 0; i < ast.length; i++) {
-                state.key = '' + i;
-                var nodeOut = nestedOutput(ast[i], state);
-                if (typeof nodeOut === "string" && typeof lastResult === "string") {
-                    lastResult = lastResult + nodeOut;
-                    result[result.length - 1] = lastResult;
-                } else {
-                    result.push(nodeOut);
-                    lastResult = nodeOut;
-                }
-            }
-
-            state.key = oldKey;
-            return result;
-        } else {
-            return outputFunc(ast, nestedOutput, state);
-        }
-    };
-    return nestedOutput;
-};
-
-var htmlFor = function(outputFunc /* : HtmlNodeOutput */) /* : HtmlOutput */ {
-    var nestedOutput /* : HtmlOutput */ = function(ast, state) {
-        state = state || {};
-        if (Array.isArray(ast)) {
-            return ast.map(function(node) {
-                return nestedOutput(node, state);
-            }).join("");
-        } else {
-            return outputFunc(ast, nestedOutput, state);
-        }
-    };
-    return nestedOutput;
-};
-
 var TYPE_SYMBOL =
     (typeof Symbol === 'function' && Symbol.for &&
      Symbol.for('react.element')) ||
@@ -1554,6 +1509,52 @@ var ruleOutput = function/* :: <Rule : Object> */(
     };
     return nestedRuleOutput;
 };
+
+var reactFor = function(outputFunc /* : ReactNodeOutput */) /* : ReactOutput */ {
+    var nestedOutput /* : ReactOutput */ = function(ast, state) {
+        state = state || {};
+        if (Array.isArray(ast)) {
+            var oldKey = state.key;
+            var result /* : Array<ReactElements> */ = [];
+
+            // map nestedOutput over the ast, except group any text
+            // nodes together into a single string output.
+            var lastResult = null;
+            for (var i = 0; i < ast.length; i++) {
+                state.key = '' + i;
+                var nodeOut = nestedOutput(ast[i], state);
+                if (typeof nodeOut === "string" && typeof lastResult === "string") {
+                    lastResult = lastResult + nodeOut;
+                    result[result.length - 1] = lastResult;
+                } else {
+                    result.push(nodeOut);
+                    lastResult = nodeOut;
+                }
+            }
+
+            state.key = oldKey;
+            return result;
+        } else {
+            return outputFunc(ast, nestedOutput, state);
+        }
+    };
+    return nestedOutput;
+};
+
+var htmlFor = function(outputFunc /* : HtmlNodeOutput */) /* : HtmlOutput */ {
+    var nestedOutput /* : HtmlOutput */ = function(ast, state) {
+        state = state || {};
+        if (Array.isArray(ast)) {
+            return ast.map(function(node) {
+                return nestedOutput(node, state);
+            }).join("");
+        } else {
+            return outputFunc(ast, nestedOutput, state);
+        }
+    };
+    return nestedOutput;
+};
+
 
 var defaultRawParse = parserFor(defaultRules);
 var defaultBlockParse = function(source) {
