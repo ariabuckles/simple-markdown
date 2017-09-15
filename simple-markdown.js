@@ -108,6 +108,12 @@ export type NodeOutput<Result> = (
     state: State
 ) => Result;
 
+export type ArrayNodeOutput<Result> = (
+    node: Array<SingleASTNode>,
+    nestedOutput: NestedOutput<Result>,
+    state: State
+) => Result;
+
 export type ReactOutput = Output<ReactElements>;
 export type ReactNodeOutput = NodeOutput<ReactElements>;
 export type HtmlOutput = Output<string>;
@@ -155,8 +161,23 @@ type NonNullHtmlOutputRule = {
     +html: HtmlNodeOutput,
 };
 
-export type ParserRules = { +[type: string]: ParserRule };
-export type OutputRules<Rule> = { +[type: string]: Rule };
+type StrictParserRules = {
+    +[type: string]: ParserRule,
+};
+type LenientParserRules = {
+    +Array: {
+        +[string]: ArrayNodeOutput<any>,
+    },
+    +[type: string]: ParserRule,
+};
+export type ParserRules = StrictParserRules | LenientParserRules;
+
+export type OutputRules<Rule> = {
+    +Array: {
+        +[string]: ArrayNodeOutput<any>,
+    },
+    +[type: string]: Rule
+};
 
 type DefaultInRule = SingleNodeParserRule & ReactOutputRule & HtmlOutputRule;
 type TextInOutRule = SingleNodeParserRule & TextReactOutputRule & NonNullHtmlOutputRule;
@@ -164,6 +185,10 @@ type LenientInOutRule = SingleNodeParserRule & NonNullReactOutputRule & NonNullH
 type DefaultInOutRule = SingleNodeParserRule & ElementReactOutputRule & NonNullHtmlOutputRule;
 
 type DefaultRules = {
+    +Array: {
+        react: ArrayNodeOutput<ReactElements>,
+        html: ArrayNodeOutput<string>
+    },
     +heading: DefaultInOutRule,
     +nptable: DefaultInRule,
     +lheading: DefaultInRule,
@@ -238,9 +263,12 @@ var preprocess = function(source /* : string */) {
 var parserFor = function(rules /*: ParserRules */) {
     // Sorts rules in order of increasing order, then
     // ascending rule name in case of ties.
-    var ruleList = Object.keys(rules);
-    ruleList.forEach(function(type) {
-        var order = rules[type].order;
+    var ruleList = Object.keys(rules).filter(function(type) {
+        var rule = rules[type];
+        if (rule === undefined || rule.match == null) {
+          return false;
+        }
+        var order = rule.order;
         if ((typeof order !== 'number' || !isFinite(order)) &&
                 typeof console !== 'undefined') {
             console.warn(
@@ -248,11 +276,12 @@ var parserFor = function(rules /*: ParserRules */) {
                 String(order)
             );
         }
+        return true;
     });
 
     ruleList.sort(function(typeA, typeB) {
-        var ruleA = rules[typeA];
-        var ruleB = rules[typeB];
+        var ruleA /* : ParserRule */ = /*::(*/ rules[typeA] /*:: :any)*/;
+        var ruleB /* : ParserRule */ = /*::(*/ rules[typeB] /*:: :any)*/;
         var orderA = ruleA.order;
         var orderB = ruleB.order;
 
@@ -298,7 +327,7 @@ var parserFor = function(rules /*: ParserRules */) {
             // loop control variables:
             var i = 0;
             var currRuleType = ruleList[0];
-            var currRule = rules[currRuleType];
+            var currRule /* : ParserRule */ = /*::(*/ rules[currRuleType] /*:: : any)*/;
 
             do {
                 var currOrder = currRule.order;
@@ -325,7 +354,7 @@ var parserFor = function(rules /*: ParserRules */) {
                 // Note that this makes `currRule` be the next item
                 i++;
                 currRuleType = ruleList[i];
-                currRule = rules[currRuleType];
+                currRule = /*::((*/ rules[currRuleType] /*:: : any) : ParserRule)*/;
 
             } while (
                 // keep looping while we're still within the ruleList
@@ -707,6 +736,35 @@ var parseRef = function(capture, state, refNode /* : RefNode */) {
 
 var currOrder = 0;
 var defaultRules /* : DefaultRules */ = {
+    Array: {
+        react: function(arr, output, state) {
+            var oldKey = state.key;
+            var result /* : Array<ReactElements> */ = [];
+
+            // map output over the ast, except group any text
+            // nodes together into a single string output.
+            var lastResult = null;
+            for (var i = 0; i < arr.length; i++) {
+                state.key = '' + i;
+                var nodeOut = output(arr[i], state);
+                if (typeof nodeOut === "string" && typeof lastResult === "string") {
+                    lastResult = lastResult + nodeOut;
+                    result[result.length - 1] = lastResult;
+                } else {
+                    result.push(nodeOut);
+                    lastResult = nodeOut;
+                }
+            }
+
+            state.key = oldKey;
+            return result;
+        },
+        html: function(arr, output, state) {
+            return arr.map(function(node) {
+                return output(node, state);
+            }).join("");
+        },
+    },
     heading: {
         order: currOrder++,
         match: blockRegex(/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/),
@@ -1502,7 +1560,7 @@ var ruleOutput = function/* :: <Rule : Object> */(
 
     var nestedRuleOutput /* : NodeOutput<any> */ = function(
         ast /* : SingleASTNode */,
-        outputFunc /* : Output<any> */,
+        outputFunc /* : NodeOutput<any> */,
         state /* : State */
     ) {
         return rules[ast.type][property](ast, outputFunc, state);
@@ -1555,6 +1613,27 @@ var htmlFor = function(outputFunc /* : HtmlNodeOutput */) /* : HtmlOutput */ {
     return nestedOutput;
 };
 
+var outputFor = function/* :: <Rule : Object> */(
+    rules /* : OutputRules<Rule> */,
+    property /* : $Keys<Rule> */
+) {
+    if (!property) {
+        throw new Error('simple-markdown: outputFor: `property` must be ' +
+            'defined. ' +
+            'if you just upgraded, you probably need to replace `outputFor` ' +
+            'with `reactFor`'
+        );
+    }
+    var nestedOutput /* : Output<any> */ = function(ast, state) {
+        state = state || {};
+        if (Array.isArray(ast)) {
+            return rules.Array[property](ast, nestedOutput, state);
+        } else {
+            return rules[ast.type][property](ast, nestedOutput, state);
+        }
+    };
+    return nestedOutput;
+};
 
 var defaultRawParse = parserFor(defaultRules);
 var defaultBlockParse = function(source) {
@@ -1573,17 +1652,15 @@ var defaultImplicitParse = function(source) {
     });
 };
 
-var defaultReactOutput /* : ReactOutput */ = reactFor(
-    ruleOutput(defaultRules, "react")
-);
-var defaultHtmlOutput /* : HtmlOutput */ = htmlFor(
-    ruleOutput(defaultRules, "html")
-);
+var defaultReactOutput /* : ReactOutput */ = outputFor(defaultRules, "react");
+var defaultHtmlOutput /* : HtmlOutput */ = outputFor(defaultRules, "html");
 
 /*:: // Flow exports:
 type Exports = {
     +defaultRules: typeof defaultRules,
     +parserFor: (rules: ParserRules) => Parser,
+    +outputFor: <Rule : Object>(rules: OutputRules<Rule>, param: $Keys<Rule>) => Output<any>,
+
     +ruleOutput: <Rule : Object>(rules: OutputRules<Rule>, param: $Keys<Rule>) => NodeOutput<any>,
     +reactFor: (ReactNodeOutput) => ReactOutput,
     +htmlFor: (HtmlNodeOutput) => HtmlOutput,
@@ -1611,6 +1688,8 @@ type Exports = {
 var SimpleMarkdown /* : Exports */ = {
     defaultRules: defaultRules,
     parserFor: parserFor,
+    outputFor: outputFor,
+
     ruleOutput: ruleOutput,
     reactFor: reactFor,
     htmlFor: htmlFor,
@@ -1634,9 +1713,18 @@ var SimpleMarkdown /* : Exports */ = {
     unescapeUrl: unescapeUrl,
 
     // deprecated:
-    defaultParse: defaultImplicitParse,
-    outputFor: reactFor,
-    defaultOutput: defaultReactOutput,
+    defaultParse: function() {
+        if (typeof console !== 'undefined') {
+            console.warn('defaultParse is deprecated, please use `defaultImplicitParse`');
+        }
+        return defaultImplicitParse.apply(null, arguments);
+    },
+    defaultOutput: function() {
+        if (typeof console !== 'undefined') {
+            console.warn('defaultOutput is deprecated, please use `defaultReactOutput`');
+        }
+        return defaultReactOutput.apply(null, arguments);
+    },
 };
 
 if (typeof module !== "undefined" && module.exports) {
