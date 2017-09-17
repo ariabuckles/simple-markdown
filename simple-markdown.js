@@ -261,7 +261,7 @@ var parserFor = function(rules /*: ParserRules */) {
     // Sorts rules in order of increasing order, then
     // ascending rule name in case of ties.
     var ruleList = Object.keys(rules).filter(function(type) {
-        var rule = rules[type];
+        var rule = rules2[type];
         if (rule === undefined || rule.match == null) {
           return false;
         }
@@ -276,13 +276,9 @@ var parserFor = function(rules /*: ParserRules */) {
         return true;
     });
 
-    // We know ruleList only contains actual parse rules now, so
-    // casting >_<`
-    /*:: rules = ((rules : any) : OnlyParserRules); */
-
     ruleList.sort(function(typeA, typeB) {
-        var ruleA = rules[typeA];
-        var ruleB = rules[typeB];
+        var ruleA = /*::(*/ rules[typeA] /*:: : ParserRule)*/;
+        var ruleB = /*::(*/ rules[typeB] /*:: : ParserRule)*/;
         var orderA = ruleA.order;
         var orderB = ruleB.order;
 
@@ -328,7 +324,7 @@ var parserFor = function(rules /*: ParserRules */) {
             // loop control variables:
             var i = 0;
             var currRuleType = ruleList[0];
-            var currRule = rules[currRuleType];
+            var currRule = /*::(*/ rules[currRuleType] /*:: : ParserRule)*/;
 
             do {
                 var currOrder = currRule.order;
@@ -355,7 +351,7 @@ var parserFor = function(rules /*: ParserRules */) {
                 // Note that this makes `currRule` be the next item
                 i++;
                 currRuleType = ruleList[i];
-                currRule = rules[currRuleType];
+                currRule = /*::(*/ rules[currRuleType] /*:: : ParserRule)*/;
 
             } while (
                 // keep looping while we're still within the ruleList
