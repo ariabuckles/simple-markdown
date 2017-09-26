@@ -401,7 +401,7 @@ object must contain a `match` and a `parse` function.
 
 Takes a `rules` object, containing an `output` function for
 each rule, and a `key` into individual elements in that rules
-rules argument (either `'react''` or `'html'`, unless you are
+rules argument (either `'react'` or `'html'`, unless you are
 defining a custom output type), and returns a function that can
 output a single syntax tree node of any type that is in the
 `rules` object, given a node and a recursive output function.
