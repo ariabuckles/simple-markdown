@@ -743,26 +743,44 @@ var defaultRules /* : DefaultRules */ = {
 
             // map output over the ast, except group any text
             // nodes together into a single string output.
-            var lastResult = null;
-            for (var i = 0; i < arr.length; i++) {
+            for (var i = 0, key = 0; i < arr.length; i++, key++) {
+                // `key` is our numerical `state.key`, which we increment for
+                // every output node, but don't change for joined text nodes.
+                // (i, however, must change for joined text nodes)
                 state.key = '' + i;
-                var nodeOut = output(arr[i], state);
-                if (typeof nodeOut === "string" && typeof lastResult === "string") {
-                    lastResult = lastResult + nodeOut;
-                    result[result.length - 1] = lastResult;
-                } else {
-                    result.push(nodeOut);
-                    lastResult = nodeOut;
+
+                var node = arr[i];
+                if (node.type === 'text') {
+                    node = { type: 'text', content: node.content };
+                    for (; i + 1 < arr.length && arr[i + 1].type === 'text'; i++) {
+                        node.content += arr[i + 1].content;
+                    }
                 }
+
+                result.push(output(node, state));
             }
 
             state.key = oldKey;
             return result;
         },
         html: function(arr, output, state) {
-            return arr.map(function(node) {
-                return output(node, state);
-            }).join("");
+            var result = "";
+
+            // map output over the ast, except group any text
+            // nodes together into a single string output.
+            for (var i = 0, key = 0; i < arr.length; i++) {
+
+                var node = arr[i];
+                if (node.type === 'text') {
+                    node = { type: 'text', content: node.content };
+                    for (; i + 1 < arr.length && arr[i + 1].type === 'text'; i++) {
+                        node.content += arr[i + 1].content;
+                    }
+                }
+
+                result += output(node, state);
+            }
+            return result;
         },
     },
     heading: {
