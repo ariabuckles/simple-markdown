@@ -1,14 +1,15 @@
-var assert = require("assert");
-var _ = require("underscore");
-var React = require("react");
-var ReactDOMServer = require("react-dom/server");
+const assert = require('assert');
+const _ = require('underscore');
+const React = require('react');
+const ReactDOMServer = require('react-dom/server');
 
-var SimpleMarkdown = require("../simple-markdown.js");
-var blockParse = SimpleMarkdown.defaultBlockParse;
-var inlineParse = SimpleMarkdown.defaultInlineParse;
-var implicitParse = SimpleMarkdown.defaultImplicitParse;
-var defaultOutput = SimpleMarkdown.defaultOutput;
-var defaultHtmlOutput = SimpleMarkdown.defaultHtmlOutput;
+const SimpleMarkdown = require('../simple-markdown.js');
+
+const blockParse = SimpleMarkdown.defaultBlockParse;
+const inlineParse = SimpleMarkdown.defaultInlineParse;
+const implicitParse = SimpleMarkdown.defaultImplicitParse;
+const defaultOutput = SimpleMarkdown.defaultOutput;
+const defaultHtmlOutput = SimpleMarkdown.defaultHtmlOutput;
 
 // A pretty-printer that handles `undefined` and functions better
 // than JSON.stringify
@@ -17,2923 +18,2921 @@ var defaultHtmlOutput = SimpleMarkdown.defaultHtmlOutput;
 // very confusing to figure out how the actual and expected differ
 // Whether node's util.inspect or JSON.stringify is better seems
 // context dependent.
-var prettyPrintAST = function(ast) {
-    return JSON.stringify(ast, null, 4);
+const prettyPrintAST = function (ast) {
+  return JSON.stringify(ast, null, 4);
 //    return nodeUtil.inspect(ast, {
 //        depth: null,
 //        colors: false
 //    });
 };
 
-var validateParse = function(parsed, expected) {
-    if (!_.isEqual(parsed, expected)) {
-        var parsedStr = prettyPrintAST(parsed);
-        var expectedStr = prettyPrintAST(expected);
-        // assert.fail doesn't seem to print the
-        // expected and actual anymore, so we just
-        // throw our own exception.
-        throw new Error("Expected:\n" +
-            expectedStr +
-            "\n\nActual:\n" +
-            parsedStr
-        );
-    }
-};
-
-var htmlThroughReact = function(parsed) {
-    var output = defaultOutput(parsed);
-    var rawHtml = ReactDOMServer.renderToStaticMarkup(
-        React.DOM.div(null, output)
+const validateParse = function (parsed, expected) {
+  if (!_.isEqual(parsed, expected)) {
+    const parsedStr = prettyPrintAST(parsed);
+    const expectedStr = prettyPrintAST(expected);
+    // assert.fail doesn't seem to print the
+    // expected and actual anymore, so we just
+    // throw our own exception.
+    throw new Error(`Expected:\n${
+      expectedStr
+    }\n\nActual:\n${
+      parsedStr}`,
     );
-    var innerHtml = rawHtml
-        .replace(/^<div>/, '')
-        .replace(/<\/div>$/, '');
-    var simplifiedHtml = innerHtml
-        .replace(/>\n*/g, '>')
-        .replace(/\n*</g, '<')
-        .replace(/\s+/g, ' ');
-    return simplifiedHtml;
+  }
 };
 
-var htmlFromReactMarkdown = function(source) {
-    return htmlThroughReact(implicitParse(source));
+const htmlThroughReact = function (parsed) {
+  const output = defaultOutput(parsed);
+  const rawHtml = ReactDOMServer.renderToStaticMarkup(
+    React.DOM.div(null, output),
+  );
+  const innerHtml = rawHtml
+    .replace(/^<div>/, '')
+    .replace(/<\/div>$/, '');
+  const simplifiedHtml = innerHtml
+    .replace(/>\n*/g, '>')
+    .replace(/\n*</g, '<')
+    .replace(/\s+/g, ' ');
+  return simplifiedHtml;
 };
 
-var htmlFromMarkdown = function(source) {
-    var html = defaultHtmlOutput(implicitParse(source));
-    var simplifiedHtml = html.replace(/\s+/g, ' ');
-    return simplifiedHtml;
+const htmlFromReactMarkdown = function (source) {
+  return htmlThroughReact(implicitParse(source));
 };
 
-var assertParsesToReact = function(source, html) {
-    var actualHtml = htmlFromReactMarkdown(source);
-    assert.strictEqual(actualHtml, html);
+const htmlFromMarkdown = function (source) {
+  const html = defaultHtmlOutput(implicitParse(source));
+  const simplifiedHtml = html.replace(/\s+/g, ' ');
+  return simplifiedHtml;
 };
 
-var assertParsesToHtml = function(source, html) {
-    var actualHtml = htmlFromMarkdown(source);
-    assert.strictEqual(actualHtml, html);
+const assertParsesToReact = function (source, html) {
+  const actualHtml = htmlFromReactMarkdown(source);
+  assert.strictEqual(actualHtml, html);
 };
 
-describe("simple markdown", function() {
-    describe("parser", function() {
-        it("should parse a plain string", function() {
-            var parsed = inlineParse("hi there");
-            validateParse(parsed, [{
-                type: "text",
-                content: "hi there"
-            }]);
-        });
-
-        it("should parse bold", function() {
-            var parsed = inlineParse("**hi**");
-            validateParse(parsed, [{
-                type: "strong",
-                content: [{
-                    type: "text",
-                    content: "hi"
-                }]
-            }]);
-        });
-
-        it("should parse italics", function() {
-            var parsed = inlineParse("*hi*");
-            validateParse(parsed, [{
-                type: "em",
-                content: [{
-                    type: "text",
-                    content: "hi"
-                }]
-            }]);
-
-            var parsed2 = inlineParse("*test i*");
-            validateParse(parsed2, [{
-                type: "em",
-                content: [{
-                    type: "text",
-                    content: "test i"
-                }]
-            }]);
-        });
-
-        it("should not parse ** as empty italics", function() {
-            var parsed = inlineParse("**");
-            validateParse(parsed, [
-              { type: "text", content: "*" },
-              { type: "text", content: "*" },
-            ]);
-        });
-
-        it("should parse a single italic character", function() {
-            var parsed = inlineParse("*h*");
-            validateParse(parsed, [{
-                type: "em",
-                content: [{
-                    type: "text",
-                    content: "h"
-                }]
-            }]);
-        });
-
-        it("should parse strikethrough", function() {
-            var parsed = inlineParse("~~hi~~");
-            validateParse(parsed, [{
-                type: "del",
-                content: [{
-                    type: "text",
-                    content: "hi"
-                }]
-            }]);
-
-            // not super important that it parses this like this, but
-            // it should be a valid something...
-            var parsed2 = inlineParse("~~~~~");
-            validateParse(parsed2, [{
-                type: "del",
-                content: [{
-                    type: "text",
-                    content: "~"
-                }]
-            }]);
-        });
-
-        it("should parse underlines", function() {
-            var parsed = inlineParse("__hi__");
-            validateParse(parsed, [{
-                type: "u",
-                content: [{
-                    type: "text",
-                    content: "hi"
-                }]
-            }]);
-        });
-
-        it("should parse nested bold/italics", function() {
-            var parsed = inlineParse("***hi***");
-            validateParse(parsed, [{
-                type: "em",
-                content: [{
-                    type: "strong",
-                    content: [{
-                        type: "text",
-                        content: "hi"
-                    }]
-                }]
-            }]);
-        });
-
-        it("should parse nested bold/italics/underline", function() {
-            var parsed1 = inlineParse("***__hi__***");
-            validateParse(parsed1, [{
-                type: "em",
-                content: [{
-                    type: "strong",
-                    content: [{
-                        type: "u",
-                        content: [{
-                            type: "text",
-                            content: "hi"
-                        }]
-                    }]
-                }]
-            }]);
-
-            var parsed2 = inlineParse("*__**hi**__*");
-            validateParse(parsed2, [{
-                type: "em",
-                content: [{
-                    type: "u",
-                    content: [{
-                        type: "strong",
-                        content: [{
-                            type: "text",
-                            content: "hi"
-                        }]
-                    }]
-                }]
-            }]);
-
-            var parsed3 = inlineParse("***bolditalics***");
-            validateParse(parsed3, [{
-                type: "em",
-                content: [{
-                    type: "strong",
-                    content: [{
-                        type: "text",
-                        content: "bolditalics",
-                    }]
-                }]
-            }]);
-
-            var parsed4 = inlineParse("**bold *italics***");
-            validateParse(parsed4, [{
-                type: "strong",
-                content: [{
-                    type: "text",
-                    content: "bold ",
-                }, {
-                    type: "em",
-                    content: [{
-                        type: "text",
-                        content: "italics",
-                    }]
-                }]
-            }]);
-        });
-
-        it("should allow escaped underscores in underscore italics", function() {
-            var parsed1 = inlineParse("_ABC\\_DEF_");
-            validateParse(parsed1, [{
-                type: "em",
-                content: [{
-                    type: "text",
-                    content: "ABC",
-                }, {
-                    type: "text",
-                    content: "_",
-                }, {
-                    type: "text",
-                    content: "DEF",
-                }]
-            }]);
-
-            var parsed2 = inlineParse("_**ABC\\_DEF**_");
-            validateParse(parsed2, [{
-                type: "em",
-                content: [{
-                    type: "strong",
-                    content: [{
-                        type: "text",
-                        content: "ABC",
-                    }, {
-                        type: "text",
-                        content: "_",
-                    }, {
-                        type: "text",
-                        content: "DEF",
-                    }]
-                }]
-            }]);
-
-            var parsed3 = inlineParse("_**ABC\\$DEF**_");
-            validateParse(parsed3, [{
-                type: "em",
-                content: [{
-                    type: "strong",
-                    content: [{
-                        type: "text",
-                        content: "ABC",
-                    }, {
-                        type: "text",
-                        content: "$",
-                    }, {
-                        type: "text",
-                        content: "DEF",
-                    }]
-                }]
-            }]);
-
-            validateParse(inlineParse("_\\\\_"), [{
-                type: "em",
-                content: [{
-                    type: "text",
-                    content: "\\",
-                }]
-            }]);
-        });
-
-        // TODO(aria): Make this pass:
-        it("should parse complex combined bold/italics", function() {
-            var parsed = inlineParse("***bold** italics*");
-            validateParse(parsed, [{
-                type: "em",
-                content: [{
-                    type: "strong",
-                    content: [{
-                        type: "text",
-                        content: "bold",
-                    }]
-                }, {
-                    type: "text",
-                    content: " italics",
-                }]
-            }]);
-
-            var parsed2 = inlineParse("*hi **there you***");
-            validateParse(parsed2, [{
-                type: "em",
-                content: [{
-                    type: "text",
-                    content: "hi ",
-                }, {
-                    type: "strong",
-                    content: [{
-                        type: "text",
-                        content: "there you",
-                    }]
-                }]
-            }]);
-        });
-
-        it("should parse multiple bold/italics/underlines", function() {
-            var parsed = inlineParse(
-                "*some* of this __sentence__ is **bold**"
-            );
-            validateParse(parsed, [
-                {
-                    type: "em",
-                    content: [{
-                        type: "text",
-                        content: "some"
-                    }]
-                },
-                {
-                    type: "text",
-                    content: " of this "
-                },
-                {
-                    type: "u",
-                    content: [{
-                        type: "text",
-                        content: "sentence"
-                    }]
-                },
-                {
-                    type: "text",
-                    content: " is "
-                },
-                {
-                    type: "strong",
-                    content: [{
-                        type: "text",
-                        content: "bold"
-                    }]
-                }
-            ]);
-
-            validateParse(inlineParse("_italics __bold___"), [{
-                type: "em",
-                content: [{
-                    type: "text",
-                    content: "italics ",
-                }, {
-                    type: "u",
-                    content: [{
-                        type: "text",
-                        content: "bold",
-                    }]
-                }]
-            }]);
-        });
-
-        it("should parse inline code", function() {
-            var parsed = inlineParse("`hi`");
-            validateParse(parsed, [{
-                type: "inlineCode",
-                content: "hi"
-            }]);
-        });
-
-        it("should parse * and _ inside `` as code", function() {
-            var parsed = inlineParse(
-                "`const int * const * const p; // _hi_`"
-            );
-            validateParse(parsed, [{
-                type: "inlineCode",
-                content: "const int * const * const p; // _hi_"
-            }]);
-        });
-
-        it("should allow you to escape special characters with \\", function() {
-            var parsed = inlineParse(
-                "\\`hi\\` \\*bye\\* \\~\\|\\<\\[\\{"
-            );
-            validateParse(parsed, [
-                { type: "text", content: "`" },
-                { type: "text", content: "hi" },
-                { type: "text", content: "`" },
-                { type: "text", content: " " },
-                { type: "text", content: "*" },
-                { type: "text", content: "bye" },
-                { type: "text", content: "*" },
-                { type: "text", content: " " },
-                { type: "text", content: "~" },
-                { type: "text", content: "|" },
-                { type: "text", content: "<" },
-                { type: "text", content: "[" },
-                { type: "text", content: "{" },
-            ]);
-
-            var parsed2 = inlineParse(
-                "hi\\^caret"
-            );
-            validateParse(parsed2, [
-                { type: "text", content: "hi" },
-                { type: "text", content: "^" },
-                { type: "text", content: "caret" },
-            ]);
-        });
-
-        it("should parse basic []() links as links", function() {
-            var parsed = inlineParse("[hi](http://www.google.com)");
-            validateParse(parsed, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "hi"
-                }],
-                target: "http://www.google.com",
-                title: undefined
-            }]);
-
-            var parsed2 = inlineParse("[secure](https://www.google.com)");
-            validateParse(parsed2, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "secure"
-                }],
-                target: "https://www.google.com",
-                title: undefined
-            }]);
-
-            var parsed3 = inlineParse(
-                "[local](http://localhost:9000/test.html)"
-            );
-            validateParse(parsed3, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "local"
-                }],
-                target: "http://localhost:9000/test.html",
-                title: undefined
-            }]);
-
-            var parsed4 = inlineParse(
-                "[params](http://localhost:9000/test.html" +
-                "?content=%7B%7D&format=pretty)"
-            );
-            validateParse(parsed4, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "params"
-                }],
-                target: "http://localhost:9000/test.html" +
-                        "?content=%7B%7D&format=pretty",
-                title: undefined
-            }]);
-
-            var parsed5 = inlineParse(
-                "[hash](http://localhost:9000/test.html#content=%7B%7D)"
-            );
-            validateParse(parsed5, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "hash"
-                }],
-                target: "http://localhost:9000/test.html#content=%7B%7D",
-                title: undefined
-            }]);
-        });
-
-        it("should allow escaping `[` with `\\`", function() {
-            // Without the backslash, the following would be a
-            // link with the text "hi".
-            // With the backslash, it should ignore the '[hi]'
-            // portion, but will still detect that the inside
-            // of the parentheses contains a raw url, which it
-            // will turn into a url link.
-            var parsed = inlineParse("\\[hi](http://www.google.com)");
-            validateParse(parsed, [
-                {content: "[", type: "text"},
-                {content: "hi", type: "text"},
-                {content: "]", type: "text"},
-                {content: "(", type: "text"},
-                {
-                    type: "link",
-                    content: [{
-                        type: "text",
-                        content: "http://www.google.com"
-                    }],
-                    target: "http://www.google.com",
-                    title: undefined
-                },
-                {content: ")", type: "text"},
-            ]);
-        });
-
-        it("should allow escaping of link urls with `\\`", function() {
-            var parsed = inlineParse("[test link](https://test.link/\\(test\\))");
-            validateParse(parsed, [
-                {
-                    type: "link",
-                    content: [{
-                        type: "text",
-                        content: "test link"
-                    }],
-                    target: "https://test.link/(test)",
-                    title: undefined
-                },
-            ]);
-        });
-
-        it("should parse basic <autolinks>", function() {
-            var parsed = inlineParse("<http://www.google.com>");
-            validateParse(parsed, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "http://www.google.com"
-                }],
-                target: "http://www.google.com"
-            }]);
-
-            var parsed2 = inlineParse("<https://www.google.com>");
-            validateParse(parsed2, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "https://www.google.com"
-                }],
-                target: "https://www.google.com"
-            }]);
-
-            var parsed3 = inlineParse("<http://localhost:9000/test.html>");
-            validateParse(parsed3, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "http://localhost:9000/test.html"
-                }],
-                target: "http://localhost:9000/test.html"
-            }]);
-
-            var parsed4 = inlineParse(
-                "<http://localhost:9000/test.html" +
-                "?content=%7B%7D&format=pretty>"
-            );
-            validateParse(parsed4, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "http://localhost:9000/test.html" +
-                            "?content=%7B%7D&format=pretty"
-                }],
-                target: "http://localhost:9000/test.html" +
-                        "?content=%7B%7D&format=pretty"
-            }]);
-
-            var parsed5 = inlineParse(
-                "<http://localhost:9000/test.html#content=%7B%7D>"
-            );
-            validateParse(parsed5, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "http://localhost:9000/test.html#content=%7B%7D"
-                }],
-                target: "http://localhost:9000/test.html#content=%7B%7D"
-            }]);
-        });
-
-        it("should parse basic <mailto@autolinks>", function() {
-            var parsed = inlineParse("<test@example.com>");
-            validateParse(parsed, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "test@example.com"
-                }],
-                target: "mailto:test@example.com"
-            }]);
-
-            var parsed2 = inlineParse("<test+ext@example.com>");
-            validateParse(parsed2, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "test+ext@example.com"
-                }],
-                target: "mailto:test+ext@example.com"
-            }]);
-
-            var parsed3 = inlineParse("<mailto:test@example.com>");
-            validateParse(parsed3, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "mailto:test@example.com"
-                }],
-                target: "mailto:test@example.com"
-            }]);
-
-            var parsed4 = inlineParse("<MAILTO:TEST@EXAMPLE.COM>");
-            validateParse(parsed4, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "MAILTO:TEST@EXAMPLE.COM"
-                }],
-                target: "MAILTO:TEST@EXAMPLE.COM"
-            }]);
-        });
-
-        it("should parse basic freeform urls", function() {
-            var parsed = inlineParse("http://www.google.com");
-            validateParse(parsed, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "http://www.google.com"
-                }],
-                target: "http://www.google.com",
-                title: undefined
-            }]);
-
-            var parsed2 = inlineParse("https://www.google.com");
-            validateParse(parsed2, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "https://www.google.com"
-                }],
-                target: "https://www.google.com",
-                title: undefined
-            }]);
-
-            var parsed3 = inlineParse("http://example.com/test.html");
-            validateParse(parsed3, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "http://example.com/test.html"
-                }],
-                target: "http://example.com/test.html",
-                title: undefined
-            }]);
-
-            var parsed4 = inlineParse(
-                "http://example.com/test.html" +
-                "?content=%7B%7D&format=pretty"
-            );
-            validateParse(parsed4, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "http://example.com/test.html" +
-                            "?content=%7B%7D&format=pretty"
-                }],
-                target: "http://example.com/test.html" +
-                        "?content=%7B%7D&format=pretty",
-                title: undefined
-            }]);
-
-            var parsed5 = inlineParse(
-                "http://example.com/test.html#content=%7B%7D"
-            );
-            validateParse(parsed5, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "http://example.com/test.html#content=%7B%7D"
-                }],
-                target: "http://example.com/test.html#content=%7B%7D",
-                title: undefined
-            }]);
-        });
-
-        it("should not split words before colons", function() {
-            var parsed = inlineParse("Here is a rule: try this");
-            validateParse(parsed, [{
-                type: "text",
-                content: "Here is a rule",
-            }, {
-                type: "text",
-                content: ": try this",
-            }]);
-        });
-
-        it("should parse freeform urls inside paragraphs", function() {
-            var parsed = blockParse(
-                "hi this is a link http://www.google.com\n\n"
-            );
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [
-                    {
-                        type: "text",
-                        content: "hi this is a link ",
-                    },
-                    {
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "http://www.google.com"
-                        }],
-                        target: "http://www.google.com",
-                        title: undefined
-                    }
-                ]
-            }]);
-        });
-
-        it("should parse [reflinks][and their targets]", function() {
-            var parsed = implicitParse(
-                "[Google][1]\n\n" +
-                "[1]: http://www.google.com\n\n"
-            );
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "Google"
-                        }],
-                        target: "http://www.google.com",
-                        title: undefined
-                    }]
-                },
-                {
-                    type: "def",
-                    def: "1",
-                    target: "http://www.google.com",
-                    title: undefined
-                },
-            ]);
-
-            var parsed2 = blockParse(
-                "[1]: http://www.google.com\n\n" +
-                "[Google][1]\n\n"
-            );
-            validateParse(parsed2, [
-                {
-                    type: "def",
-                    def: "1",
-                    target: "http://www.google.com",
-                    title: undefined
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "Google"
-                        }],
-                        target: "http://www.google.com",
-                        title: undefined
-                    }]
-                },
-            ]);
-        });
-
-        it("should parse inline link titles", function() {
-            var parsed = inlineParse(
-                "[Google](http://www.google.com \"This is google!\")"
-            );
-            validateParse(parsed, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "Google"
-                }],
-                target: "http://www.google.com",
-                title: "This is google!"
-            }]);
-
-            var parsed2 = inlineParse(
-                "[Google](http://www.google.com \"still Google\")"
-            );
-            validateParse(parsed2, [{
-                type: "link",
-                content: [{
-                    type: "text",
-                    content: "Google"
-                }],
-                target: "http://www.google.com",
-                title: "still Google"
-            }]);
-        });
-
-        it("should parse reflink titles", function() {
-            var parsed = implicitParse(
-                "[Google][1]\n\n" +
-                "[1]: http://www.google.com (This is google!)\n\n"
-            );
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "Google"
-                        }],
-                        target: "http://www.google.com",
-                        title: "This is google!"
-                    }]
-                },
-                {
-                    type: "def",
-                    def: "1",
-                    target: "http://www.google.com",
-                    title: "This is google!"
-                },
-            ]);
-
-            var parsed2 = implicitParse(
-                "[1]: http://www.google.com \"still Google\"\n\n" +
-                "[Google][1]\n\n"
-            );
-            validateParse(parsed2, [
-                {
-                    type: "def",
-                    def: "1",
-                    target: "http://www.google.com",
-                    title: "still Google"
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "Google"
-                        }],
-                        target: "http://www.google.com",
-                        title: "still Google"
-                    }]
-                },
-            ]);
-
-            // test some edge cases, notably:
-            // target of ""; title using parens; def with a `-` in it
-            var parsed3 = implicitParse(
-                "[Nowhere][nowhere-target]\n\n" +
-                "[nowhere-target]: <> (nowhere)\n\n"
-            );
-            validateParse(parsed3, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "Nowhere"
-                        }],
-                        target: "",
-                        title: "nowhere"
-                    }]
-                },
-                {
-                    type: "def",
-                    def: "nowhere-target",
-                    target: "",
-                    title: "nowhere"
-                },
-            ]);
-        });
-
-        it("should parse [reflinks][] with implicit targets", function() {
-            var parsed = implicitParse(
-                "[Google][]\n\n" +
-                "[Google]: http://www.google.com\n\n"
-            );
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "Google"
-                        }],
-                        target: "http://www.google.com",
-                        title: undefined
-                    }]
-                },
-                {
-                    type: "def",
-                    def: "google",
-                    target: "http://www.google.com",
-                    title: undefined
-                },
-            ]);
-
-            var parsed2 = implicitParse(
-                "[Google]: http://www.google.com\n\n" +
-                "[Google][]\n\n"
-            );
-            validateParse(parsed2, [
-                {
-                    type: "def",
-                    def: "google",
-                    target: "http://www.google.com",
-                    title: undefined
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "Google"
-                        }],
-                        target: "http://www.google.com",
-                        title: undefined
-                    }]
-                },
-            ]);
-        });
-
-        it("should handle multiple [reflinks][to the same target]", function() {
-            var parsed = implicitParse(
-                "[Google][1] [Yahoo][1]\n\n" +
-                "[1]: http://www.google.com\n\n"
-            );
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [
-                        {
-                            type: "link",
-                            content: [{
-                                type: "text",
-                                content: "Google"
-                            }],
-                            target: "http://www.google.com",
-                            title: undefined
-                        },
-                        {
-                            type: "text",
-                            content: " "
-                        },
-                        {
-                            type: "link",
-                            content: [{
-                                type: "text",
-                                content: "Yahoo"
-                            }],
-                            target: "http://www.google.com",
-                            title: undefined
-                        },
-                    ]
-                },
-                {
-                    type: "def",
-                    def: "1",
-                    target: "http://www.google.com",
-                    title: undefined
-                },
-            ]);
-
-            // This is sort of silly, but the last def overrides all previous
-            // links. This is just a test that things are continuing to work
-            // as we currently expect them to, but I seriously hope no one
-            // writes markdown like this!
-            var parsed2 = implicitParse(
-                "[test][1]\n\n" +
-                "[1]: http://google.com\n\n" +
-                "[test2][1]\n\n" +
-                "[1]: http://khanacademy.org\n\n"
-            );
-            validateParse(parsed2, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "test"
-                        }],
-                        target: "http://khanacademy.org",
-                        title: undefined
-                    }]
-                },
-                {
-                    type: "def",
-                    def: "1",
-                    target: "http://google.com",
-                    title: undefined
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "test2"
-                        }],
-                        target: "http://khanacademy.org",
-                        title: undefined
-                    }]
-                },
-                {
-                    type: "def",
-                    def: "1",
-                    target: "http://khanacademy.org",
-                    title: undefined
-                },
-            ]);
-        });
-
-        it("should parse basic images", function() {
-            var parsed = inlineParse("![](http://example.com/test.png)");
-            validateParse(parsed, [{
-                type: "image",
-                alt: "",
-                target: "http://example.com/test.png",
-                title: undefined
-            }]);
-
-            var parsed2 = inlineParse("![aaalt](http://example.com/image)");
-            validateParse(parsed2, [{
-                type: "image",
-                alt: "aaalt",
-                target: "http://example.com/image",
-                title: undefined
-            }]);
-
-            var parsed3 = inlineParse(
-                "![](http://localhost:9000/test.html \"local\")"
-            );
-            validateParse(parsed3, [{
-                type: "image",
-                alt: "",
-                target: "http://localhost:9000/test.html",
-                title: "local"
-            }]);
-
-            var parsed4 = inlineParse(
-                "![p](http://localhost:9000/test" +
-                "?content=%7B%7D&format=pretty \"params\")"
-            );
-            validateParse(parsed4, [{
-                type: "image",
-                alt: "p",
-                target: "http://localhost:9000/test" +
-                        "?content=%7B%7D&format=pretty",
-                title: "params"
-            }]);
-
-            var parsed5 = inlineParse(
-                "![hash](http://localhost:9000/test.png#content=%7B%7D)"
-            );
-            validateParse(parsed5, [{
-                type: "image",
-                alt: "hash",
-                target: "http://localhost:9000/test.png#content=%7B%7D",
-                title: undefined
-            }]);
-        });
-
-        it("should parse [refimages][and their targets]", function() {
-            var parsed = implicitParse(
-                "![aaalt][1]\n\n" +
-                "[1]: http://example.com/test.gif\n\n"
-            );
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "image",
-                        alt: "aaalt",
-                        target: "http://example.com/test.gif",
-                        title: undefined
-                    }]
-                },
-                {
-                    type: "def",
-                    def: "1",
-                    target: "http://example.com/test.gif",
-                    title: undefined
-                },
-            ]);
-
-            var parsed2 = implicitParse(
-                "[image]: http://example.com/test.gif\n\n" +
-                "![image][]\n\n"
-            );
-            validateParse(parsed2, [
-                {
-                    type: "def",
-                    def: "image",
-                    target: "http://example.com/test.gif",
-                    title: undefined
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "image",
-                        alt: "image",
-                        target: "http://example.com/test.gif",
-                        title: undefined
-                    }]
-                },
-            ]);
-
-            var parsed3 = implicitParse(
-                "[image]: http://example.com/test.gif \"title!\"\n\n" +
-                "![image][]\n\n"
-            );
-            validateParse(parsed3, [
-                {
-                    type: "def",
-                    def: "image",
-                    target: "http://example.com/test.gif",
-                    title: "title!"
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "image",
-                        alt: "image",
-                        target: "http://example.com/test.gif",
-                        title: "title!"
-                    }]
-                },
-            ]);
-
-            var parsed3 = implicitParse(
-                "[image]: http://example.com/test.gif (*title text*)\n\n" +
-                "![image][]\n\n"
-            );
-            validateParse(parsed3, [
-                {
-                    type: "def",
-                    def: "image",
-                    target: "http://example.com/test.gif",
-                    title: "*title text*"
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "image",
-                        alt: "image",
-                        target: "http://example.com/test.gif",
-                        title: "*title text*"
-                    }]
-                },
-            ]);
-        });
-
-        it("should compare defs case- and whitespace-insensitively", function() {
-            var parsed = implicitParse(
-                "[Google][HiIiI]\n\n" +
-                "[HIiii]: http://www.google.com\n\n"
-            );
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "Google"
-                        }],
-                        target: "http://www.google.com",
-                        title: undefined
-                    }]
-                },
-                {
-                    type: "def",
-                    def: "hiiii",
-                    target: "http://www.google.com",
-                    title: undefined
-                },
-            ]);
-
-            var parsed2 = implicitParse(
-                "[Google][]\n\n" +
-                "[google]: http://www.google.com\n\n"
-            );
-            validateParse(parsed2, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "Google"
-                        }],
-                        target: "http://www.google.com",
-                        title: undefined
-                    }]
-                },
-                {
-                    type: "def",
-                    def: "google",
-                    target: "http://www.google.com",
-                    title: undefined
-                },
-            ]);
-
-            var parsed3 = implicitParse(
-                "[Google][ h    i ]\n\n" +
-                "[  h i   ]: http://www.google.com\n\n"
-            );
-            validateParse(parsed3, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "link",
-                        content: [{
-                            type: "text",
-                            content: "Google"
-                        }],
-                        target: "http://www.google.com",
-                        title: undefined
-                    }]
-                },
-                {
-                    type: "def",
-                    def: " h i ",
-                    target: "http://www.google.com",
-                    title: undefined
-                },
-            ]);
-        });
-
-        it("should not allow defs to break out of a paragraph", function() {
-            var parsed = implicitParse("hi [1]: there\n\n");
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [
-                    {content: "hi ", type: "text"},
-                    {content: "[1", type: "text"},
-                    {content: "]", type: "text"},
-                    {content: ": there", type: "text"},
-                ]
-            }]);
-        });
-
-        it("should allow a group of defs next to each other", function() {
-            var parsed = implicitParse(
-                "[a]: # (title)\n" +
-                "[b]: http://www.google.com\n" +
-                "[//]: <> (hi)\n" +
-                "[label]: # (there)\n" +
-                "[#]: #\n" +
-                "\n"
-            );
-            validateParse(parsed, [
-                {
-                    type: "def",
-                    def: "a",
-                    target: "#",
-                    title: "title"
-                },
-                {
-                    type: "def",
-                    def: "b",
-                    target: "http://www.google.com",
-                    title: undefined
-                },
-                {
-                    type: "def",
-                    def: "//",
-                    target: "",
-                    title: "hi"
-                },
-                {
-                    type: "def",
-                    def: "label",
-                    target: "#",
-                    title: "there"
-                },
-                {
-                    type: "def",
-                    def: "#",
-                    target: "#",
-                    title: undefined
-                },
-            ]);
-        });
-
-        it("should parse a single top-level paragraph", function() {
-            var parsed = blockParse("hi\n\n");
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [{
-                    type: "text",
-                    content: "hi"
-                }]
-            }]);
-        });
-
-        it("should parse multiple top-level paragraphs", function() {
-            var parsed = blockParse("hi\n\nbye\n\nthere\n\n");
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "hi"
-                    }]
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "bye"
-                    }]
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "there"
-                    }]
-                },
-            ]);
-        });
-
-        it("should not parse single newlines as paragraphs", function() {
-            var parsed = inlineParse("hi\nbye\nthere\n");
-            validateParse(parsed, [{
-                type: "text",
-                content: "hi\nbye\nthere\n"
-            }]);
-        });
-
-        it("should not parse a single newline as a new paragraph", function() {
-            var parsed = blockParse("hi\nbye\nthere\n\n");
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [{
-                    type: "text",
-                    content: "hi\nbye\nthere"
-                }]
-            }]);
-        });
-
-        it("should allow whitespace-only lines to end paragraphs", function() {
-            var parsed = blockParse("hi\n \n");
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [{
-                    type: "text",
-                    content: "hi"
-                }]
-            }]);
-
-            var parsed2 = blockParse("hi\n  \n");
-            validateParse(parsed2, [{
-                type: "paragraph",
-                content: [{
-                    type: "text",
-                    content: "hi"
-                }]
-            }]);
-
-            var parsed3 = blockParse("hi\n\n  \n  \n");
-            validateParse(parsed3, [{
-                type: "paragraph",
-                content: [{
-                    type: "text",
-                    content: "hi"
-                }]
-            }]);
-
-            var parsed4 = blockParse("hi\n  \n\n   \nbye\n\n");
-            validateParse(parsed4, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "hi"
-                    }]
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "bye"
-                    }]
-                },
-            ]);
-        });
-
-        it("should parse a single heading", function() {
-            var parsed = blockParse("### heading3\n\n");
-            validateParse(parsed, [{
-                type: "heading",
-                level: 3,
-                content: [{
-                    type: "text",
-                    content: "heading3"
-                }]
-            }]);
-        });
-
-        it("should parse a single lheading", function() {
-            var parsed = blockParse("heading2\n-----\n\n");
-            validateParse(parsed, [{
-                type: "heading",
-                level: 2,
-                content: [{
-                    type: "text",
-                    content: "heading2"
-                }]
-            }]);
-        });
-
-        it("should not parse a single lheading with two -- or ==", function() {
-            var parsed = blockParse("heading1\n==\n\n");
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [
-                    {type: "text", content: "heading1\n"},
-                    {type: "text", content: "="},
-                    {type: "text", content: "="},
-                ]
-            }]);
-
-            var parsed2 = blockParse("heading2\n--\n\n");
-            validateParse(parsed2, [{
-                type: "paragraph",
-                content: [
-                    {type: "text", content: "heading2\n"},
-                    {type: "text", content: "-"},
-                    {type: "text", content: "-"},
-                ]
-            }]);
-        });
-
-        it("should not parse 7 #s as an h7", function() {
-            var parsed = blockParse("#######heading7\n\n");
-            validateParse(parsed, [{
-                type: "heading",
-                level: 6,
-                content: [{
-                    type: "text",
-                    content: "#heading7"
-                }]
-            }]);
-        });
-
-        it("should parse a heading between paragraphs", function() {
-            var parsed = blockParse(
-                "para 1\n\n" +
-                "#heading\n\n\n" +
-                "para 2\n\n"
-            );
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "para 1"
-                    }]
-                },
-                {
-                    type: "heading",
-                    level: 1,
-                    content: [{
-                        type: "text",
-                        content: "heading"
-                    }]
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "para 2"
-                    }]
-                },
-            ]);
-        });
-
-        it("should not allow headings mid-paragraph", function() {
-            var parsed = blockParse(
-                "paragraph # text\n" +
-                "more paragraph\n\n"
-            );
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [
-                    {content: "paragraph ", type: "text"},
-                    {content: "# text\nmore paragraph", type: "text"},
-                ]
-            }]);
-
-            var parsed2 = blockParse(
-                "paragraph\n" +
-                "text\n" +
-                "----\n" +
-                "more paragraph\n\n"
-            );
-            validateParse(parsed2, [{
-                type: "paragraph",
-                content: [
-                    {content: "paragraph\ntext\n", type: "text"},
-                    {content: "-", type: "text"},
-                    {content: "-", type: "text"},
-                    {content: "-", type: "text"},
-                    {content: "-\nmore paragraph", type: "text"},
-                ]
-            }]);
-        });
-
-        it("should parse a single top-level blockquote", function() {
-            var parsed = blockParse("> blockquote\n\n");
-            validateParse(parsed, [{
-                type: "blockQuote",
-                content: [{
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "blockquote"
-                    }],
-                }]
-            }]);
-        });
-
-        it("should parse multiple blockquotes and paragraphs", function() {
-            var parsed = blockParse(
-                "para 1\n\n" +
-                "> blockquote 1\n" +
-                ">\n" +
-                ">blockquote 2\n\n" +
-                "para 2\n\n"
-            );
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "para 1"
-                    }],
-                },
-                {
-                    type: "blockQuote",
-                    content: [
-                        {
-                            type: "paragraph",
-                            content: [{
-                                type: "text",
-                                content: "blockquote 1"
-                            }],
-                        },
-                        {
-                            type: "paragraph",
-                            content: [{
-                                type: "text",
-                                content: "blockquote 2"
-                            }],
-                        }
-                    ]
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "para 2"
-                    }],
-                },
-            ]);
-        });
-
-        it("should not let a > escape a paragraph as a blockquote", function() {
-            var parsed = blockParse(
-                "para 1 > not a quote\n\n"
-            );
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [
-                    {content: "para 1 ", type: "text"},
-                    {content: "> not a quote", type: "text"},
-                ]
-            }]);
-        });
-
-        it("should parse a single top-level code block", function() {
-            var parsed = blockParse("    if (true) { code(); }\n\n");
-            validateParse(parsed, [{
-                type: "codeBlock",
-                lang: undefined,
-                content: "if (true) { code(); }"
-            }]);
-        });
-
-        it("should parse a code block with trailing spaces", function() {
-            var parsed = blockParse("    if (true) { code(); }\n    \n\n");
-            validateParse(parsed, [{
-                type: "codeBlock",
-                lang: undefined,
-                content: "if (true) { code(); }"
-            }]);
-        });
-
-        it("should parse fence blocks", function() {
-            var parsed = blockParse("```\ncode\n```\n\n");
-            validateParse(parsed, [{
-                type: "codeBlock",
-                lang: undefined,
-                content: "code"
-            }]);
-
-            var parsed2 = blockParse(
-                "```aletheia\n" +
-                "if true [code()]\n" +
-                "```\n\n"
-            );
-            validateParse(parsed2, [{
-                type: "codeBlock",
-                lang: "aletheia",
-                content: "if true [code()]"
-            }]);
-        });
-
-        it("should allow indentation inside code blocks", function() {
-            var parsed = blockParse(
-                "```\n" +
-                "if (true === false) {\n" +
+const assertParsesToHtml = function (source, html) {
+  const actualHtml = htmlFromMarkdown(source);
+  assert.strictEqual(actualHtml, html);
+};
+
+describe('simple markdown', () => {
+  describe('parser', () => {
+    it('should parse a plain string', () => {
+      const parsed = inlineParse('hi there');
+      validateParse(parsed, [{
+        type: 'text',
+        content: 'hi there',
+      }]);
+    });
+
+    it('should parse bold', () => {
+      const parsed = inlineParse('**hi**');
+      validateParse(parsed, [{
+        type: 'strong',
+        content: [{
+          type: 'text',
+          content: 'hi',
+        }],
+      }]);
+    });
+
+    it('should parse italics', () => {
+      const parsed = inlineParse('*hi*');
+      validateParse(parsed, [{
+        type: 'em',
+        content: [{
+          type: 'text',
+          content: 'hi',
+        }],
+      }]);
+
+      const parsed2 = inlineParse('*test i*');
+      validateParse(parsed2, [{
+        type: 'em',
+        content: [{
+          type: 'text',
+          content: 'test i',
+        }],
+      }]);
+    });
+
+    it('should not parse ** as empty italics', () => {
+      const parsed = inlineParse('**');
+      validateParse(parsed, [
+        { type: 'text', content: '*' },
+        { type: 'text', content: '*' },
+      ]);
+    });
+
+    it('should parse a single italic character', () => {
+      const parsed = inlineParse('*h*');
+      validateParse(parsed, [{
+        type: 'em',
+        content: [{
+          type: 'text',
+          content: 'h',
+        }],
+      }]);
+    });
+
+    it('should parse strikethrough', () => {
+      const parsed = inlineParse('~~hi~~');
+      validateParse(parsed, [{
+        type: 'del',
+        content: [{
+          type: 'text',
+          content: 'hi',
+        }],
+      }]);
+
+      // not super important that it parses this like this, but
+      // it should be a valid something...
+      const parsed2 = inlineParse('~~~~~');
+      validateParse(parsed2, [{
+        type: 'del',
+        content: [{
+          type: 'text',
+          content: '~',
+        }],
+      }]);
+    });
+
+    it('should parse underlines', () => {
+      const parsed = inlineParse('__hi__');
+      validateParse(parsed, [{
+        type: 'u',
+        content: [{
+          type: 'text',
+          content: 'hi',
+        }],
+      }]);
+    });
+
+    it('should parse nested bold/italics', () => {
+      const parsed = inlineParse('***hi***');
+      validateParse(parsed, [{
+        type: 'em',
+        content: [{
+          type: 'strong',
+          content: [{
+            type: 'text',
+            content: 'hi',
+          }],
+        }],
+      }]);
+    });
+
+    it('should parse nested bold/italics/underline', () => {
+      const parsed1 = inlineParse('***__hi__***');
+      validateParse(parsed1, [{
+        type: 'em',
+        content: [{
+          type: 'strong',
+          content: [{
+            type: 'u',
+            content: [{
+              type: 'text',
+              content: 'hi',
+            }],
+          }],
+        }],
+      }]);
+
+      const parsed2 = inlineParse('*__**hi**__*');
+      validateParse(parsed2, [{
+        type: 'em',
+        content: [{
+          type: 'u',
+          content: [{
+            type: 'strong',
+            content: [{
+              type: 'text',
+              content: 'hi',
+            }],
+          }],
+        }],
+      }]);
+
+      const parsed3 = inlineParse('***bolditalics***');
+      validateParse(parsed3, [{
+        type: 'em',
+        content: [{
+          type: 'strong',
+          content: [{
+            type: 'text',
+            content: 'bolditalics',
+          }],
+        }],
+      }]);
+
+      const parsed4 = inlineParse('**bold *italics***');
+      validateParse(parsed4, [{
+        type: 'strong',
+        content: [{
+          type: 'text',
+          content: 'bold ',
+        }, {
+          type: 'em',
+          content: [{
+            type: 'text',
+            content: 'italics',
+          }],
+        }],
+      }]);
+    });
+
+    it('should allow escaped underscores in underscore italics', () => {
+      const parsed1 = inlineParse('_ABC\\_DEF_');
+      validateParse(parsed1, [{
+        type: 'em',
+        content: [{
+          type: 'text',
+          content: 'ABC',
+        }, {
+          type: 'text',
+          content: '_',
+        }, {
+          type: 'text',
+          content: 'DEF',
+        }],
+      }]);
+
+      const parsed2 = inlineParse('_**ABC\\_DEF**_');
+      validateParse(parsed2, [{
+        type: 'em',
+        content: [{
+          type: 'strong',
+          content: [{
+            type: 'text',
+            content: 'ABC',
+          }, {
+            type: 'text',
+            content: '_',
+          }, {
+            type: 'text',
+            content: 'DEF',
+          }],
+        }],
+      }]);
+
+      const parsed3 = inlineParse('_**ABC\\$DEF**_');
+      validateParse(parsed3, [{
+        type: 'em',
+        content: [{
+          type: 'strong',
+          content: [{
+            type: 'text',
+            content: 'ABC',
+          }, {
+            type: 'text',
+            content: '$',
+          }, {
+            type: 'text',
+            content: 'DEF',
+          }],
+        }],
+      }]);
+
+      validateParse(inlineParse('_\\\\_'), [{
+        type: 'em',
+        content: [{
+          type: 'text',
+          content: '\\',
+        }],
+      }]);
+    });
+
+    // TODO(aria): Make this pass:
+    it('should parse complex combined bold/italics', () => {
+      const parsed = inlineParse('***bold** italics*');
+      validateParse(parsed, [{
+        type: 'em',
+        content: [{
+          type: 'strong',
+          content: [{
+            type: 'text',
+            content: 'bold',
+          }],
+        }, {
+          type: 'text',
+          content: ' italics',
+        }],
+      }]);
+
+      const parsed2 = inlineParse('*hi **there you***');
+      validateParse(parsed2, [{
+        type: 'em',
+        content: [{
+          type: 'text',
+          content: 'hi ',
+        }, {
+          type: 'strong',
+          content: [{
+            type: 'text',
+            content: 'there you',
+          }],
+        }],
+      }]);
+    });
+
+    it('should parse multiple bold/italics/underlines', () => {
+      const parsed = inlineParse(
+        '*some* of this __sentence__ is **bold**',
+      );
+      validateParse(parsed, [
+        {
+          type: 'em',
+          content: [{
+            type: 'text',
+            content: 'some',
+          }],
+        },
+        {
+          type: 'text',
+          content: ' of this ',
+        },
+        {
+          type: 'u',
+          content: [{
+            type: 'text',
+            content: 'sentence',
+          }],
+        },
+        {
+          type: 'text',
+          content: ' is ',
+        },
+        {
+          type: 'strong',
+          content: [{
+            type: 'text',
+            content: 'bold',
+          }],
+        },
+      ]);
+
+      validateParse(inlineParse('_italics __bold___'), [{
+        type: 'em',
+        content: [{
+          type: 'text',
+          content: 'italics ',
+        }, {
+          type: 'u',
+          content: [{
+            type: 'text',
+            content: 'bold',
+          }],
+        }],
+      }]);
+    });
+
+    it('should parse inline code', () => {
+      const parsed = inlineParse('`hi`');
+      validateParse(parsed, [{
+        type: 'inlineCode',
+        content: 'hi',
+      }]);
+    });
+
+    it('should parse * and _ inside `` as code', () => {
+      const parsed = inlineParse(
+        '`const int * const * const p; // _hi_`',
+      );
+      validateParse(parsed, [{
+        type: 'inlineCode',
+        content: 'const int * const * const p; // _hi_',
+      }]);
+    });
+
+    it('should allow you to escape special characters with \\', () => {
+      const parsed = inlineParse(
+        '\\`hi\\` \\*bye\\* \\~\\|\\<\\[\\{',
+      );
+      validateParse(parsed, [
+        { type: 'text', content: '`' },
+        { type: 'text', content: 'hi' },
+        { type: 'text', content: '`' },
+        { type: 'text', content: ' ' },
+        { type: 'text', content: '*' },
+        { type: 'text', content: 'bye' },
+        { type: 'text', content: '*' },
+        { type: 'text', content: ' ' },
+        { type: 'text', content: '~' },
+        { type: 'text', content: '|' },
+        { type: 'text', content: '<' },
+        { type: 'text', content: '[' },
+        { type: 'text', content: '{' },
+      ]);
+
+      const parsed2 = inlineParse(
+        'hi\\^caret',
+      );
+      validateParse(parsed2, [
+        { type: 'text', content: 'hi' },
+        { type: 'text', content: '^' },
+        { type: 'text', content: 'caret' },
+      ]);
+    });
+
+    it('should parse basic []() links as links', () => {
+      const parsed = inlineParse('[hi](http://www.google.com)');
+      validateParse(parsed, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'hi',
+        }],
+        target: 'http://www.google.com',
+        title: undefined,
+      }]);
+
+      const parsed2 = inlineParse('[secure](https://www.google.com)');
+      validateParse(parsed2, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'secure',
+        }],
+        target: 'https://www.google.com',
+        title: undefined,
+      }]);
+
+      const parsed3 = inlineParse(
+        '[local](http://localhost:9000/test.html)',
+      );
+      validateParse(parsed3, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'local',
+        }],
+        target: 'http://localhost:9000/test.html',
+        title: undefined,
+      }]);
+
+      const parsed4 = inlineParse(
+        '[params](http://localhost:9000/test.html' +
+                '?content=%7B%7D&format=pretty)',
+      );
+      validateParse(parsed4, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'params',
+        }],
+        target: 'http://localhost:9000/test.html' +
+                        '?content=%7B%7D&format=pretty',
+        title: undefined,
+      }]);
+
+      const parsed5 = inlineParse(
+        '[hash](http://localhost:9000/test.html#content=%7B%7D)',
+      );
+      validateParse(parsed5, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'hash',
+        }],
+        target: 'http://localhost:9000/test.html#content=%7B%7D',
+        title: undefined,
+      }]);
+    });
+
+    it('should allow escaping `[` with `\\`', () => {
+      // Without the backslash, the following would be a
+      // link with the text "hi".
+      // With the backslash, it should ignore the '[hi]'
+      // portion, but will still detect that the inside
+      // of the parentheses contains a raw url, which it
+      // will turn into a url link.
+      const parsed = inlineParse('\\[hi](http://www.google.com)');
+      validateParse(parsed, [
+        { content: '[', type: 'text' },
+        { content: 'hi', type: 'text' },
+        { content: ']', type: 'text' },
+        { content: '(', type: 'text' },
+        {
+          type: 'link',
+          content: [{
+            type: 'text',
+            content: 'http://www.google.com',
+          }],
+          target: 'http://www.google.com',
+          title: undefined,
+        },
+        { content: ')', type: 'text' },
+      ]);
+    });
+
+    it('should allow escaping of link urls with `\\`', () => {
+      const parsed = inlineParse('[test link](https://test.link/\\(test\\))');
+      validateParse(parsed, [
+        {
+          type: 'link',
+          content: [{
+            type: 'text',
+            content: 'test link',
+          }],
+          target: 'https://test.link/(test)',
+          title: undefined,
+        },
+      ]);
+    });
+
+    it('should parse basic <autolinks>', () => {
+      const parsed = inlineParse('<http://www.google.com>');
+      validateParse(parsed, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'http://www.google.com',
+        }],
+        target: 'http://www.google.com',
+      }]);
+
+      const parsed2 = inlineParse('<https://www.google.com>');
+      validateParse(parsed2, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'https://www.google.com',
+        }],
+        target: 'https://www.google.com',
+      }]);
+
+      const parsed3 = inlineParse('<http://localhost:9000/test.html>');
+      validateParse(parsed3, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'http://localhost:9000/test.html',
+        }],
+        target: 'http://localhost:9000/test.html',
+      }]);
+
+      const parsed4 = inlineParse(
+        '<http://localhost:9000/test.html' +
+                '?content=%7B%7D&format=pretty>',
+      );
+      validateParse(parsed4, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'http://localhost:9000/test.html' +
+                            '?content=%7B%7D&format=pretty',
+        }],
+        target: 'http://localhost:9000/test.html' +
+                        '?content=%7B%7D&format=pretty',
+      }]);
+
+      const parsed5 = inlineParse(
+        '<http://localhost:9000/test.html#content=%7B%7D>',
+      );
+      validateParse(parsed5, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'http://localhost:9000/test.html#content=%7B%7D',
+        }],
+        target: 'http://localhost:9000/test.html#content=%7B%7D',
+      }]);
+    });
+
+    it('should parse basic <mailto@autolinks>', () => {
+      const parsed = inlineParse('<test@example.com>');
+      validateParse(parsed, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'test@example.com',
+        }],
+        target: 'mailto:test@example.com',
+      }]);
+
+      const parsed2 = inlineParse('<test+ext@example.com>');
+      validateParse(parsed2, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'test+ext@example.com',
+        }],
+        target: 'mailto:test+ext@example.com',
+      }]);
+
+      const parsed3 = inlineParse('<mailto:test@example.com>');
+      validateParse(parsed3, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'mailto:test@example.com',
+        }],
+        target: 'mailto:test@example.com',
+      }]);
+
+      const parsed4 = inlineParse('<MAILTO:TEST@EXAMPLE.COM>');
+      validateParse(parsed4, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'MAILTO:TEST@EXAMPLE.COM',
+        }],
+        target: 'MAILTO:TEST@EXAMPLE.COM',
+      }]);
+    });
+
+    it('should parse basic freeform urls', () => {
+      const parsed = inlineParse('http://www.google.com');
+      validateParse(parsed, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'http://www.google.com',
+        }],
+        target: 'http://www.google.com',
+        title: undefined,
+      }]);
+
+      const parsed2 = inlineParse('https://www.google.com');
+      validateParse(parsed2, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'https://www.google.com',
+        }],
+        target: 'https://www.google.com',
+        title: undefined,
+      }]);
+
+      const parsed3 = inlineParse('http://example.com/test.html');
+      validateParse(parsed3, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'http://example.com/test.html',
+        }],
+        target: 'http://example.com/test.html',
+        title: undefined,
+      }]);
+
+      const parsed4 = inlineParse(
+        'http://example.com/test.html' +
+                '?content=%7B%7D&format=pretty',
+      );
+      validateParse(parsed4, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'http://example.com/test.html' +
+                            '?content=%7B%7D&format=pretty',
+        }],
+        target: 'http://example.com/test.html' +
+                        '?content=%7B%7D&format=pretty',
+        title: undefined,
+      }]);
+
+      const parsed5 = inlineParse(
+        'http://example.com/test.html#content=%7B%7D',
+      );
+      validateParse(parsed5, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'http://example.com/test.html#content=%7B%7D',
+        }],
+        target: 'http://example.com/test.html#content=%7B%7D',
+        title: undefined,
+      }]);
+    });
+
+    it('should not split words before colons', () => {
+      const parsed = inlineParse('Here is a rule: try this');
+      validateParse(parsed, [{
+        type: 'text',
+        content: 'Here is a rule',
+      }, {
+        type: 'text',
+        content: ': try this',
+      }]);
+    });
+
+    it('should parse freeform urls inside paragraphs', () => {
+      const parsed = blockParse(
+        'hi this is a link http://www.google.com\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            content: 'hi this is a link ',
+          },
+          {
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'http://www.google.com',
+            }],
+            target: 'http://www.google.com',
+            title: undefined,
+          },
+        ],
+      }]);
+    });
+
+    it('should parse [reflinks][and their targets]', () => {
+      const parsed = implicitParse(
+        '[Google][1]\n\n' +
+                '[1]: http://www.google.com\n\n',
+      );
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'Google',
+            }],
+            target: 'http://www.google.com',
+            title: undefined,
+          }],
+        },
+        {
+          type: 'def',
+          def: '1',
+          target: 'http://www.google.com',
+          title: undefined,
+        },
+      ]);
+
+      const parsed2 = blockParse(
+        '[1]: http://www.google.com\n\n' +
+                '[Google][1]\n\n',
+      );
+      validateParse(parsed2, [
+        {
+          type: 'def',
+          def: '1',
+          target: 'http://www.google.com',
+          title: undefined,
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'Google',
+            }],
+            target: 'http://www.google.com',
+            title: undefined,
+          }],
+        },
+      ]);
+    });
+
+    it('should parse inline link titles', () => {
+      const parsed = inlineParse(
+        '[Google](http://www.google.com "This is google!")',
+      );
+      validateParse(parsed, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'Google',
+        }],
+        target: 'http://www.google.com',
+        title: 'This is google!',
+      }]);
+
+      const parsed2 = inlineParse(
+        '[Google](http://www.google.com "still Google")',
+      );
+      validateParse(parsed2, [{
+        type: 'link',
+        content: [{
+          type: 'text',
+          content: 'Google',
+        }],
+        target: 'http://www.google.com',
+        title: 'still Google',
+      }]);
+    });
+
+    it('should parse reflink titles', () => {
+      const parsed = implicitParse(
+        '[Google][1]\n\n' +
+                '[1]: http://www.google.com (This is google!)\n\n',
+      );
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'Google',
+            }],
+            target: 'http://www.google.com',
+            title: 'This is google!',
+          }],
+        },
+        {
+          type: 'def',
+          def: '1',
+          target: 'http://www.google.com',
+          title: 'This is google!',
+        },
+      ]);
+
+      const parsed2 = implicitParse(
+        '[1]: http://www.google.com "still Google"\n\n' +
+                '[Google][1]\n\n',
+      );
+      validateParse(parsed2, [
+        {
+          type: 'def',
+          def: '1',
+          target: 'http://www.google.com',
+          title: 'still Google',
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'Google',
+            }],
+            target: 'http://www.google.com',
+            title: 'still Google',
+          }],
+        },
+      ]);
+
+      // test some edge cases, notably:
+      // target of ""; title using parens; def with a `-` in it
+      const parsed3 = implicitParse(
+        '[Nowhere][nowhere-target]\n\n' +
+                '[nowhere-target]: <> (nowhere)\n\n',
+      );
+      validateParse(parsed3, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'Nowhere',
+            }],
+            target: '',
+            title: 'nowhere',
+          }],
+        },
+        {
+          type: 'def',
+          def: 'nowhere-target',
+          target: '',
+          title: 'nowhere',
+        },
+      ]);
+    });
+
+    it('should parse [reflinks][] with implicit targets', () => {
+      const parsed = implicitParse(
+        '[Google][]\n\n' +
+                '[Google]: http://www.google.com\n\n',
+      );
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'Google',
+            }],
+            target: 'http://www.google.com',
+            title: undefined,
+          }],
+        },
+        {
+          type: 'def',
+          def: 'google',
+          target: 'http://www.google.com',
+          title: undefined,
+        },
+      ]);
+
+      const parsed2 = implicitParse(
+        '[Google]: http://www.google.com\n\n' +
+                '[Google][]\n\n',
+      );
+      validateParse(parsed2, [
+        {
+          type: 'def',
+          def: 'google',
+          target: 'http://www.google.com',
+          title: undefined,
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'Google',
+            }],
+            target: 'http://www.google.com',
+            title: undefined,
+          }],
+        },
+      ]);
+    });
+
+    it('should handle multiple [reflinks][to the same target]', () => {
+      const parsed = implicitParse(
+        '[Google][1] [Yahoo][1]\n\n' +
+                '[1]: http://www.google.com\n\n',
+      );
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'link',
+              content: [{
+                type: 'text',
+                content: 'Google',
+              }],
+              target: 'http://www.google.com',
+              title: undefined,
+            },
+            {
+              type: 'text',
+              content: ' ',
+            },
+            {
+              type: 'link',
+              content: [{
+                type: 'text',
+                content: 'Yahoo',
+              }],
+              target: 'http://www.google.com',
+              title: undefined,
+            },
+          ],
+        },
+        {
+          type: 'def',
+          def: '1',
+          target: 'http://www.google.com',
+          title: undefined,
+        },
+      ]);
+
+      // This is sort of silly, but the last def overrides all previous
+      // links. This is just a test that things are continuing to work
+      // as we currently expect them to, but I seriously hope no one
+      // writes markdown like this!
+      const parsed2 = implicitParse(
+        '[test][1]\n\n' +
+                '[1]: http://google.com\n\n' +
+                '[test2][1]\n\n' +
+                '[1]: http://khanacademy.org\n\n',
+      );
+      validateParse(parsed2, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'test',
+            }],
+            target: 'http://khanacademy.org',
+            title: undefined,
+          }],
+        },
+        {
+          type: 'def',
+          def: '1',
+          target: 'http://google.com',
+          title: undefined,
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'test2',
+            }],
+            target: 'http://khanacademy.org',
+            title: undefined,
+          }],
+        },
+        {
+          type: 'def',
+          def: '1',
+          target: 'http://khanacademy.org',
+          title: undefined,
+        },
+      ]);
+    });
+
+    it('should parse basic images', () => {
+      const parsed = inlineParse('![](http://example.com/test.png)');
+      validateParse(parsed, [{
+        type: 'image',
+        alt: '',
+        target: 'http://example.com/test.png',
+        title: undefined,
+      }]);
+
+      const parsed2 = inlineParse('![aaalt](http://example.com/image)');
+      validateParse(parsed2, [{
+        type: 'image',
+        alt: 'aaalt',
+        target: 'http://example.com/image',
+        title: undefined,
+      }]);
+
+      const parsed3 = inlineParse(
+        '![](http://localhost:9000/test.html "local")',
+      );
+      validateParse(parsed3, [{
+        type: 'image',
+        alt: '',
+        target: 'http://localhost:9000/test.html',
+        title: 'local',
+      }]);
+
+      const parsed4 = inlineParse(
+        '![p](http://localhost:9000/test' +
+                '?content=%7B%7D&format=pretty "params")',
+      );
+      validateParse(parsed4, [{
+        type: 'image',
+        alt: 'p',
+        target: 'http://localhost:9000/test' +
+                        '?content=%7B%7D&format=pretty',
+        title: 'params',
+      }]);
+
+      const parsed5 = inlineParse(
+        '![hash](http://localhost:9000/test.png#content=%7B%7D)',
+      );
+      validateParse(parsed5, [{
+        type: 'image',
+        alt: 'hash',
+        target: 'http://localhost:9000/test.png#content=%7B%7D',
+        title: undefined,
+      }]);
+    });
+
+    it('should parse [refimages][and their targets]', () => {
+      const parsed = implicitParse(
+        '![aaalt][1]\n\n' +
+                '[1]: http://example.com/test.gif\n\n',
+      );
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'image',
+            alt: 'aaalt',
+            target: 'http://example.com/test.gif',
+            title: undefined,
+          }],
+        },
+        {
+          type: 'def',
+          def: '1',
+          target: 'http://example.com/test.gif',
+          title: undefined,
+        },
+      ]);
+
+      const parsed2 = implicitParse(
+        '[image]: http://example.com/test.gif\n\n' +
+                '![image][]\n\n',
+      );
+      validateParse(parsed2, [
+        {
+          type: 'def',
+          def: 'image',
+          target: 'http://example.com/test.gif',
+          title: undefined,
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'image',
+            alt: 'image',
+            target: 'http://example.com/test.gif',
+            title: undefined,
+          }],
+        },
+      ]);
+
+      var parsed3 = implicitParse(
+        '[image]: http://example.com/test.gif "title!"\n\n' +
+                '![image][]\n\n',
+      );
+      validateParse(parsed3, [
+        {
+          type: 'def',
+          def: 'image',
+          target: 'http://example.com/test.gif',
+          title: 'title!',
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'image',
+            alt: 'image',
+            target: 'http://example.com/test.gif',
+            title: 'title!',
+          }],
+        },
+      ]);
+
+      var parsed3 = implicitParse(
+        '[image]: http://example.com/test.gif (*title text*)\n\n' +
+                '![image][]\n\n',
+      );
+      validateParse(parsed3, [
+        {
+          type: 'def',
+          def: 'image',
+          target: 'http://example.com/test.gif',
+          title: '*title text*',
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'image',
+            alt: 'image',
+            target: 'http://example.com/test.gif',
+            title: '*title text*',
+          }],
+        },
+      ]);
+    });
+
+    it('should compare defs case- and whitespace-insensitively', () => {
+      const parsed = implicitParse(
+        '[Google][HiIiI]\n\n' +
+                '[HIiii]: http://www.google.com\n\n',
+      );
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'Google',
+            }],
+            target: 'http://www.google.com',
+            title: undefined,
+          }],
+        },
+        {
+          type: 'def',
+          def: 'hiiii',
+          target: 'http://www.google.com',
+          title: undefined,
+        },
+      ]);
+
+      const parsed2 = implicitParse(
+        '[Google][]\n\n' +
+                '[google]: http://www.google.com\n\n',
+      );
+      validateParse(parsed2, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'Google',
+            }],
+            target: 'http://www.google.com',
+            title: undefined,
+          }],
+        },
+        {
+          type: 'def',
+          def: 'google',
+          target: 'http://www.google.com',
+          title: undefined,
+        },
+      ]);
+
+      const parsed3 = implicitParse(
+        '[Google][ h    i ]\n\n' +
+                '[  h i   ]: http://www.google.com\n\n',
+      );
+      validateParse(parsed3, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'link',
+            content: [{
+              type: 'text',
+              content: 'Google',
+            }],
+            target: 'http://www.google.com',
+            title: undefined,
+          }],
+        },
+        {
+          type: 'def',
+          def: ' h i ',
+          target: 'http://www.google.com',
+          title: undefined,
+        },
+      ]);
+    });
+
+    it('should not allow defs to break out of a paragraph', () => {
+      const parsed = implicitParse('hi [1]: there\n\n');
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [
+          { content: 'hi ', type: 'text' },
+          { content: '[1', type: 'text' },
+          { content: ']', type: 'text' },
+          { content: ': there', type: 'text' },
+        ],
+      }]);
+    });
+
+    it('should allow a group of defs next to each other', () => {
+      const parsed = implicitParse(
+        '[a]: # (title)\n' +
+                '[b]: http://www.google.com\n' +
+                '[//]: <> (hi)\n' +
+                '[label]: # (there)\n' +
+                '[#]: #\n' +
+                '\n',
+      );
+      validateParse(parsed, [
+        {
+          type: 'def',
+          def: 'a',
+          target: '#',
+          title: 'title',
+        },
+        {
+          type: 'def',
+          def: 'b',
+          target: 'http://www.google.com',
+          title: undefined,
+        },
+        {
+          type: 'def',
+          def: '//',
+          target: '',
+          title: 'hi',
+        },
+        {
+          type: 'def',
+          def: 'label',
+          target: '#',
+          title: 'there',
+        },
+        {
+          type: 'def',
+          def: '#',
+          target: '#',
+          title: undefined,
+        },
+      ]);
+    });
+
+    it('should parse a single top-level paragraph', () => {
+      const parsed = blockParse('hi\n\n');
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [{
+          type: 'text',
+          content: 'hi',
+        }],
+      }]);
+    });
+
+    it('should parse multiple top-level paragraphs', () => {
+      const parsed = blockParse('hi\n\nbye\n\nthere\n\n');
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'hi',
+          }],
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'bye',
+          }],
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'there',
+          }],
+        },
+      ]);
+    });
+
+    it('should not parse single newlines as paragraphs', () => {
+      const parsed = inlineParse('hi\nbye\nthere\n');
+      validateParse(parsed, [{
+        type: 'text',
+        content: 'hi\nbye\nthere\n',
+      }]);
+    });
+
+    it('should not parse a single newline as a new paragraph', () => {
+      const parsed = blockParse('hi\nbye\nthere\n\n');
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [{
+          type: 'text',
+          content: 'hi\nbye\nthere',
+        }],
+      }]);
+    });
+
+    it('should allow whitespace-only lines to end paragraphs', () => {
+      const parsed = blockParse('hi\n \n');
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [{
+          type: 'text',
+          content: 'hi',
+        }],
+      }]);
+
+      const parsed2 = blockParse('hi\n  \n');
+      validateParse(parsed2, [{
+        type: 'paragraph',
+        content: [{
+          type: 'text',
+          content: 'hi',
+        }],
+      }]);
+
+      const parsed3 = blockParse('hi\n\n  \n  \n');
+      validateParse(parsed3, [{
+        type: 'paragraph',
+        content: [{
+          type: 'text',
+          content: 'hi',
+        }],
+      }]);
+
+      const parsed4 = blockParse('hi\n  \n\n   \nbye\n\n');
+      validateParse(parsed4, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'hi',
+          }],
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'bye',
+          }],
+        },
+      ]);
+    });
+
+    it('should parse a single heading', () => {
+      const parsed = blockParse('### heading3\n\n');
+      validateParse(parsed, [{
+        type: 'heading',
+        level: 3,
+        content: [{
+          type: 'text',
+          content: 'heading3',
+        }],
+      }]);
+    });
+
+    it('should parse a single lheading', () => {
+      const parsed = blockParse('heading2\n-----\n\n');
+      validateParse(parsed, [{
+        type: 'heading',
+        level: 2,
+        content: [{
+          type: 'text',
+          content: 'heading2',
+        }],
+      }]);
+    });
+
+    it('should not parse a single lheading with two -- or ==', () => {
+      const parsed = blockParse('heading1\n==\n\n');
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [
+          { type: 'text', content: 'heading1\n' },
+          { type: 'text', content: '=' },
+          { type: 'text', content: '=' },
+        ],
+      }]);
+
+      const parsed2 = blockParse('heading2\n--\n\n');
+      validateParse(parsed2, [{
+        type: 'paragraph',
+        content: [
+          { type: 'text', content: 'heading2\n' },
+          { type: 'text', content: '-' },
+          { type: 'text', content: '-' },
+        ],
+      }]);
+    });
+
+    it('should not parse 7 #s as an h7', () => {
+      const parsed = blockParse('#######heading7\n\n');
+      validateParse(parsed, [{
+        type: 'heading',
+        level: 6,
+        content: [{
+          type: 'text',
+          content: '#heading7',
+        }],
+      }]);
+    });
+
+    it('should parse a heading between paragraphs', () => {
+      const parsed = blockParse(
+        'para 1\n\n' +
+                '#heading\n\n\n' +
+                'para 2\n\n',
+      );
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'para 1',
+          }],
+        },
+        {
+          type: 'heading',
+          level: 1,
+          content: [{
+            type: 'text',
+            content: 'heading',
+          }],
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'para 2',
+          }],
+        },
+      ]);
+    });
+
+    it('should not allow headings mid-paragraph', () => {
+      const parsed = blockParse(
+        'paragraph # text\n' +
+                'more paragraph\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [
+          { content: 'paragraph ', type: 'text' },
+          { content: '# text\nmore paragraph', type: 'text' },
+        ],
+      }]);
+
+      const parsed2 = blockParse(
+        'paragraph\n' +
+                'text\n' +
+                '----\n' +
+                'more paragraph\n\n',
+      );
+      validateParse(parsed2, [{
+        type: 'paragraph',
+        content: [
+          { content: 'paragraph\ntext\n', type: 'text' },
+          { content: '-', type: 'text' },
+          { content: '-', type: 'text' },
+          { content: '-', type: 'text' },
+          { content: '-\nmore paragraph', type: 'text' },
+        ],
+      }]);
+    });
+
+    it('should parse a single top-level blockquote', () => {
+      const parsed = blockParse('> blockquote\n\n');
+      validateParse(parsed, [{
+        type: 'blockQuote',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'blockquote',
+          }],
+        }],
+      }]);
+    });
+
+    it('should parse multiple blockquotes and paragraphs', () => {
+      const parsed = blockParse(
+        'para 1\n\n' +
+                '> blockquote 1\n' +
+                '>\n' +
+                '>blockquote 2\n\n' +
+                'para 2\n\n',
+      );
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'para 1',
+          }],
+        },
+        {
+          type: 'blockQuote',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{
+                type: 'text',
+                content: 'blockquote 1',
+              }],
+            },
+            {
+              type: 'paragraph',
+              content: [{
+                type: 'text',
+                content: 'blockquote 2',
+              }],
+            },
+          ],
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'para 2',
+          }],
+        },
+      ]);
+    });
+
+    it('should not let a > escape a paragraph as a blockquote', () => {
+      const parsed = blockParse(
+        'para 1 > not a quote\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [
+          { content: 'para 1 ', type: 'text' },
+          { content: '> not a quote', type: 'text' },
+        ],
+      }]);
+    });
+
+    it('should parse a single top-level code block', () => {
+      const parsed = blockParse('    if (true) { code(); }\n\n');
+      validateParse(parsed, [{
+        type: 'codeBlock',
+        lang: undefined,
+        content: 'if (true) { code(); }',
+      }]);
+    });
+
+    it('should parse a code block with trailing spaces', () => {
+      const parsed = blockParse('    if (true) { code(); }\n    \n\n');
+      validateParse(parsed, [{
+        type: 'codeBlock',
+        lang: undefined,
+        content: 'if (true) { code(); }',
+      }]);
+    });
+
+    it('should parse fence blocks', () => {
+      const parsed = blockParse('```\ncode\n```\n\n');
+      validateParse(parsed, [{
+        type: 'codeBlock',
+        lang: undefined,
+        content: 'code',
+      }]);
+
+      const parsed2 = blockParse(
+        '```aletheia\n' +
+                'if true [code()]\n' +
+                '```\n\n',
+      );
+      validateParse(parsed2, [{
+        type: 'codeBlock',
+        lang: 'aletheia',
+        content: 'if true [code()]',
+      }]);
+    });
+
+    it('should allow indentation inside code blocks', () => {
+      var parsed = blockParse(
+        '```\n' +
+                'if (true === false) {\n' +
                 "    throw 'world does not exist';\n" +
-                "}\n" +
-                "```\n\n"
-            );
-            validateParse(parsed, [{
-                type: "codeBlock",
-                lang: undefined,
-                content: (
-                    "if (true === false) {\n" +
+                '}\n' +
+                '```\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'codeBlock',
+        lang: undefined,
+        content: (
+          'if (true === false) {\n' +
                     "    throw 'world does not exist';\n" +
-                    "}"
-                ),
-            }]);
+                    '}'
+        ),
+      }]);
 
-            var parsed = blockParse(
-                "~~~\n" +
-                "    this should be indented\n" +
-                "~~~\n\n"
-            );
-            validateParse(parsed, [{
-                type: "codeBlock",
-                lang: undefined,
-                content: "    this should be indented",
-            }]);
-        });
-
-        it("should parse mixed paragraphs and code", function() {
-            var parsed = blockParse(
-                "this is regular text\n\n" +
-                "    this is code\n\n" +
-                "this is more regular text\n\n");
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "this is regular text"
-                    }]
-                },
-                {
-                    type: "codeBlock",
-                    lang: undefined,
-                    content: "this is code"
-                },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "this is more regular text"
-                    }]
-                },
-            ]);
-        });
-
-        it("should parse top-level horizontal rules", function() {
-            var parsed = blockParse(
-                "---\n\n" +
-                "***\n\n" +
-                "___\n\n" +
-                " - - - - \n\n" +
-                "_ _ _\n\n" +
-                "  ***  \n\n"
-            );
-            validateParse(parsed, [
-                { type: "hr" },
-                { type: "hr" },
-                { type: "hr" },
-                { type: "hr" },
-                { type: "hr" },
-                { type: "hr" },
-            ]);
-        });
-
-        it("should parse hrs between paragraphs", function() {
-            var parsed = blockParse(
-                "para 1\n\n" +
-                " * * * \n\n" +
-                "para 2\n\n");
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "para 1"
-                    }]
-                },
-                { type: "hr" },
-                {
-                    type: "paragraph",
-                    content: [{
-                        type: "text",
-                        content: "para 2"
-                    }]
-                },
-            ]);
-        });
-
-        it("should not allow hrs within a paragraph", function() {
-            var parsed = blockParse(
-                "paragraph ----\n" +
-                "more paragraph\n\n"
-            );
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [
-                    {content: "paragraph ", type: "text"},
-                    {content: "-", type: "text"},
-                    {content: "-", type: "text"},
-                    {content: "-", type: "text"},
-                    {content: "-\nmore paragraph", type: "text"},
-                ]
-            }]);
-        });
-
-        it("should parse simple unordered lists", function() {
-            var parsed = blockParse(
-                " * hi\n" +
-                " * bye\n" +
-                " * there\n\n"
-            );
-            validateParse(parsed, [{
-                ordered: false,
-                start: undefined,
-                items: [
-                    [{
-                        content: "hi",
-                        type: "text",
-                    }],
-                    [{
-                        content: "bye",
-                        type: "text",
-                    }],
-                    [{
-                        content: "there",
-                        type: "text",
-                    }],
-                ],
-                type: "list",
-            }]);
-        });
-
-        it("should parse simple ordered lists", function() {
-            var parsed = blockParse(
-                "1. first\n" +
-                "2. second\n" +
-                "3. third\n\n"
-            );
-            validateParse(parsed, [{
-                type: "list",
-                ordered: true,
-                start: 1,
-                items: [
-                    [{
-                        type: "text",
-                        content: "first",
-                    }],
-                    [{
-                        type: "text",
-                        content: "second",
-                    }],
-                    [{
-                        type: "text",
-                        content: "third",
-                    }],
-                ]
-            }]);
-        });
-
-        it("should parse simple ordered lists with silly numbers", function() {
-            var parsed = blockParse(
-                "1. first\n" +
-                "13. second\n" +
-                "9. third\n\n"
-            );
-            validateParse(parsed, [{
-                type: "list",
-                start: 1,
-                ordered: true,
-                items: [
-                    [{
-                        type: "text",
-                        content: "first",
-                    }],
-                    [{
-                        type: "text",
-                        content: "second",
-                    }],
-                    [{
-                        type: "text",
-                        content: "third",
-                    }],
-                ]
-            }]);
-
-            var parsed2 = blockParse(
-                "63. first\n" +
-                "13. second\n" +
-                "9. third\n\n"
-            );
-            validateParse(parsed2, [{
-                type: "list",
-                start: 63,
-                ordered: true,
-                items: [
-                    [{
-                        type: "text",
-                        content: "first",
-                    }],
-                    [{
-                        type: "text",
-                        content: "second",
-                    }],
-                    [{
-                        type: "text",
-                        content: "third",
-                    }],
-                ]
-            }]);
-        });
-
-        it("should parse nested lists", function() {
-            var parsed = blockParse(
-                "1. first\n" +
-                "2. second\n" +
-                "   * inner\n" +
-                "   * inner\n" +
-                "3. third\n\n"
-            );
-            validateParse(parsed, [{
-                ordered: true,
-                start: 1,
-                items: [
-                    [{
-                        content: "first",
-                        type: "text",
-                    }],
-                    [
-                        {
-                            content: "second\n",
-                            type: "text",
-                        },
-                        {
-                            ordered: false,
-                            start: undefined,
-                            items: [
-                                [{
-                                    content: "inner",
-                                    type: "text",
-                                }],
-                                [{
-                                    content: "inner",
-                                    type: "text",
-                                }]
-                            ],
-                            type: "list",
-                        }
-                    ],
-                    [{
-                        content: "third",
-                        type: "text",
-                    }],
-                ],
-                type: "list",
-            }]);
-        });
-
-        it("should parse loose lists", function() {
-            var parsed = blockParse(
-                " * hi\n\n" +
-                " * bye\n\n" +
-                " * there\n\n"
-            );
-            validateParse(parsed, [{
-                type: "list",
-                ordered: false,
-                start: undefined,
-                items: [
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "hi"
-                        }]
-                    }],
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "bye"
-                        }]
-                    }],
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "there"
-                        }]
-                    }],
-                ]
-            }]);
-        });
-
-        it("should have defined behaviour for semi-loose lists", function() {
-            // we mostly care that this does something vaguely reasonable.
-            // if you write markdown like this the results are your own fault.
-            var parsed = blockParse(
-                " * hi\n" +
-                " * bye\n\n" +
-                " * there\n\n"
-            );
-            validateParse(parsed, [{
-                type: "list",
-                ordered: false,
-                start: undefined,
-                items: [
-                    [{
-                        type: "text",
-                        content: "hi"
-                    }],
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "bye"
-                        }]
-                    }],
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "there"
-                        }]
-                    }],
-                ]
-            }]);
-
-            var parsed2 = blockParse(
-                " * hi\n\n" +
-                " * bye\n" +
-                " * there\n\n"
-            );
-            validateParse(parsed2, [{
-                type: "list",
-                ordered: false,
-                start: undefined,
-                items: [
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "hi"
-                        }]
-                    }],
-                    [{
-                        type: "text",
-                        content: "bye"
-                    }],
-                    [{
-                        type: "text",
-                        content: "there"
-                    }],
-                ]
-            }]);
-        });
-
-        it("should parse paragraphs within loose lists", function() {
-            var parsed = blockParse(
-                " * hi\n\n" +
-                "   hello\n\n" +
-                " * bye\n\n" +
-                " * there\n\n"
-            );
-            validateParse(parsed, [{
-                type: "list",
-                ordered: false,
-                start: undefined,
-                items: [
-                    [
-                        {
-                            type: "paragraph",
-                            content: [{
-                                type: "text",
-                                content: "hi"
-                            }]
-                        },
-                        {
-                            type: "paragraph",
-                            content: [{
-                                type: "text",
-                                content: "hello"
-                            }]
-                        },
-                    ],
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "bye"
-                        }]
-                    }],
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "there"
-                        }]
-                    }],
-                ]
-            }]);
-        });
-
-        it("should allow line breaks+wrapping in tight lists", function() {
-            var parsed = blockParse(
-                " * hi\n" +
-                "   hello\n\n" +
-                " * bye\n\n" +
-                " * there\n\n"
-            );
-            validateParse(parsed, [{
-                type: "list",
-                ordered: false,
-                start: undefined,
-                items: [
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "hi\nhello"
-                        }]
-                    }],
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "bye"
-                        }]
-                    }],
-                    [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "there"
-                        }]
-                    }],
-                ]
-            }]);
-        });
-
-        it("should allow code inside list items", function() {
-            var parsed = blockParse(
-                " * this is a list\n\n" +
-                "       with code in it\n\n"
-            );
-            validateParse(parsed, [{
-                type: "list",
-                ordered: false,
-                start: undefined,
-                items: [[
-                    {
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            content: "this is a list"
-                        }]
-                    },
-                    {
-                        type: "codeBlock",
-                        lang: undefined,
-                        content: "with code in it"
-                    }
-                ]]
-            }]);
-
-            var parsed2 = blockParse(
-                " * this is a list\n\n" +
-                "       with code in it\n\n" +
-                " * second item\n" +
-                "\n"
-            );
-            validateParse(parsed2, [{
-                type: "list",
-                ordered: false,
-                start: undefined,
-                items: [
-                    [
-                        {
-                            type: "paragraph",
-                            content: [{
-                                type: "text",
-                                content: "this is a list"
-                            }]
-                        },
-                        {
-                            type: "codeBlock",
-                            lang: undefined,
-                            content: "with code in it"
-                        }
-                    ],
-                    [
-                        {
-                            type: "paragraph",
-                            content: [{
-                                type: "text",
-                                content: "second item"
-                            }]
-                        },
-                    ],
-                ]
-            }]);
-        });
-
-        it("should allow lists inside blockquotes", function() {
-            // This list also has lots of trailing space after the *s
-            var parsed = blockParse(
-                "> A list within a blockquote\n" +
-                ">\n" +
-                "> *    asterisk 1\n" +
-                "> *    asterisk 2\n" +
-                "> *    asterisk 3\n" +
-                "\n"
-            );
-            validateParse(parsed, [{
-                type: "blockQuote",
-                content: [
-                    {
-                        type: "paragraph",
-                        content: [{
-                            content: "A list within a blockquote",
-                            type: "text",
-                        }]
-                    },
-                    {
-
-                        type: "list",
-                        ordered: false,
-                        start: undefined,
-                        items: [
-                            [{
-                                content: "asterisk 1",
-                                type: "text",
-                            }],
-                            [{
-                                content: "asterisk 2",
-                                type: "text",
-                            }],
-                            [{
-                                content: "asterisk 3",
-                                type: "text",
-                            }],
-                        ]
-                    }
-                ]
-            }]);
-        });
-
-        it("symbols should not break a paragraph into a list", function() {
-            var parsed = blockParse("hi - there\n\n");
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [
-                    { content: "hi ", type: "text" },
-                    { content: "- there", type: "text" },
-                ]
-            }]);
-
-            var parsed2 = blockParse("hi * there\n\n");
-            validateParse(parsed2, [{
-                type: "paragraph",
-                content: [
-                    { content: "hi ", type: "text" },
-                    { content: "* there", type: "text" },
-                ]
-            }]);
-
-            var parsed3 = blockParse("hi 1. there\n\n");
-            validateParse(parsed3, [{
-                type: "paragraph",
-                content: [
-                    { content: "hi 1", type: "text" },
-                    { content: ". there", type: "text" },
-                ]
-            }]);
-        });
-
-        it("dashes or numbers should not break a list item into a list", function() {
-            var parsed = blockParse("- hi - there\n\n");
-            validateParse(parsed, [{
-                type: "list",
-                ordered: false,
-                start: undefined,
-                items: [[
-                    { content: "hi ", type: "text" },
-                    { content: "- there", type: "text" },
-                ]]
-            }]);
-
-            var parsed2 = blockParse("* hi * there\n\n");
-            validateParse(parsed2, [{
-                type: "list",
-                ordered: false,
-                start: undefined,
-                items: [[
-                    { content: "hi ", type: "text" },
-                    { content: "* there", type: "text" },
-                ]]
-            }]);
-
-            var parsed3 = blockParse("1. hi 1. there\n\n");
-            validateParse(parsed3, [{
-                type: "list",
-                ordered: true,
-                start: 1,
-                items: [[
-                    { content: "hi 1", type: "text" },
-                    { content: ". there", type: "text" },
-                ]]
-            }]);
-        });
-
-        it("should ignore double spaces at the end of lists", function() {
-            var parsed = blockParse(" * hi  \n * there\n\n");
-            validateParse(parsed, [{
-                type: "list",
-                ordered: false,
-                start: undefined,
-                items: [
-                    [{type: "text", content: "hi"}],
-                    [{type: "text", content: "there"}],
-                ]
-            }]);
-        });
-
-        it("should parse very simple tables", function() {
-            var expected = [{
-                type: "table",
-                header: [
-                    [{type: "text", content: "h1"}],
-                    [{type: "text", content: "h2"}],
-                    [{type: "text", content: "h3"}]
-                ],
-                align: [null, null, null],
-                cells: [
-                    [
-                        [{type: "text", content: "d1"}],
-                        [{type: "text", content: "d2"}],
-                        [{type: "text", content: "d3"}]
-                    ],
-                    [
-                        [{type: "text", content: "e1"}],
-                        [{type: "text", content: "e2"}],
-                        [{type: "text", content: "e3"}]
-                    ]
-                ]
-            }];
-
-            var parsedPiped = blockParse(
-                "| h1 | h2 | h3 |\n" +
-                "| -- | -- | -- |\n" +
-                "| d1 | d2 | d3 |\n" +
-                "| e1 | e2 | e3 |\n" +
-                "\n"
-            );
-            validateParse(parsedPiped, expected);
-
-            var parsedNp = blockParse(
-                "h1 | h2 | h3\n" +
-                "- | - | -\n" +
-                "d1 | d2 | d3\n" +
-                "e1 | e2 | e3\n" +
-                "\n"
-            );
-            validateParse(parsedNp, expected);
-        });
-
-        it("should parse inside table contents", function() {
-            var expected = [{
-                type: "table",
-                header: [
-                    [{type: "em", content: [{type: "text", content: "h1"}]}],
-                    [{type: "em", content: [{type: "text", content: "h2"}]}],
-                    [{type: "em", content: [{type: "text", content: "h3"}]}],
-                ],
-                align: [null, null, null],
-                cells: [[
-                    [{type: "em", content: [{type: "text", content: "d1"}]}],
-                    [{type: "em", content: [{type: "text", content: "d2"}]}],
-                    [{type: "em", content: [{type: "text", content: "d3"}]}],
-                ]]
-            }];
-
-            var parsedPiped = blockParse(
-                "| *h1* | *h2* | *h3* |\n" +
-                "| ---- | ---- | ---- |\n" +
-                "| *d1* | *d2* | *d3* |\n" +
-                "\n"
-            );
-            validateParse(parsedPiped, expected);
-
-            var parsedNp = blockParse(
-                "*h1* | *h2* | *h3*\n" +
-                "-|-|-\n" +
-                "*d1* | *d2* | *d3*\n" +
-                "\n"
-            );
-            validateParse(parsedNp, expected);
-        });
-
-        it("should parse table alignments", function() {
-            var validateAligns = function(tableSrc, expectedAligns) {
-                var parsed = blockParse(tableSrc + "\n");
-                assert.strictEqual(parsed[0].type, "table");
-                var actualAligns = parsed[0].align;
-                validateParse(actualAligns, expectedAligns);
-            };
-
-            validateAligns(
-                "| h1 | h2 | h3 |\n" +
-                "| -- | -- | -- |\n" +
-                "| d1 | d2 | d3 |\n",
-                [null, null, null]
-            );
-
-            validateAligns(
-                "| h1 | h2 | h3 |\n" +
-                "|:--:|:-: | :-: |\n" +
-                "| d1 | d2 | d3 |\n",
-                ["center", "center", "center"]
-            );
-
-            validateAligns(
-                "| h1 | h2 | h3 |\n" +
-                "| :- |:---| :--|\n" +
-                "| d1 | d2 | d3 |\n",
-                ["left", "left", "left"]
-            );
-
-            validateAligns(
-                "| h1 | h2 | h3 |\n" +
-                "| -: |-:  |  -:|\n" +
-                "| d1 | d2 | d3 |\n",
-                ["right", "right", "right"]
-            );
-
-            validateAligns(
-                "h1 | h2 | h3\n" +
-                ":-|:-:|-:\n" +
-                "d1 | d2 | d3\n",
-                ["left", "center", "right"]
-            );
-
-            validateAligns(
-                "h1 | h2 | h3\n" +
-                " :---:  |:--|    --:\n" +
-                "d1 | d2 | d3\n",
-                ["center", "left", "right"]
-            );
-        });
-
-        it("should be able to parse <br>s", function() {
-            // Inside a paragraph:
-            var parsed = blockParse("hi  \nbye\n\n");
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [
-                    { content: "hi", type: "text" },
-                    { type: "br" },
-                    { content: "bye", type: "text" },
-                ]
-            }]);
-
-            // Outside a paragraph:
-            var parsed2 = inlineParse("hi  \nbye");
-            validateParse(parsed2, [
-                { content: "hi", type: "text" },
-                { type: "br" },
-                { content: "bye", type: "text" },
-            ]);
-
-            // But double spaces on the same line shouldn't count:
-            var parsed3 = inlineParse("hi  bye");
-            validateParse(parsed3, [
-                { content: "hi  bye", type: "text" },
-            ]);
-        });
-
-        it("should parse unicode characters in a word", function() {
-            var parsed = inlineParse("string with parse öppurtunitiés");
-            validateParse(parsed, [{
-                type: "text",
-                content: "string with parse öppurtunitiés"
-            }]);
-        });
+      var parsed = blockParse(
+        '~~~\n' +
+                '    this should be indented\n' +
+                '~~~\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'codeBlock',
+        lang: undefined,
+        content: '    this should be indented',
+      }]);
     });
 
-    describe("preprocess step", function() {
-        it("should strip `\\f`s", function() {
-            var parsed = blockParse("hi\n\n\fbye\n\n");
-            validateParse(parsed, [
-                {
-                    type: "paragraph",
-                    content: [
-                        { content: "hi", type: "text" },
-                    ],
-                },
-                {
-                    type: "paragraph",
-                    content: [
-                        { content: "bye", type: "text" },
-                    ],
-                },
-            ]);
-
-            var parsed2 = blockParse("hi\n\f\nbye\n\n");
-            validateParse(parsed2, [
-                {
-                    type: "paragraph",
-                    content: [
-                        { content: "hi", type: "text" },
-                    ],
-                },
-                {
-                    type: "paragraph",
-                    content: [
-                        { content: "bye", type: "text" },
-                    ],
-                },
-            ]);
-        });
-
-        it("should handle \\r nicely", function() {
-            var parsed = blockParse("hi\r\nbye\n\n");
-            validateParse(parsed, [{
-                type: "paragraph",
-                content: [
-                    { content: "hi\nbye", type: "text" },
-                ]
-            }]);
-
-            var parsed2 = blockParse("hi\r\rbye\n\n");
-            validateParse(parsed2, [
-                {
-                    type: "paragraph",
-                    content: [
-                        { content: "hi", type: "text" },
-                    ],
-                },
-                {
-                    type: "paragraph",
-                    content: [
-                        { content: "bye", type: "text" },
-                    ],
-                },
-            ]);
-        });
-
-        it("should treat \\t as four spaces", function() {
-            var parsed = blockParse("\tcode\n\n");
-            validateParse(parsed, [{
-                type: "codeBlock",
-                lang: undefined,
-                content: "code",
-            }]);
-        });
+    it('should parse mixed paragraphs and code', () => {
+      const parsed = blockParse(
+        'this is regular text\n\n' +
+                '    this is code\n\n' +
+                'this is more regular text\n\n');
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'this is regular text',
+          }],
+        },
+        {
+          type: 'codeBlock',
+          lang: undefined,
+          content: 'this is code',
+        },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'this is more regular text',
+          }],
+        },
+      ]);
     });
 
-    describe("parser extension api", function() {
-        it("should parse a simple %variable% extension", function() {
-            var percentVarRule = {
-                match: function(source) {
-                    return /^%([\s\S]+?)%/.exec(source);
-                },
-
-                order: SimpleMarkdown.defaultRules.em.order + 0.5,
-
-                parse: function(capture, parse, state) {
-                    return {
-                        content: capture[1]
-                    };
-                }
-            };
-
-            var rules = _.extend({}, SimpleMarkdown.defaultRules, {
-                percentVar: percentVarRule
-            });
-
-            var rawBuiltParser = SimpleMarkdown.parserFor(rules);
-
-            var inlineParse = function(source) {
-                return rawBuiltParser(source, {inline: true});
-            };
-
-            var parsed = inlineParse("Hi %name%!");
-
-            validateParse(parsed, [
-                {content: "Hi ", type: "text"},
-                {content: "name", type: "percentVar"},
-                {content: "!", type: "text"},
-            ]);
-        });
-
-        describe("should sort rules by order and name", function() {
-            var emRule = {
-                match: SimpleMarkdown.inlineRegex(/^_([\s\S]+?)_/),
-                parse: function(capture, parse, state) {
-                    return {
-                        content: capture[1]
-                    };
-                }
-            };
-            var textRule = _.extend({}, SimpleMarkdown.defaultRules.text, {
-                order: 10
-            });
-
-            it("should sort rules by order", function() {
-                var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
-                        order: 0
-                    }),
-                    em2: _.extend({}, emRule, {
-                        order: 1
-                    }),
-                    text: textRule
-                });
-
-                var parsed1 = parser1("_hi_", {inline: true});
-                validateParse(parsed1, [
-                    {content: "hi", type: "em1"},
-                ]);
-
-                var parser2 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
-                        order: 1
-                    }),
-                    em2: _.extend({}, emRule, {
-                        order: 0
-                    }),
-                    text: textRule
-                });
-
-                var parsed2 = parser2("_hi_", {inline: true});
-                validateParse(parsed2, [
-                    {content: "hi", type: "em2"},
-                ]);
-            });
-
-            it("should allow fractional orders", function() {
-                var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
-                        order: 1.4
-                    }),
-                    em2: _.extend({}, emRule, {
-                        order: 0.9
-                    }),
-                    text: textRule
-                });
-
-                var parsed1 = parser1("_hi_", {inline: true});
-                validateParse(parsed1, [
-                    {content: "hi", type: "em2"},
-                ]);
-
-                var parser2 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
-                        order: 0.5
-                    }),
-                    em2: _.extend({}, emRule, {
-                        order: 0
-                    }),
-                    text: textRule
-                });
-
-                var parsed2 = parser2("_hi_", {inline: true});
-                validateParse(parsed2, [
-                    {content: "hi", type: "em2"},
-                ]);
-            });
-
-            it("should allow negative orders", function() {
-                var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
-                        order: 0
-                    }),
-                    em2: _.extend({}, emRule, {
-                        order: -1
-                    }),
-                    text: textRule
-                });
-
-                var parsed1 = parser1("_hi_", {inline: true});
-                validateParse(parsed1, [
-                    {content: "hi", type: "em2"},
-                ]);
-
-                var parser2 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
-                        order: -2
-                    }),
-                    em2: _.extend({}, emRule, {
-                        order: 1
-                    }),
-                    text: textRule
-                });
-
-                var parsed2 = parser2("_hi_", {inline: true});
-                validateParse(parsed2, [
-                    {content: "hi", type: "em1"},
-                ]);
-            });
-
-            it("should break ties by rule name", function() {
-                var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
-                        order: 0
-                    }),
-                    em2: _.extend({}, emRule, {
-                        order: 0
-                    }),
-                    text: textRule
-                });
-
-                var parsed1 = parser1("_hi_", {inline: true});
-                validateParse(parsed1, [
-                    {content: "hi", type: "em1"},
-                ]);
-
-                // ...regardless of their order in the
-                // original rule definition
-                var parser2 = SimpleMarkdown.parserFor({
-                    em2: _.extend({}, emRule, {
-                        order: 0
-                    }),
-                    em1: _.extend({}, emRule, {
-                        order: 0
-                    }),
-                    text: textRule
-                });
-
-                var parsed2 = parser2("_hi_", {inline: true});
-                validateParse(parsed2, [
-                    {content: "hi", type: "em1"},
-                ]);
-            });
-
-            it("should output a warning for non-numeric orders", function() {
-                var oldconsolewarn = console.warn;
-                var warnings = [];
-                console.warn = function(warning) { warnings.push(warning); };
-                var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
-                        order: 1/0 - 1/0
-                    }),
-                    text: textRule
-                });
-
-                assert.strictEqual(warnings.length, 1);
-                assert.strictEqual(
-                    warnings[0],
-                    "simple-markdown: Invalid order for rule `em1`: NaN"
-                );
-
-                console.warn = oldconsolewarn;
-            });
-        });
-
-        it("should append arrays returned from `parse` to the AST", function() {
-            var parser1 = SimpleMarkdown.parserFor({
-                fancy: {
-                    order: SimpleMarkdown.defaultRules.text.order - 1,
-                    match: function(source) {
-                        return /^.*/.exec(source);
-                    },
-                    parse: function(capture, parse, state) {
-                        return capture[0].split(' ').map(function(word) {
-                            return { type: "text", content: word };
-                        });
-                    },
-                },
-                text: SimpleMarkdown.defaultRules.text
-            });
-
-            var parsed1 = parser1("this is some text", {inline: true});
-            validateParse(parsed1, [
-                {content: "this", type: "text"},
-                {content: "is", type: "text"},
-                {content: "some", type: "text"},
-                {content: "text", type: "text"},
-            ]);
-        });
+    it('should parse top-level horizontal rules', () => {
+      const parsed = blockParse(
+        '---\n\n' +
+                '***\n\n' +
+                '___\n\n' +
+                ' - - - - \n\n' +
+                '_ _ _\n\n' +
+                '  ***  \n\n',
+      );
+      validateParse(parsed, [
+        { type: 'hr' },
+        { type: 'hr' },
+        { type: 'hr' },
+        { type: 'hr' },
+        { type: 'hr' },
+        { type: 'hr' },
+      ]);
     });
 
-    describe("react output", function() {
-        it("should sanitize dangerous links", function() {
-            var html = htmlFromReactMarkdown(
-                "[link](javascript:alert%28%27hi%27%29)"
-            );
-            assert.strictEqual(html, "<a>link</a>");
+    it('should parse hrs between paragraphs', () => {
+      const parsed = blockParse(
+        'para 1\n\n' +
+                ' * * * \n\n' +
+                'para 2\n\n');
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'para 1',
+          }],
+        },
+        { type: 'hr' },
+        {
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            content: 'para 2',
+          }],
+        },
+      ]);
+    });
 
-            var html2 = htmlFromReactMarkdown(
-                "[link][1]\n\n" +
-                "[1]: javascript:alert('hi');\n\n"
-            );
-            assert.strictEqual(
-                html2,
-                "<div class=\"paragraph\"><a>link</a></div>"
-            );
+    it('should not allow hrs within a paragraph', () => {
+      const parsed = blockParse(
+        'paragraph ----\n' +
+                'more paragraph\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [
+          { content: 'paragraph ', type: 'text' },
+          { content: '-', type: 'text' },
+          { content: '-', type: 'text' },
+          { content: '-', type: 'text' },
+          { content: '-\nmore paragraph', type: 'text' },
+        ],
+      }]);
+    });
+
+    it('should parse simple unordered lists', () => {
+      const parsed = blockParse(
+        ' * hi\n' +
+                ' * bye\n' +
+                ' * there\n\n',
+      );
+      validateParse(parsed, [{
+        ordered: false,
+        start: undefined,
+        items: [
+          [{
+            content: 'hi',
+            type: 'text',
+          }],
+          [{
+            content: 'bye',
+            type: 'text',
+          }],
+          [{
+            content: 'there',
+            type: 'text',
+          }],
+        ],
+        type: 'list',
+      }]);
+    });
+
+    it('should parse simple ordered lists', () => {
+      const parsed = blockParse(
+        '1. first\n' +
+                '2. second\n' +
+                '3. third\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'list',
+        ordered: true,
+        start: 1,
+        items: [
+          [{
+            type: 'text',
+            content: 'first',
+          }],
+          [{
+            type: 'text',
+            content: 'second',
+          }],
+          [{
+            type: 'text',
+            content: 'third',
+          }],
+        ],
+      }]);
+    });
+
+    it('should parse simple ordered lists with silly numbers', () => {
+      const parsed = blockParse(
+        '1. first\n' +
+                '13. second\n' +
+                '9. third\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'list',
+        start: 1,
+        ordered: true,
+        items: [
+          [{
+            type: 'text',
+            content: 'first',
+          }],
+          [{
+            type: 'text',
+            content: 'second',
+          }],
+          [{
+            type: 'text',
+            content: 'third',
+          }],
+        ],
+      }]);
+
+      const parsed2 = blockParse(
+        '63. first\n' +
+                '13. second\n' +
+                '9. third\n\n',
+      );
+      validateParse(parsed2, [{
+        type: 'list',
+        start: 63,
+        ordered: true,
+        items: [
+          [{
+            type: 'text',
+            content: 'first',
+          }],
+          [{
+            type: 'text',
+            content: 'second',
+          }],
+          [{
+            type: 'text',
+            content: 'third',
+          }],
+        ],
+      }]);
+    });
+
+    it('should parse nested lists', () => {
+      const parsed = blockParse(
+        '1. first\n' +
+                '2. second\n' +
+                '   * inner\n' +
+                '   * inner\n' +
+                '3. third\n\n',
+      );
+      validateParse(parsed, [{
+        ordered: true,
+        start: 1,
+        items: [
+          [{
+            content: 'first',
+            type: 'text',
+          }],
+          [
+            {
+              content: 'second\n',
+              type: 'text',
+            },
+            {
+              ordered: false,
+              start: undefined,
+              items: [
+                [{
+                  content: 'inner',
+                  type: 'text',
+                }],
+                [{
+                  content: 'inner',
+                  type: 'text',
+                }],
+              ],
+              type: 'list',
+            },
+          ],
+          [{
+            content: 'third',
+            type: 'text',
+          }],
+        ],
+        type: 'list',
+      }]);
+    });
+
+    it('should parse loose lists', () => {
+      const parsed = blockParse(
+        ' * hi\n\n' +
+                ' * bye\n\n' +
+                ' * there\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'list',
+        ordered: false,
+        start: undefined,
+        items: [
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'hi',
+            }],
+          }],
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'bye',
+            }],
+          }],
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'there',
+            }],
+          }],
+        ],
+      }]);
+    });
+
+    it('should have defined behaviour for semi-loose lists', () => {
+      // we mostly care that this does something vaguely reasonable.
+      // if you write markdown like this the results are your own fault.
+      const parsed = blockParse(
+        ' * hi\n' +
+                ' * bye\n\n' +
+                ' * there\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'list',
+        ordered: false,
+        start: undefined,
+        items: [
+          [{
+            type: 'text',
+            content: 'hi',
+          }],
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'bye',
+            }],
+          }],
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'there',
+            }],
+          }],
+        ],
+      }]);
+
+      const parsed2 = blockParse(
+        ' * hi\n\n' +
+                ' * bye\n' +
+                ' * there\n\n',
+      );
+      validateParse(parsed2, [{
+        type: 'list',
+        ordered: false,
+        start: undefined,
+        items: [
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'hi',
+            }],
+          }],
+          [{
+            type: 'text',
+            content: 'bye',
+          }],
+          [{
+            type: 'text',
+            content: 'there',
+          }],
+        ],
+      }]);
+    });
+
+    it('should parse paragraphs within loose lists', () => {
+      const parsed = blockParse(
+        ' * hi\n\n' +
+                '   hello\n\n' +
+                ' * bye\n\n' +
+                ' * there\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'list',
+        ordered: false,
+        start: undefined,
+        items: [
+          [
+            {
+              type: 'paragraph',
+              content: [{
+                type: 'text',
+                content: 'hi',
+              }],
+            },
+            {
+              type: 'paragraph',
+              content: [{
+                type: 'text',
+                content: 'hello',
+              }],
+            },
+          ],
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'bye',
+            }],
+          }],
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'there',
+            }],
+          }],
+        ],
+      }]);
+    });
+
+    it('should allow line breaks+wrapping in tight lists', () => {
+      const parsed = blockParse(
+        ' * hi\n' +
+                '   hello\n\n' +
+                ' * bye\n\n' +
+                ' * there\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'list',
+        ordered: false,
+        start: undefined,
+        items: [
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'hi\nhello',
+            }],
+          }],
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'bye',
+            }],
+          }],
+          [{
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'there',
+            }],
+          }],
+        ],
+      }]);
+    });
+
+    it('should allow code inside list items', () => {
+      const parsed = blockParse(
+        ' * this is a list\n\n' +
+                '       with code in it\n\n',
+      );
+      validateParse(parsed, [{
+        type: 'list',
+        ordered: false,
+        start: undefined,
+        items: [[
+          {
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              content: 'this is a list',
+            }],
+          },
+          {
+            type: 'codeBlock',
+            lang: undefined,
+            content: 'with code in it',
+          },
+        ]],
+      }]);
+
+      const parsed2 = blockParse(
+        ' * this is a list\n\n' +
+                '       with code in it\n\n' +
+                ' * second item\n' +
+                '\n',
+      );
+      validateParse(parsed2, [{
+        type: 'list',
+        ordered: false,
+        start: undefined,
+        items: [
+          [
+            {
+              type: 'paragraph',
+              content: [{
+                type: 'text',
+                content: 'this is a list',
+              }],
+            },
+            {
+              type: 'codeBlock',
+              lang: undefined,
+              content: 'with code in it',
+            },
+          ],
+          [
+            {
+              type: 'paragraph',
+              content: [{
+                type: 'text',
+                content: 'second item',
+              }],
+            },
+          ],
+        ],
+      }]);
+    });
+
+    it('should allow lists inside blockquotes', () => {
+      // This list also has lots of trailing space after the *s
+      const parsed = blockParse(
+        '> A list within a blockquote\n' +
+                '>\n' +
+                '> *    asterisk 1\n' +
+                '> *    asterisk 2\n' +
+                '> *    asterisk 3\n' +
+                '\n',
+      );
+      validateParse(parsed, [{
+        type: 'blockQuote',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{
+              content: 'A list within a blockquote',
+              type: 'text',
+            }],
+          },
+          {
+
+            type: 'list',
+            ordered: false,
+            start: undefined,
+            items: [
+              [{
+                content: 'asterisk 1',
+                type: 'text',
+              }],
+              [{
+                content: 'asterisk 2',
+                type: 'text',
+              }],
+              [{
+                content: 'asterisk 3',
+                type: 'text',
+              }],
+            ],
+          },
+        ],
+      }]);
+    });
+
+    it('symbols should not break a paragraph into a list', () => {
+      const parsed = blockParse('hi - there\n\n');
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [
+          { content: 'hi ', type: 'text' },
+          { content: '- there', type: 'text' },
+        ],
+      }]);
+
+      const parsed2 = blockParse('hi * there\n\n');
+      validateParse(parsed2, [{
+        type: 'paragraph',
+        content: [
+          { content: 'hi ', type: 'text' },
+          { content: '* there', type: 'text' },
+        ],
+      }]);
+
+      const parsed3 = blockParse('hi 1. there\n\n');
+      validateParse(parsed3, [{
+        type: 'paragraph',
+        content: [
+          { content: 'hi 1', type: 'text' },
+          { content: '. there', type: 'text' },
+        ],
+      }]);
+    });
+
+    it('dashes or numbers should not break a list item into a list', () => {
+      const parsed = blockParse('- hi - there\n\n');
+      validateParse(parsed, [{
+        type: 'list',
+        ordered: false,
+        start: undefined,
+        items: [[
+          { content: 'hi ', type: 'text' },
+          { content: '- there', type: 'text' },
+        ]],
+      }]);
+
+      const parsed2 = blockParse('* hi * there\n\n');
+      validateParse(parsed2, [{
+        type: 'list',
+        ordered: false,
+        start: undefined,
+        items: [[
+          { content: 'hi ', type: 'text' },
+          { content: '* there', type: 'text' },
+        ]],
+      }]);
+
+      const parsed3 = blockParse('1. hi 1. there\n\n');
+      validateParse(parsed3, [{
+        type: 'list',
+        ordered: true,
+        start: 1,
+        items: [[
+          { content: 'hi 1', type: 'text' },
+          { content: '. there', type: 'text' },
+        ]],
+      }]);
+    });
+
+    it('should ignore double spaces at the end of lists', () => {
+      const parsed = blockParse(' * hi  \n * there\n\n');
+      validateParse(parsed, [{
+        type: 'list',
+        ordered: false,
+        start: undefined,
+        items: [
+          [{ type: 'text', content: 'hi' }],
+          [{ type: 'text', content: 'there' }],
+        ],
+      }]);
+    });
+
+    it('should parse very simple tables', () => {
+      const expected = [{
+        type: 'table',
+        header: [
+          [{ type: 'text', content: 'h1' }],
+          [{ type: 'text', content: 'h2' }],
+          [{ type: 'text', content: 'h3' }],
+        ],
+        align: [null, null, null],
+        cells: [
+          [
+            [{ type: 'text', content: 'd1' }],
+            [{ type: 'text', content: 'd2' }],
+            [{ type: 'text', content: 'd3' }],
+          ],
+          [
+            [{ type: 'text', content: 'e1' }],
+            [{ type: 'text', content: 'e2' }],
+            [{ type: 'text', content: 'e3' }],
+          ],
+        ],
+      }];
+
+      const parsedPiped = blockParse(
+        '| h1 | h2 | h3 |\n' +
+                '| -- | -- | -- |\n' +
+                '| d1 | d2 | d3 |\n' +
+                '| e1 | e2 | e3 |\n' +
+                '\n',
+      );
+      validateParse(parsedPiped, expected);
+
+      const parsedNp = blockParse(
+        'h1 | h2 | h3\n' +
+                '- | - | -\n' +
+                'd1 | d2 | d3\n' +
+                'e1 | e2 | e3\n' +
+                '\n',
+      );
+      validateParse(parsedNp, expected);
+    });
+
+    it('should parse inside table contents', () => {
+      const expected = [{
+        type: 'table',
+        header: [
+          [{ type: 'em', content: [{ type: 'text', content: 'h1' }] }],
+          [{ type: 'em', content: [{ type: 'text', content: 'h2' }] }],
+          [{ type: 'em', content: [{ type: 'text', content: 'h3' }] }],
+        ],
+        align: [null, null, null],
+        cells: [[
+          [{ type: 'em', content: [{ type: 'text', content: 'd1' }] }],
+          [{ type: 'em', content: [{ type: 'text', content: 'd2' }] }],
+          [{ type: 'em', content: [{ type: 'text', content: 'd3' }] }],
+        ]],
+      }];
+
+      const parsedPiped = blockParse(
+        '| *h1* | *h2* | *h3* |\n' +
+                '| ---- | ---- | ---- |\n' +
+                '| *d1* | *d2* | *d3* |\n' +
+                '\n',
+      );
+      validateParse(parsedPiped, expected);
+
+      const parsedNp = blockParse(
+        '*h1* | *h2* | *h3*\n' +
+                '-|-|-\n' +
+                '*d1* | *d2* | *d3*\n' +
+                '\n',
+      );
+      validateParse(parsedNp, expected);
+    });
+
+    it('should parse table alignments', () => {
+      const validateAligns = function (tableSrc, expectedAligns) {
+        const parsed = blockParse(`${tableSrc}\n`);
+        assert.strictEqual(parsed[0].type, 'table');
+        const actualAligns = parsed[0].align;
+        validateParse(actualAligns, expectedAligns);
+      };
+
+      validateAligns(
+        '| h1 | h2 | h3 |\n' +
+                '| -- | -- | -- |\n' +
+                '| d1 | d2 | d3 |\n',
+        [null, null, null],
+      );
+
+      validateAligns(
+        '| h1 | h2 | h3 |\n' +
+                '|:--:|:-: | :-: |\n' +
+                '| d1 | d2 | d3 |\n',
+        ['center', 'center', 'center'],
+      );
+
+      validateAligns(
+        '| h1 | h2 | h3 |\n' +
+                '| :- |:---| :--|\n' +
+                '| d1 | d2 | d3 |\n',
+        ['left', 'left', 'left'],
+      );
+
+      validateAligns(
+        '| h1 | h2 | h3 |\n' +
+                '| -: |-:  |  -:|\n' +
+                '| d1 | d2 | d3 |\n',
+        ['right', 'right', 'right'],
+      );
+
+      validateAligns(
+        'h1 | h2 | h3\n' +
+                ':-|:-:|-:\n' +
+                'd1 | d2 | d3\n',
+        ['left', 'center', 'right'],
+      );
+
+      validateAligns(
+        'h1 | h2 | h3\n' +
+                ' :---:  |:--|    --:\n' +
+                'd1 | d2 | d3\n',
+        ['center', 'left', 'right'],
+      );
+    });
+
+    it('should be able to parse <br>s', () => {
+      // Inside a paragraph:
+      const parsed = blockParse('hi  \nbye\n\n');
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [
+          { content: 'hi', type: 'text' },
+          { type: 'br' },
+          { content: 'bye', type: 'text' },
+        ],
+      }]);
+
+      // Outside a paragraph:
+      const parsed2 = inlineParse('hi  \nbye');
+      validateParse(parsed2, [
+        { content: 'hi', type: 'text' },
+        { type: 'br' },
+        { content: 'bye', type: 'text' },
+      ]);
+
+      // But double spaces on the same line shouldn't count:
+      const parsed3 = inlineParse('hi  bye');
+      validateParse(parsed3, [
+        { content: 'hi  bye', type: 'text' },
+      ]);
+    });
+
+    it('should parse unicode characters in a word', () => {
+      const parsed = inlineParse('string with parse öppurtunitiés');
+      validateParse(parsed, [{
+        type: 'text',
+        content: 'string with parse öppurtunitiés',
+      }]);
+    });
+  });
+
+  describe('preprocess step', () => {
+    it('should strip `\\f`s', () => {
+      const parsed = blockParse('hi\n\n\fbye\n\n');
+      validateParse(parsed, [
+        {
+          type: 'paragraph',
+          content: [
+            { content: 'hi', type: 'text' },
+          ],
+        },
+        {
+          type: 'paragraph',
+          content: [
+            { content: 'bye', type: 'text' },
+          ],
+        },
+      ]);
+
+      const parsed2 = blockParse('hi\n\f\nbye\n\n');
+      validateParse(parsed2, [
+        {
+          type: 'paragraph',
+          content: [
+            { content: 'hi', type: 'text' },
+          ],
+        },
+        {
+          type: 'paragraph',
+          content: [
+            { content: 'bye', type: 'text' },
+          ],
+        },
+      ]);
+    });
+
+    it('should handle \\r nicely', () => {
+      const parsed = blockParse('hi\r\nbye\n\n');
+      validateParse(parsed, [{
+        type: 'paragraph',
+        content: [
+          { content: 'hi\nbye', type: 'text' },
+        ],
+      }]);
+
+      const parsed2 = blockParse('hi\r\rbye\n\n');
+      validateParse(parsed2, [
+        {
+          type: 'paragraph',
+          content: [
+            { content: 'hi', type: 'text' },
+          ],
+        },
+        {
+          type: 'paragraph',
+          content: [
+            { content: 'bye', type: 'text' },
+          ],
+        },
+      ]);
+    });
+
+    it('should treat \\t as four spaces', () => {
+      const parsed = blockParse('\tcode\n\n');
+      validateParse(parsed, [{
+        type: 'codeBlock',
+        lang: undefined,
+        content: 'code',
+      }]);
+    });
+  });
+
+  describe('parser extension api', () => {
+    it('should parse a simple %variable% extension', () => {
+      const percentVarRule = {
+        match(source) {
+          return /^%([\s\S]+?)%/.exec(source);
+        },
+
+        order: SimpleMarkdown.defaultRules.em.order + 0.5,
+
+        parse(capture, parse, state) {
+          return {
+            content: capture[1],
+          };
+        },
+      };
+
+      const rules = _.extend({}, SimpleMarkdown.defaultRules, {
+        percentVar: percentVarRule,
+      });
+
+      const rawBuiltParser = SimpleMarkdown.parserFor(rules);
+
+      const inlineParse = function (source) {
+        return rawBuiltParser(source, { inline: true });
+      };
+
+      const parsed = inlineParse('Hi %name%!');
+
+      validateParse(parsed, [
+        { content: 'Hi ', type: 'text' },
+        { content: 'name', type: 'percentVar' },
+        { content: '!', type: 'text' },
+      ]);
+    });
+
+    describe('should sort rules by order and name', () => {
+      const emRule = {
+        match: SimpleMarkdown.inlineRegex(/^_([\s\S]+?)_/),
+        parse(capture, parse, state) {
+          return {
+            content: capture[1],
+          };
+        },
+      };
+      const textRule = _.extend({}, SimpleMarkdown.defaultRules.text, {
+        order: 10,
+      });
+
+      it('should sort rules by order', () => {
+        const parser1 = SimpleMarkdown.parserFor({
+          em1: _.extend({}, emRule, {
+            order: 0,
+          }),
+          em2: _.extend({}, emRule, {
+            order: 1,
+          }),
+          text: textRule,
         });
 
-        it("should not sanitize safe links", function() {
-            var html = htmlFromReactMarkdown(
-                "[link](https://www.google.com)"
-            );
-            assert.strictEqual(
-                html,
-                "<a href=\"https://www.google.com\">link</a>"
-            );
+        const parsed1 = parser1('_hi_', { inline: true });
+        validateParse(parsed1, [
+          { content: 'hi', type: 'em1' },
+        ]);
 
-            var html2 = htmlFromReactMarkdown(
-                "[link][1]\n\n" +
-                "[1]: https://www.google.com\n\n"
-            );
-            assert.strictEqual(
-                html2,
-                "<div class=\"paragraph\">" +
-                    "<a href=\"https://www.google.com\">link</a>" +
-                "</div>"
-            );
+        const parser2 = SimpleMarkdown.parserFor({
+          em1: _.extend({}, emRule, {
+            order: 1,
+          }),
+          em2: _.extend({}, emRule, {
+            order: 0,
+          }),
+          text: textRule,
         });
 
-        it("should output headings", function() {
-            assertParsesToReact(
-                "### Heading!\n\n",
-                "<h3>Heading!</h3>"
-            );
+        const parsed2 = parser2('_hi_', { inline: true });
+        validateParse(parsed2, [
+          { content: 'hi', type: 'em2' },
+        ]);
+      });
 
-            assertParsesToReact(
-                "## hi! ##\n\n",
-                "<h2>hi!</h2>"
-            );
-
-            assertParsesToReact(
-                "Yay!\n====\n\n",
-                "<h1>Yay!</h1>"
-            );
-
-            assertParsesToReact(
-                "Success\n---\n\n",
-                "<h2>Success</h2>"
-            );
+      it('should allow fractional orders', () => {
+        const parser1 = SimpleMarkdown.parserFor({
+          em1: _.extend({}, emRule, {
+            order: 1.4,
+          }),
+          em2: _.extend({}, emRule, {
+            order: 0.9,
+          }),
+          text: textRule,
         });
 
-        it("should output hrs", function() {
-            assertParsesToReact(
-                "-----\n\n",
-                "<hr/>"
-            );
-            assertParsesToReact(
-                " * * * \n\n",
-                "<hr/>"
-            );
-            assertParsesToReact(
-                "___\n\n",
-                "<hr/>"
-            );
+        const parsed1 = parser1('_hi_', { inline: true });
+        validateParse(parsed1, [
+          { content: 'hi', type: 'em2' },
+        ]);
+
+        const parser2 = SimpleMarkdown.parserFor({
+          em1: _.extend({}, emRule, {
+            order: 0.5,
+          }),
+          em2: _.extend({}, emRule, {
+            order: 0,
+          }),
+          text: textRule,
         });
 
-        it("should output codeblocks", function() {
-            var html = htmlFromReactMarkdown(
-                "    var microwave = new TimeMachine();\n\n"
-            );
-            assert.strictEqual(
-                html,
-                "<pre><code>var microwave = new TimeMachine();</code></pre>"
-            );
+        const parsed2 = parser2('_hi_', { inline: true });
+        validateParse(parsed2, [
+          { content: 'hi', type: 'em2' },
+        ]);
+      });
 
-            var html2 = htmlFromReactMarkdown(
-                "~~~\n" +
-                "var computer = new IBN(5100);\n" +
-                "~~~\n\n"
-            );
-            assert.strictEqual(
-                html2,
-                "<pre><code>var computer = new IBN(5100);</code></pre>"
-            );
+      it('should allow negative orders', () => {
+        const parser1 = SimpleMarkdown.parserFor({
+          em1: _.extend({}, emRule, {
+            order: 0,
+          }),
+          em2: _.extend({}, emRule, {
+            order: -1,
+          }),
+          text: textRule,
+        });
 
-            var html3 = htmlFromReactMarkdown(
-                "```yavascript\n" +
-                "var undefined = function() { return 5; }" +
-                "```\n\n"
-            );
-            assert.strictEqual(
-                html3,
-                '<pre><code class="markdown-code-yavascript">' +
+        const parsed1 = parser1('_hi_', { inline: true });
+        validateParse(parsed1, [
+          { content: 'hi', type: 'em2' },
+        ]);
+
+        const parser2 = SimpleMarkdown.parserFor({
+          em1: _.extend({}, emRule, {
+            order: -2,
+          }),
+          em2: _.extend({}, emRule, {
+            order: 1,
+          }),
+          text: textRule,
+        });
+
+        const parsed2 = parser2('_hi_', { inline: true });
+        validateParse(parsed2, [
+          { content: 'hi', type: 'em1' },
+        ]);
+      });
+
+      it('should break ties by rule name', () => {
+        const parser1 = SimpleMarkdown.parserFor({
+          em1: _.extend({}, emRule, {
+            order: 0,
+          }),
+          em2: _.extend({}, emRule, {
+            order: 0,
+          }),
+          text: textRule,
+        });
+
+        const parsed1 = parser1('_hi_', { inline: true });
+        validateParse(parsed1, [
+          { content: 'hi', type: 'em1' },
+        ]);
+
+        // ...regardless of their order in the
+        // original rule definition
+        const parser2 = SimpleMarkdown.parserFor({
+          em2: _.extend({}, emRule, {
+            order: 0,
+          }),
+          em1: _.extend({}, emRule, {
+            order: 0,
+          }),
+          text: textRule,
+        });
+
+        const parsed2 = parser2('_hi_', { inline: true });
+        validateParse(parsed2, [
+          { content: 'hi', type: 'em1' },
+        ]);
+      });
+
+      it('should output a warning for non-numeric orders', () => {
+        const oldconsolewarn = console.warn;
+        const warnings = [];
+        console.warn = function (warning) { warnings.push(warning); };
+        const parser1 = SimpleMarkdown.parserFor({
+          em1: _.extend({}, emRule, {
+            order: 1 / 0 - 1 / 0,
+          }),
+          text: textRule,
+        });
+
+        assert.strictEqual(warnings.length, 1);
+        assert.strictEqual(
+          warnings[0],
+          'simple-markdown: Invalid order for rule `em1`: NaN',
+        );
+
+        console.warn = oldconsolewarn;
+      });
+    });
+
+    it('should append arrays returned from `parse` to the AST', () => {
+      const parser1 = SimpleMarkdown.parserFor({
+        fancy: {
+          order: SimpleMarkdown.defaultRules.text.order - 1,
+          match(source) {
+            return /^.*/.exec(source);
+          },
+          parse(capture, parse, state) {
+            return capture[0].split(' ').map(word => ({ type: 'text', content: word }));
+          },
+        },
+        text: SimpleMarkdown.defaultRules.text,
+      });
+
+      const parsed1 = parser1('this is some text', { inline: true });
+      validateParse(parsed1, [
+        { content: 'this', type: 'text' },
+        { content: 'is', type: 'text' },
+        { content: 'some', type: 'text' },
+        { content: 'text', type: 'text' },
+      ]);
+    });
+  });
+
+  describe('react output', () => {
+    it('should sanitize dangerous links', () => {
+      const html = htmlFromReactMarkdown(
+        '[link](javascript:alert%28%27hi%27%29)',
+      );
+      assert.strictEqual(html, '<a>link</a>');
+
+      const html2 = htmlFromReactMarkdown(
+        '[link][1]\n\n' +
+                "[1]: javascript:alert('hi');\n\n",
+      );
+      assert.strictEqual(
+        html2,
+        '<div class="paragraph"><a>link</a></div>',
+      );
+    });
+
+    it('should not sanitize safe links', () => {
+      const html = htmlFromReactMarkdown(
+        '[link](https://www.google.com)',
+      );
+      assert.strictEqual(
+        html,
+        '<a href="https://www.google.com">link</a>',
+      );
+
+      const html2 = htmlFromReactMarkdown(
+        '[link][1]\n\n' +
+                '[1]: https://www.google.com\n\n',
+      );
+      assert.strictEqual(
+        html2,
+        '<div class="paragraph">' +
+                    '<a href="https://www.google.com">link</a>' +
+                '</div>',
+      );
+    });
+
+    it('should output headings', () => {
+      assertParsesToReact(
+        '### Heading!\n\n',
+        '<h3>Heading!</h3>',
+      );
+
+      assertParsesToReact(
+        '## hi! ##\n\n',
+        '<h2>hi!</h2>',
+      );
+
+      assertParsesToReact(
+        'Yay!\n====\n\n',
+        '<h1>Yay!</h1>',
+      );
+
+      assertParsesToReact(
+        'Success\n---\n\n',
+        '<h2>Success</h2>',
+      );
+    });
+
+    it('should output hrs', () => {
+      assertParsesToReact(
+        '-----\n\n',
+        '<hr/>',
+      );
+      assertParsesToReact(
+        ' * * * \n\n',
+        '<hr/>',
+      );
+      assertParsesToReact(
+        '___\n\n',
+        '<hr/>',
+      );
+    });
+
+    it('should output codeblocks', () => {
+      const html = htmlFromReactMarkdown(
+        '    var microwave = new TimeMachine();\n\n',
+      );
+      assert.strictEqual(
+        html,
+        '<pre><code>var microwave = new TimeMachine();</code></pre>',
+      );
+
+      const html2 = htmlFromReactMarkdown(
+        '~~~\n' +
+                'var computer = new IBN(5100);\n' +
+                '~~~\n\n',
+      );
+      assert.strictEqual(
+        html2,
+        '<pre><code>var computer = new IBN(5100);</code></pre>',
+      );
+
+      const html3 = htmlFromReactMarkdown(
+        '```yavascript\n' +
                 'var undefined = function() { return 5; }' +
-                '</code></pre>'
-            );
-        });
+                '```\n\n',
+      );
+      assert.strictEqual(
+        html3,
+        '<pre><code class="markdown-code-yavascript">' +
+                'var undefined = function() { return 5; }' +
+                '</code></pre>',
+      );
+    });
 
-        it("should output blockQuotes", function() {
-            assertParsesToReact(
-                "> hi there this is a\ntest\n\n",
-                '<blockquote><div class="paragraph">' +
+    it('should output blockQuotes', () => {
+      assertParsesToReact(
+        '> hi there this is a\ntest\n\n',
+        '<blockquote><div class="paragraph">' +
                 'hi there this is a test' +
-                '</div></blockquote>'
-            );
+                '</div></blockquote>',
+      );
 
-            assertParsesToReact(
-                "> hi there this is a\n> test\n\n",
-                '<blockquote><div class="paragraph">' +
+      assertParsesToReact(
+        '> hi there this is a\n> test\n\n',
+        '<blockquote><div class="paragraph">' +
                 'hi there this is a test' +
-                '</div></blockquote>'
-            );
-        });
+                '</div></blockquote>',
+      );
+    });
 
-        it("should output lists", function() {
-            assertParsesToReact(
-                " * first\n" +
-                " * second\n" +
-                " * third\n\n",
-                '<ul>' +
+    it('should output lists', () => {
+      assertParsesToReact(
+        ' * first\n' +
+                ' * second\n' +
+                ' * third\n\n',
+        '<ul>' +
                 '<li>first</li>' +
                 '<li>second</li>' +
                 '<li>third</li>' +
-                '</ul>'
-            );
+                '</ul>',
+      );
 
-            assertParsesToReact(
-                "1. first\n" +
-                "2. second\n" +
-                "3. third\n\n",
-                '<ol start="1">' +
+      assertParsesToReact(
+        '1. first\n' +
+                '2. second\n' +
+                '3. third\n\n',
+        '<ol start="1">' +
                 '<li>first</li>' +
                 '<li>second</li>' +
                 '<li>third</li>' +
-                '</ol>'
-            );
+                '</ol>',
+      );
 
-            assertParsesToReact(
-                " * first\n" +
-                " * second\n" +
-                "    * inner\n" +
-                " * third\n\n",
-                '<ul>' +
+      assertParsesToReact(
+        ' * first\n' +
+                ' * second\n' +
+                '    * inner\n' +
+                ' * third\n\n',
+        '<ul>' +
                 '<li>first</li>' +
                 '<li>second <ul><li>inner</li></ul></li>' +
                 '<li>third</li>' +
-                '</ul>'
-            );
-        });
+                '</ul>',
+      );
+    });
 
-        it("should output tables", function() {
-            assertParsesToReact(
-                "h1 | h2 | h3\n" +
-                "---|----|---\n" +
-                "d1 | d2 | d3\n" +
-                "\n",
-                '<table><thead>' +
+    it('should output tables', () => {
+      assertParsesToReact(
+        'h1 | h2 | h3\n' +
+                '---|----|---\n' +
+                'd1 | d2 | d3\n' +
+                '\n',
+        '<table><thead>' +
                 '<tr><th scope="col">h1</th><th scope="col">h2</th><th scope="col">h3</th></tr>' +
                 '</thead><tbody>' +
                 '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
-                '</tbody></table>'
-            );
+                '</tbody></table>',
+      );
 
-            assertParsesToReact(
-                "| h1 | h2 | h3 |\n" +
-                "|----|----|----|\n" +
-                "| d1 | d2 | d3 |\n" +
-                "\n",
-                '<table><thead>' +
+      assertParsesToReact(
+        '| h1 | h2 | h3 |\n' +
+                '|----|----|----|\n' +
+                '| d1 | d2 | d3 |\n' +
+                '\n',
+        '<table><thead>' +
                 '<tr><th scope="col">h1</th><th scope="col">h2</th><th scope="col">h3</th></tr>' +
                 '</thead><tbody>' +
                 '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
-                '</tbody></table>'
-            );
+                '</tbody></table>',
+      );
 
-            assertParsesToReact(
-                "h1 | h2 | h3\n" +
-                ":--|:--:|--:\n" +
-                "d1 | d2 | d3\n" +
-                "\n",
-                '<table><thead>' +
+      assertParsesToReact(
+        'h1 | h2 | h3\n' +
+                ':--|:--:|--:\n' +
+                'd1 | d2 | d3\n' +
+                '\n',
+        '<table><thead>' +
                 '<tr>' +
                 '<th style="text-align:left;" scope="col">h1</th>' +
                 '<th style="text-align:center;" scope="col">h2</th>' +
@@ -2945,339 +2944,339 @@ describe("simple markdown", function() {
                 '<td style="text-align:center;">d2</td>' +
                 '<td style="text-align:right;">d3</td>' +
                 '</tr>' +
-                '</tbody></table>'
-            );
-        });
+                '</tbody></table>',
+      );
+    });
 
-        // TODO(aria): Figure out how to test the newline rule here
+    // TODO(aria): Figure out how to test the newline rule here
 
-        it("should output paragraphs", function() {
-            var html = htmlFromReactMarkdown(
-                "hi\n\n"
-            );
-            assert.strictEqual(
-                html,
-                '<div class="paragraph">hi</div>'
-            );
+    it('should output paragraphs', () => {
+      const html = htmlFromReactMarkdown(
+        'hi\n\n',
+      );
+      assert.strictEqual(
+        html,
+        '<div class="paragraph">hi</div>',
+      );
 
-            var html2 = htmlFromReactMarkdown(
-                "hi\n\n" +
-                "bye\n\n"
-            );
-            assert.strictEqual(
-                html2,
-                '<div class="paragraph">hi</div>' +
-                '<div class="paragraph">bye</div>'
-            );
-        });
+      const html2 = htmlFromReactMarkdown(
+        'hi\n\n' +
+                'bye\n\n',
+      );
+      assert.strictEqual(
+        html2,
+        '<div class="paragraph">hi</div>' +
+                '<div class="paragraph">bye</div>',
+      );
+    });
 
-        it("should output escaped text", function() {
-            assertParsesToReact(
-                "\\#escaping\\^symbols\\*is\\[legal](yes)",
-                '#escaping^symbols*is[legal](yes)'
-            );
-        });
+    it('should output escaped text', () => {
+      assertParsesToReact(
+        '\\#escaping\\^symbols\\*is\\[legal](yes)',
+        '#escaping^symbols*is[legal](yes)',
+      );
+    });
 
-        it("should output links", function() {
-            assertParsesToReact(
-                "<https://www.khanacademy.org>",
-                '<a href="https://www.khanacademy.org">' +
+    it('should output links', () => {
+      assertParsesToReact(
+        '<https://www.khanacademy.org>',
+        '<a href="https://www.khanacademy.org">' +
                 'https://www.khanacademy.org' +
-                '</a>'
-            );
+                '</a>',
+      );
 
-            assertParsesToReact(
-                "<aria@khanacademy.org>",
-                '<a href="mailto:aria@khanacademy.org">' +
+      assertParsesToReact(
+        '<aria@khanacademy.org>',
+        '<a href="mailto:aria@khanacademy.org">' +
                 'aria@khanacademy.org' +
-                '</a>'
-            );
+                '</a>',
+      );
 
-            assertParsesToReact(
-                "https://www.khanacademy.org",
-                '<a href="https://www.khanacademy.org">' +
+      assertParsesToReact(
+        'https://www.khanacademy.org',
+        '<a href="https://www.khanacademy.org">' +
                 'https://www.khanacademy.org' +
-                '</a>'
-            );
+                '</a>',
+      );
 
-            assertParsesToReact(
-                "[KA](https://www.khanacademy.org)",
-                '<a href="https://www.khanacademy.org">' +
+      assertParsesToReact(
+        '[KA](https://www.khanacademy.org)',
+        '<a href="https://www.khanacademy.org">' +
                 'KA' +
-                '</a>'
-            );
+                '</a>',
+      );
 
-            assertParsesToReact(
-                "[KA][1]\n\n[1]: https://www.khanacademy.org\n\n",
-                '<div class="paragraph">' +
+      assertParsesToReact(
+        '[KA][1]\n\n[1]: https://www.khanacademy.org\n\n',
+        '<div class="paragraph">' +
                 '<a href="https://www.khanacademy.org">' +
                 'KA' +
                 '</a>' +
-                '</div>'
-            );
-        });
-
-        it("should output strong", function() {
-            assertParsesToReact(
-                "**bold**",
-                '<strong>bold</strong>'
-            );
-        });
-
-        it("should output u", function() {
-            assertParsesToReact(
-                "__underscore__",
-                '<u>underscore</u>'
-            );
-        });
-
-        it("should output em", function() {
-            assertParsesToReact(
-                "*italics*",
-                '<em>italics</em>'
-            );
-        });
-
-        it("should output simple combined bold/italics", function() {
-            assertParsesToReact(
-                "***bolditalics***",
-                '<em><strong>bolditalics</strong></em>'
-            );
-            assertParsesToReact(
-                "**bold *italics***",
-                '<strong>bold <em>italics</em></strong>'
-            );
-        });
-
-        // TODO(aria): Make this pass:
-        it("should output complex combined bold/italics", function() {
-            assertParsesToReact(
-                "***bold** italics*",
-                '<em><strong>bold</strong> italics</em>'
-            );
-            assertParsesToReact(
-                "*hi **there you***",
-                '<em>hi <strong>there you</strong></em>'
-            );
-        });
-
-        it("should output del", function() {
-            assertParsesToReact(
-                "~~strikethrough~~",
-                '<del>strikethrough</del>'
-            );
-        });
-
-        it("should output inline code", function() {
-            assertParsesToReact(
-                "here is some `inline code`.",
-                'here is some <code>inline code</code>.'
-            );
-        });
-
-        it("should output text", function() {
-            assertParsesToReact(
-                "Yay text!",
-                'Yay text!'
-            );
-        });
-
-        it("shouldn't split text into multiple spans", function() {
-            var parsed = SimpleMarkdown.defaultInlineParse("hi, there!");
-            var elements = SimpleMarkdown.defaultReactOutput(parsed);
-            assert.deepEqual(elements, ["hi, there!"]);
-        });
+                '</div>',
+      );
     });
 
-    describe("html output", function() {
-        it("should sanitize dangerous links", function() {
-            var markdown = "[link](javascript:alert%28%27hi%27%29)";
-            assertParsesToHtml(
-                markdown,
-                "<a>link</a>"
-            );
+    it('should output strong', () => {
+      assertParsesToReact(
+        '**bold**',
+        '<strong>bold</strong>',
+      );
+    });
 
-            var markdown2 = "[link][1]\n\n" +
+    it('should output u', () => {
+      assertParsesToReact(
+        '__underscore__',
+        '<u>underscore</u>',
+      );
+    });
+
+    it('should output em', () => {
+      assertParsesToReact(
+        '*italics*',
+        '<em>italics</em>',
+      );
+    });
+
+    it('should output simple combined bold/italics', () => {
+      assertParsesToReact(
+        '***bolditalics***',
+        '<em><strong>bolditalics</strong></em>',
+      );
+      assertParsesToReact(
+        '**bold *italics***',
+        '<strong>bold <em>italics</em></strong>',
+      );
+    });
+
+    // TODO(aria): Make this pass:
+    it('should output complex combined bold/italics', () => {
+      assertParsesToReact(
+        '***bold** italics*',
+        '<em><strong>bold</strong> italics</em>',
+      );
+      assertParsesToReact(
+        '*hi **there you***',
+        '<em>hi <strong>there you</strong></em>',
+      );
+    });
+
+    it('should output del', () => {
+      assertParsesToReact(
+        '~~strikethrough~~',
+        '<del>strikethrough</del>',
+      );
+    });
+
+    it('should output inline code', () => {
+      assertParsesToReact(
+        'here is some `inline code`.',
+        'here is some <code>inline code</code>.',
+      );
+    });
+
+    it('should output text', () => {
+      assertParsesToReact(
+        'Yay text!',
+        'Yay text!',
+      );
+    });
+
+    it("shouldn't split text into multiple spans", () => {
+      const parsed = SimpleMarkdown.defaultInlineParse('hi, there!');
+      const elements = SimpleMarkdown.defaultReactOutput(parsed);
+      assert.deepEqual(elements, ['hi, there!']);
+    });
+  });
+
+  describe('html output', () => {
+    it('should sanitize dangerous links', () => {
+      const markdown = '[link](javascript:alert%28%27hi%27%29)';
+      assertParsesToHtml(
+        markdown,
+        '<a>link</a>',
+      );
+
+      const markdown2 = '[link][1]\n\n' +
                 "[1]: javascript:alert('hi');\n\n";
-            assertParsesToHtml(
-                markdown2,
-                "<div class=\"paragraph\"><a>link</a></div>"
-            );
-        });
+      assertParsesToHtml(
+        markdown2,
+        '<div class="paragraph"><a>link</a></div>',
+      );
+    });
 
-        it("should not sanitize safe links", function() {
-            var html = htmlFromMarkdown(
-                "[link](https://www.google.com)"
-            );
-            assert.strictEqual(
-                html,
-                "<a href=\"https://www.google.com\">link</a>"
-            );
+    it('should not sanitize safe links', () => {
+      const html = htmlFromMarkdown(
+        '[link](https://www.google.com)',
+      );
+      assert.strictEqual(
+        html,
+        '<a href="https://www.google.com">link</a>',
+      );
 
-            var html2 = htmlFromMarkdown(
-                "[link][1]\n\n" +
-                "[1]: https://www.google.com\n\n"
-            );
-            assert.strictEqual(
-                html2,
-                "<div class=\"paragraph\">" +
-                    "<a href=\"https://www.google.com\">link</a>" +
-                "</div>"
-            );
-        });
+      const html2 = htmlFromMarkdown(
+        '[link][1]\n\n' +
+                '[1]: https://www.google.com\n\n',
+      );
+      assert.strictEqual(
+        html2,
+        '<div class="paragraph">' +
+                    '<a href="https://www.google.com">link</a>' +
+                '</div>',
+      );
+    });
 
-        it("should output headings", function() {
-            assertParsesToHtml(
-                "### Heading!\n\n",
-                "<h3>Heading!</h3>"
-            );
+    it('should output headings', () => {
+      assertParsesToHtml(
+        '### Heading!\n\n',
+        '<h3>Heading!</h3>',
+      );
 
-            assertParsesToHtml(
-                "## hi! ##\n\n",
-                "<h2>hi!</h2>"
-            );
+      assertParsesToHtml(
+        '## hi! ##\n\n',
+        '<h2>hi!</h2>',
+      );
 
-            assertParsesToHtml(
-                "Yay!\n====\n\n",
-                "<h1>Yay!</h1>"
-            );
+      assertParsesToHtml(
+        'Yay!\n====\n\n',
+        '<h1>Yay!</h1>',
+      );
 
-            assertParsesToHtml(
-                "Success\n---\n\n",
-                "<h2>Success</h2>"
-            );
-        });
+      assertParsesToHtml(
+        'Success\n---\n\n',
+        '<h2>Success</h2>',
+      );
+    });
 
-        it("should output hrs", function() {
-            assertParsesToHtml(
-                "-----\n\n",
-                "<hr>"
-            );
-            assertParsesToHtml(
-                " * * * \n\n",
-                "<hr>"
-            );
-            assertParsesToHtml(
-                "___\n\n",
-                "<hr>"
-            );
-        });
+    it('should output hrs', () => {
+      assertParsesToHtml(
+        '-----\n\n',
+        '<hr>',
+      );
+      assertParsesToHtml(
+        ' * * * \n\n',
+        '<hr>',
+      );
+      assertParsesToHtml(
+        '___\n\n',
+        '<hr>',
+      );
+    });
 
-        it("should output codeblocks", function() {
-            var html = htmlFromMarkdown(
-                "    var microwave = new TimeMachine();\n\n"
-            );
-            assert.strictEqual(
-                html,
-                "<pre><code>var microwave = new TimeMachine();</code></pre>"
-            );
+    it('should output codeblocks', () => {
+      const html = htmlFromMarkdown(
+        '    var microwave = new TimeMachine();\n\n',
+      );
+      assert.strictEqual(
+        html,
+        '<pre><code>var microwave = new TimeMachine();</code></pre>',
+      );
 
-            var html2 = htmlFromMarkdown(
-                "~~~\n" +
-                "var computer = new IBN(5100);\n" +
-                "~~~\n\n"
-            );
-            assert.strictEqual(
-                html2,
-                "<pre><code>var computer = new IBN(5100);</code></pre>"
-            );
+      const html2 = htmlFromMarkdown(
+        '~~~\n' +
+                'var computer = new IBN(5100);\n' +
+                '~~~\n\n',
+      );
+      assert.strictEqual(
+        html2,
+        '<pre><code>var computer = new IBN(5100);</code></pre>',
+      );
 
-            var html3 = htmlFromMarkdown(
-                "```yavascript\n" +
-                "var undefined = function() { return 5; }" +
-                "```\n\n"
-            );
-            assert.strictEqual(
-                html3,
-                '<pre><code class="markdown-code-yavascript">' +
+      const html3 = htmlFromMarkdown(
+        '```yavascript\n' +
                 'var undefined = function() { return 5; }' +
-                '</code></pre>'
-            );
-        });
+                '```\n\n',
+      );
+      assert.strictEqual(
+        html3,
+        '<pre><code class="markdown-code-yavascript">' +
+                'var undefined = function() { return 5; }' +
+                '</code></pre>',
+      );
+    });
 
-        it("should output blockQuotes", function() {
-            assertParsesToHtml(
-                "> hi there this is a\ntest\n\n",
-                '<blockquote><div class="paragraph">' +
+    it('should output blockQuotes', () => {
+      assertParsesToHtml(
+        '> hi there this is a\ntest\n\n',
+        '<blockquote><div class="paragraph">' +
                 'hi there this is a test' +
-                '</div></blockquote>'
-            );
+                '</div></blockquote>',
+      );
 
-            assertParsesToHtml(
-                "> hi there this is a\n> test\n\n",
-                '<blockquote><div class="paragraph">' +
+      assertParsesToHtml(
+        '> hi there this is a\n> test\n\n',
+        '<blockquote><div class="paragraph">' +
                 'hi there this is a test' +
-                '</div></blockquote>'
-            );
-        });
+                '</div></blockquote>',
+      );
+    });
 
-        it("should output lists", function() {
-            assertParsesToHtml(
-                " * first\n" +
-                " * second\n" +
-                " * third\n\n",
-                '<ul>' +
+    it('should output lists', () => {
+      assertParsesToHtml(
+        ' * first\n' +
+                ' * second\n' +
+                ' * third\n\n',
+        '<ul>' +
                 '<li>first</li>' +
                 '<li>second</li>' +
                 '<li>third</li>' +
-                '</ul>'
-            );
+                '</ul>',
+      );
 
-            assertParsesToHtml(
-                "1. first\n" +
-                "2. second\n" +
-                "3. third\n\n",
-                '<ol start="1">' +
+      assertParsesToHtml(
+        '1. first\n' +
+                '2. second\n' +
+                '3. third\n\n',
+        '<ol start="1">' +
                 '<li>first</li>' +
                 '<li>second</li>' +
                 '<li>third</li>' +
-                '</ol>'
-            );
+                '</ol>',
+      );
 
-            assertParsesToHtml(
-                " * first\n" +
-                " * second\n" +
-                "    * inner\n" +
-                " * third\n\n",
-                '<ul>' +
+      assertParsesToHtml(
+        ' * first\n' +
+                ' * second\n' +
+                '    * inner\n' +
+                ' * third\n\n',
+        '<ul>' +
                 '<li>first</li>' +
                 '<li>second <ul><li>inner</li></ul></li>' +
                 '<li>third</li>' +
-                '</ul>'
-            );
-        });
+                '</ul>',
+      );
+    });
 
-        it("should output tables", function() {
-            assertParsesToHtml(
-                "h1 | h2 | h3\n" +
-                "---|----|---\n" +
-                "d1 | d2 | d3\n" +
-                "\n",
-                '<table><thead>' +
+    it('should output tables', () => {
+      assertParsesToHtml(
+        'h1 | h2 | h3\n' +
+                '---|----|---\n' +
+                'd1 | d2 | d3\n' +
+                '\n',
+        '<table><thead>' +
                 '<tr><th scope="col">h1</th><th scope="col">h2</th><th scope="col">h3</th></tr>' +
                 '</thead><tbody>' +
                 '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
-                '</tbody></table>'
-            );
+                '</tbody></table>',
+      );
 
-            assertParsesToHtml(
-                "| h1 | h2 | h3 |\n" +
-                "|----|----|----|\n" +
-                "| d1 | d2 | d3 |\n" +
-                "\n",
-                '<table><thead>' +
+      assertParsesToHtml(
+        '| h1 | h2 | h3 |\n' +
+                '|----|----|----|\n' +
+                '| d1 | d2 | d3 |\n' +
+                '\n',
+        '<table><thead>' +
                 '<tr><th scope="col">h1</th><th scope="col">h2</th><th scope="col">h3</th></tr>' +
                 '</thead><tbody>' +
                 '<tr><td>d1</td><td>d2</td><td>d3</td></tr>' +
-                '</tbody></table>'
-            );
+                '</tbody></table>',
+      );
 
-            assertParsesToHtml(
-                "h1 | h2 | h3\n" +
-                ":--|:--:|--:\n" +
-                "d1 | d2 | d3\n" +
-                "\n",
-                '<table><thead>' +
+      assertParsesToHtml(
+        'h1 | h2 | h3\n' +
+                ':--|:--:|--:\n' +
+                'd1 | d2 | d3\n' +
+                '\n',
+        '<table><thead>' +
                 '<tr>' +
                 '<th style="text-align:left;" scope="col">h1</th>' +
                 '<th style="text-align:center;" scope="col">h2</th>' +
@@ -3289,147 +3288,147 @@ describe("simple markdown", function() {
                 '<td style="text-align:center;">d2</td>' +
                 '<td style="text-align:right;">d3</td>' +
                 '</tr>' +
-                '</tbody></table>'
-            );
-        });
+                '</tbody></table>',
+      );
+    });
 
-        // TODO(aria): Figure out how to test the newline rule here
+    // TODO(aria): Figure out how to test the newline rule here
 
-        it("should output paragraphs", function() {
-            var html = htmlFromMarkdown(
-                "hi\n\n"
-            );
-            assert.strictEqual(
-                html,
-                '<div class="paragraph">hi</div>'
-            );
+    it('should output paragraphs', () => {
+      const html = htmlFromMarkdown(
+        'hi\n\n',
+      );
+      assert.strictEqual(
+        html,
+        '<div class="paragraph">hi</div>',
+      );
 
-            var html2 = htmlFromMarkdown(
-                "hi\n\n" +
-                "bye\n\n"
-            );
-            assert.strictEqual(
-                html2,
-                '<div class="paragraph">hi</div>' +
-                '<div class="paragraph">bye</div>'
-            );
-        });
+      const html2 = htmlFromMarkdown(
+        'hi\n\n' +
+                'bye\n\n',
+      );
+      assert.strictEqual(
+        html2,
+        '<div class="paragraph">hi</div>' +
+                '<div class="paragraph">bye</div>',
+      );
+    });
 
-        it("should output escaped text", function() {
-            assertParsesToHtml(
-                "\\#escaping\\^symbols\\*is\\[legal](yes)",
-                '#escaping^symbols*is[legal](yes)'
-            );
-        });
+    it('should output escaped text', () => {
+      assertParsesToHtml(
+        '\\#escaping\\^symbols\\*is\\[legal](yes)',
+        '#escaping^symbols*is[legal](yes)',
+      );
+    });
 
-        it("should output links", function() {
-            assertParsesToHtml(
-                "<https://www.khanacademy.org>",
-                '<a href="https://www.khanacademy.org">' +
+    it('should output links', () => {
+      assertParsesToHtml(
+        '<https://www.khanacademy.org>',
+        '<a href="https://www.khanacademy.org">' +
                 'https://www.khanacademy.org' +
-                '</a>'
-            );
+                '</a>',
+      );
 
-            assertParsesToHtml(
-                "<aria@khanacademy.org>",
-                '<a href="mailto:aria@khanacademy.org">' +
+      assertParsesToHtml(
+        '<aria@khanacademy.org>',
+        '<a href="mailto:aria@khanacademy.org">' +
                 'aria@khanacademy.org' +
-                '</a>'
-            );
+                '</a>',
+      );
 
-            assertParsesToHtml(
-                "https://www.khanacademy.org",
-                '<a href="https://www.khanacademy.org">' +
+      assertParsesToHtml(
+        'https://www.khanacademy.org',
+        '<a href="https://www.khanacademy.org">' +
                 'https://www.khanacademy.org' +
-                '</a>'
-            );
+                '</a>',
+      );
 
-            assertParsesToHtml(
-                "[KA](https://www.khanacademy.org)",
-                '<a href="https://www.khanacademy.org">' +
+      assertParsesToHtml(
+        '[KA](https://www.khanacademy.org)',
+        '<a href="https://www.khanacademy.org">' +
                 'KA' +
-                '</a>'
-            );
+                '</a>',
+      );
 
-            assertParsesToHtml(
-                "[KA][1]\n\n[1]: https://www.khanacademy.org\n\n",
-                '<div class="paragraph">' +
+      assertParsesToHtml(
+        '[KA][1]\n\n[1]: https://www.khanacademy.org\n\n',
+        '<div class="paragraph">' +
                 '<a href="https://www.khanacademy.org">' +
                 'KA' +
                 '</a>' +
-                '</div>'
-            );
-        });
-
-        it("should output strong", function() {
-            assertParsesToHtml(
-                "**bold**",
-                '<strong>bold</strong>'
-            );
-        });
-
-        it("should output u", function() {
-            assertParsesToHtml(
-                "__underscore__",
-                '<u>underscore</u>'
-            );
-        });
-
-        it("should output em", function() {
-            assertParsesToHtml(
-                "*italics*",
-                '<em>italics</em>'
-            );
-        });
-
-        it("should output simple combined bold/italics", function() {
-            assertParsesToHtml(
-                "***bolditalics***",
-                '<em><strong>bolditalics</strong></em>'
-            );
-            assertParsesToHtml(
-                "**bold *italics***",
-                '<strong>bold <em>italics</em></strong>'
-            );
-        });
-
-        // TODO(aria): Make this pass:
-        it("should output complex combined bold/italics", function() {
-            assertParsesToHtml(
-                "***bold** italics*",
-                '<em><strong>bold</strong> italics</em>'
-            );
-            assertParsesToHtml(
-                "*hi **there you***",
-                '<em>hi <strong>there you</strong></em>'
-            );
-        });
-
-        it("should output del", function() {
-            assertParsesToHtml(
-                "~~strikethrough~~",
-                '<del>strikethrough</del>'
-            );
-        });
-
-        it("should output inline code", function() {
-            assertParsesToHtml(
-                "here is some `inline code`.",
-                'here is some <code>inline code</code>.'
-            );
-        });
-
-        it("should output text", function() {
-            assertParsesToHtml(
-                "Yay text!",
-                'Yay text!'
-            );
-        });
-
-        it("shouldn't split text into multiple spans", function() {
-            var parsed = SimpleMarkdown.defaultInlineParse("hi, there!");
-            var elements = SimpleMarkdown.defaultHtmlOutput(parsed);
-            assert.deepEqual(elements, "hi, there!");
-        });
+                '</div>',
+      );
     });
+
+    it('should output strong', () => {
+      assertParsesToHtml(
+        '**bold**',
+        '<strong>bold</strong>',
+      );
+    });
+
+    it('should output u', () => {
+      assertParsesToHtml(
+        '__underscore__',
+        '<u>underscore</u>',
+      );
+    });
+
+    it('should output em', () => {
+      assertParsesToHtml(
+        '*italics*',
+        '<em>italics</em>',
+      );
+    });
+
+    it('should output simple combined bold/italics', () => {
+      assertParsesToHtml(
+        '***bolditalics***',
+        '<em><strong>bolditalics</strong></em>',
+      );
+      assertParsesToHtml(
+        '**bold *italics***',
+        '<strong>bold <em>italics</em></strong>',
+      );
+    });
+
+    // TODO(aria): Make this pass:
+    it('should output complex combined bold/italics', () => {
+      assertParsesToHtml(
+        '***bold** italics*',
+        '<em><strong>bold</strong> italics</em>',
+      );
+      assertParsesToHtml(
+        '*hi **there you***',
+        '<em>hi <strong>there you</strong></em>',
+      );
+    });
+
+    it('should output del', () => {
+      assertParsesToHtml(
+        '~~strikethrough~~',
+        '<del>strikethrough</del>',
+      );
+    });
+
+    it('should output inline code', () => {
+      assertParsesToHtml(
+        'here is some `inline code`.',
+        'here is some <code>inline code</code>.',
+      );
+    });
+
+    it('should output text', () => {
+      assertParsesToHtml(
+        'Yay text!',
+        'Yay text!',
+      );
+    });
+
+    it("shouldn't split text into multiple spans", () => {
+      const parsed = SimpleMarkdown.defaultInlineParse('hi, there!');
+      const elements = SimpleMarkdown.defaultHtmlOutput(parsed);
+      assert.deepEqual(elements, 'hi, there!');
+    });
+  });
 });
