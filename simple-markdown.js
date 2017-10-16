@@ -503,7 +503,7 @@ var TABLES = (function() {
 
     var parseTableCells = function(capture, parse, state) {
         var rowsText = capture[3]
-            .replace(TABLE_CELLS_TRIM, "")
+            .replace(TABLE_CELLS_TRIM, "|")
             .split("\n");
 
         return rowsText.map(function(rowText) {
