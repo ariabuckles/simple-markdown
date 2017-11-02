@@ -2,10 +2,14 @@
  * Typings are current as of simple-markdown 0.3.1.
  */
 
-export interface MarkdownStyles {
-  [markdownElementKey: string]: Object;
-}
+//
+// INTERFACES & TYPES
+//
 
+export type DefaultHtmlOutput = (ast: MarkdownAST, state?: MarkdownState) => Object[];
+export type DefaultReactOutput = (ast: MarkdownAST, state?: MarkdownState) => JSX.Element | JSX.Element[];
+
+export type MarkdownAST = MarkdownContent[] | MarkdownContent | string;
 export interface MarkdownBaseNode {
   type: string;
   cells?: MarkdownContent[][];
@@ -15,11 +19,9 @@ export interface MarkdownBaseNode {
   ordered?: boolean;
   target?: string;
 }
-
 export interface MarkdownContent extends MarkdownBaseNode {
   content: string;
 }
-
 export interface MarkdownNode extends MarkdownBaseNode {
   content: MarkdownContent[];
 }
@@ -30,58 +32,48 @@ export type MarkdownState = {
   withinText?: boolean;
 };
 
-export type MarkdownAST = MarkdownContent[] | MarkdownContent | string;
+export type ImplicitParser = (source: string) => MarkdownAST;
+export type ParseHelper = (parse: ImplicitParser, content: string, state: MarkdownState) => MarkdownAST;
+export type Parser = (source: string, state: MarkdownState) => MarkdownAST;
+export type RegExHelper = (regExp: RegExp) => (source: string, state: MarkdownState) => number[] | null;
 
 export type MarkdownOutput = (ast: MarkdownAST, state: MarkdownState) => JSX.Element;
-
-export type RuleASTFunction = (ast: MarkdownAST, output: MarkdownOutput, state: MarkdownState) => JSX.Element | JSX.Element[];
-
-export type RuleFunction = (node: MarkdownNode | MarkdownContent, output: MarkdownOutput, state: MarkdownState) => JSX.Element | JSX.Element[];
-
 export interface MarkdownRules {
   [markdownElementKey: string]: {
     react: RuleFunction;
   };
 }
+export type RuleASTFunction = (ast: MarkdownAST, output: MarkdownOutput, state: MarkdownState) => JSX.Element | JSX.Element[];
+export type RuleFunction = (node: MarkdownNode | MarkdownContent, output: MarkdownOutput, state: MarkdownState) => JSX.Element | JSX.Element[];
 
-export type DefaultReactOutput = (ast: MarkdownAST, state?: MarkdownState) => JSX.Element | JSX.Element[];
-export type DefaultHtmlOutput = (ast: MarkdownAST, state?: MarkdownState) => Object[];
-export type ReactFor = (outputFunction: RuleASTFunction) => DefaultReactOutput;
-export type Parser = (source: string, state: MarkdownState) => MarkdownAST;
-export type ImplicitParser = (source: string) => MarkdownAST;
-export type ParseHelper = (parse: ImplicitParser, content: string, state: MarkdownState) => MarkdownAST;
-export type RegExHelper = (regExp: RegExp) => (source: string, state: MarkdownState) => number[] | null;
+//
+// EXPORTED FUNCTIONS
+//
 
-export interface SimpleMarkdown {
-  inlineRegex: RegExHelper;
-  blockRegex: RegExHelper;
-  anyScopeRegex: RegExHelper;
-  parseInline: ParseHelper;
-  parseBlock: ParseHelper;
+export const inlineRegex: RegExHelper;
+export const blockRegex: RegExHelper;
+export const anyScopeRegex: RegExHelper;
+export const parseInline: ParseHelper;
+export const parseBlock: ParseHelper;
 
-  defaultRawParse: ImplicitParser;
-  defaultBlockParse: ImplicitParser;
-  defaultInlineParse: ImplicitParser;
-  defaultImplicitParse: ImplicitParser;
+export const defaultRawParse: ImplicitParser;
+export const defaultBlockParse: ImplicitParser;
+export const defaultInlineParse: ImplicitParser;
+export const defaultImplicitParse: ImplicitParser;
 
-  defaultReactOutput: DefaultReactOutput;
-  defaultHtmlOutput: DefaultHtmlOutput;
+export const defaultReactOutput: DefaultReactOutput;
+export const defaultHtmlOutput: DefaultHtmlOutput;
 
-  preprocess: (source: string) => string;
-  sanitizeUrl: (url: string) => string;
-  unescapeUrl: (url: string) => string;
+export const preprocess: (source: string) => string;
+export const sanitizeUrl: (url: string) => string;
+export const unescapeUrl: (url: string) => string;
 
-  // deprecated:
-  defaultParse: ImplicitParser;
-  outputFor: ReactFor;
-  defaultOutput: DefaultReactOutput;
+export const defaultParse: ImplicitParser;
+export const outputFor: (outputFunction: RuleASTFunction) => DefaultReactOutput;
+export const defaultOutput: DefaultReactOutput;
 
-  defaultRules: MarkdownRules;
-  reactFor: ReactFor;
-  htmlFor: (outputFunction: RuleASTFunction) => DefaultHtmlOutput;
-  ruleOutput: (rules: MarkdownRules, property: string) => RuleASTFunction;
-  parserFor: (rules: MarkdownRules) => Parser;
-}
-
-declare const Markdown: SimpleMarkdown;
-export default Markdown;
+export const defaultRules: MarkdownRules;
+export const reactFor: (outputFunction: RuleASTFunction) => DefaultReactOutput;
+export const htmlFor: (outputFunction: RuleASTFunction) => DefaultHtmlOutput;
+export const ruleOutput: (rules: MarkdownRules, property: string) => RuleASTFunction;
+export const parserFor: (rules: MarkdownRules) => Parser;
