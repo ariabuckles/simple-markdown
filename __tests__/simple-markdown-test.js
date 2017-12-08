@@ -2442,6 +2442,49 @@ describe("simple markdown", function() {
             );
         });
 
+        it("should parse empty table cells", function() {
+            var expected = [{
+                type: "table",
+                header: [
+                    [],
+                    [],
+                    []
+                ],
+                align: [null, null, null],
+                cells: [
+                    [
+                        [],
+                        [],
+                        []
+                    ],
+                    [
+                        [],
+                        [],
+                        []
+                    ]
+                ]
+            }];
+
+            var parsedPiped = blockParse(
+                "|    |    |    |\n" +
+                "| -- | -- | -- |\n" +
+                "|    |    |    |\n" +
+                "|    |    |    |\n" +
+                "\n"
+            );
+            validateParse(parsedPiped, expected);
+
+            var parsedNp = blockParse(
+                "   |    |   \n" +
+                "- | - | -\n" +
+                "   |    |   \n" +
+                "   |    |   \n" +
+                "\n"
+            );
+            validateParse(parsedNp, expected);
+        });
+
+
         it("should be able to parse <br>s", function() {
             // Inside a paragraph:
             var parsed = blockParse("hi  \nbye\n\n");
