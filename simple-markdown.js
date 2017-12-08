@@ -268,7 +268,7 @@ var reactFor = function(outputFunc) {
             // nodes together into a single string output.
             var lastWasString = false;
             for (var i = 0; i < ast.length; i++) {
-                state.key = i;
+                state.key = '' + i;
                 var nodeOut = nestedOutput(ast[i], state);
                 var isString = (typeof nodeOut === "string");
                 if (isString && lastWasString) {
@@ -307,35 +307,25 @@ var TYPE_SYMBOL =
      Symbol.for('react.element')) ||
     0xeac7;
 
-var reactElement = function(element) {
+var reactElement = function(type, key, props) {
     // Debugging assertions. To be commented out when committed
     // TODO(aria): Figure out a better way of having dev asserts
 /*
-    if (typeof element.props !== "object") {
-        throw new Error("props of " + element.type + " must be an object");
+    if (props === null || typeof props !== "object") {
+        throw new Error("props of " + type + " must be an object");
     }
-    if (!element.$$typeof) {
-        throw new Error(
-            "must set $$typeof on element " +
-            element.type
-        );
-    }
-    if (element._store !== null) { // === because we don't want to count
-                                   // undefined here
-        throw new Error(
-            "must set _store to null on element " +
-            element.type
-        );
+    if (key !== null && typeof key !== "string") {
+        throw new Error("key of " + type + " must be a string, got " + key);
     }
 */
-
-    // This should just override an already present element._store, which
-    // exists so that the class of this object doesn't change in V8
-    element._store = {
-        validated: true,
-        originalProps: element.props
+    return {
+        $$typeof: TYPE_SYMBOL,
+        type: type,
+        key: key,
+        ref: null,
+        props: props,
+        _owner: null
     };
-    return element;
 };
 
 // Returns a closed HTML tag.
@@ -612,16 +602,13 @@ var defaultRules = {
             };
         },
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'h' + node.level,
-                key: state.key,
-                props: {
+            return reactElement(
+                'h' + node.level,
+                state.key,
+                {
                     children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             return htmlTag("h" + node.level, output(node.content, state));
@@ -647,14 +634,11 @@ var defaultRules = {
         match: blockRegex(/^( *[-*_]){3,} *(?:\n *)+\n/),
         parse: ignoreCapture,
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'hr',
-                key: state.key,
-                props: EMPTY_PROPS,
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+            return reactElement(
+                'hr',
+                state.key,
+                EMPTY_PROPS
+            );
         },
         html: function(node, output, state) {
             return "<hr>";
@@ -676,25 +660,20 @@ var defaultRules = {
                 "markdown-code-" + node.lang :
                 undefined;
 
-            return reactElement({
-                ref: null,
-                type: 'pre',
-                key: state.key,
-                props: {
-                    children: reactElement({
-                        ref: null,
-                        type: 'code',
-                        props: {
+            return reactElement(
+                'pre',
+                state.key,
+                {
+                    children: reactElement(
+                        'code',
+                        null,
+                        {
                             className: className,
                             children: node.content
-                        },
-                        $$typeof: TYPE_SYMBOL,
-                        _store: null
-                    })
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null
-            });
+                        }
+                    )
+                }
+            );
         },
         html: function(node, output, state) {
             var className = node.lang ?
@@ -726,16 +705,13 @@ var defaultRules = {
             };
         },
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'blockquote',
-                key: state.key,
-                props: {
+            return reactElement(
+                'blockquote',
+                state.key,
+                {
                     children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             return htmlTag("blockquote", output(node.content, state));
@@ -838,28 +814,22 @@ var defaultRules = {
         react: function(node, output, state) {
             var ListWrapper = node.ordered ? "ol" : "ul";
 
-            return reactElement({
-                ref: null,
-                type: ListWrapper,
-                key: state.key,
-                props: {
+            return reactElement(
+                ListWrapper,
+                state.key,
+                {
                     start: node.start,
                     children: node.items.map(function(item, i) {
-                        return reactElement({
-                            ref: null,
-                            type: 'li',
-                            key: i,
-                            props: {
+                        return reactElement(
+                            'li',
+                            '' + i,
+                            {
                                 children: output(item, state)
-                            },
-                            $$typeof: TYPE_SYMBOL,
-                            _store: null,
-                        });
+                            }
+                        );
                     })
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             var listItems = node.items.map(function(item) {
@@ -935,81 +905,61 @@ var defaultRules = {
             };
 
             var headers = node.header.map(function(content, i) {
-                return reactElement({
-                    ref: null,
-                    type: 'th',
-                    key: i,
-                    props: {
+                return reactElement(
+                    'th',
+                    '' + i,
+                    {
                         style: getStyle(i),
                         scope: 'col',
                         children: output(content, state)
-                    },
-                    $$typeof: TYPE_SYMBOL,
-                    _store: null
-                });
+                    }
+                );
             });
 
             var rows = node.cells.map(function(row, r) {
-                return reactElement({
-                    ref: null,
-                    type: 'tr',
-                    key: r,
-                    props: {
+                return reactElement(
+                    'tr',
+                    '' + r,
+                    {
                         children: row.map(function(content, c) {
-                            return reactElement({
-                                ref: null,
-                                type: 'td',
-                                key: c,
-                                props: {
+                            return reactElement(
+                                'td',
+                                '' + c,
+                                {
                                     style: getStyle(c),
                                     children: output(content, state)
-                                },
-                                $$typeof: TYPE_SYMBOL,
-                                _store: null,
-                            });
+                                }
+                            );
                         })
-                    },
-                    $$typeof: TYPE_SYMBOL,
-                    _store: null,
-                });
+                    }
+                );
             });
 
-            return reactElement({
-                ref: null,
-                type: 'table',
-                key: state.key,
-                props: {
-                    children: [reactElement({
-                        ref: null,
-                        type: 'thead',
-                        key: 'thead',
-                        props: {
-                            children: reactElement({
-                                ref: null,
-                                type: 'tr',
-                                props: {
+            return reactElement(
+                'table',
+                state.key,
+                {
+                    children: [reactElement(
+                        'thead',
+                        'thead',
+                        {
+                            children: reactElement(
+                                'tr',
+                                null,
+                                {
                                     children: headers
-                                },
-                                $$typeof: TYPE_SYMBOL,
-                                _store: null,
-                            })
-                        },
-                        $$typeof: TYPE_SYMBOL,
-                        _store: null,
-                    }), reactElement({
-                        ref: null,
-                        type: 'tbody',
-                        key: 'tbody',
-                        props: {
+                                }
+                            )
+                        }
+                    ), reactElement(
+                        'tbody',
+                        'tbody',
+                        {
                             children: rows
-                        },
-                        $$typeof: TYPE_SYMBOL,
-                        _store: null,
-                    })]
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+                        }
+                    )]
+                }
+            );
         },
         html: function(node, output, state) {
             var getStyle = function(colIndex) {
@@ -1047,17 +997,14 @@ var defaultRules = {
         match: blockRegex(/^((?:[^\n]|\n(?! *\n))+)(?:\n *)+\n/),
         parse: parseCaptureInline,
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'div',
-                key: state.key,
-                props: {
+            return reactElement(
+                'div',
+                state.key,
+                {
                     className: 'paragraph',
                     children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             var attributes = {
@@ -1140,18 +1087,15 @@ var defaultRules = {
             return link;
         },
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'a',
-                key: state.key,
-                props: {
+            return reactElement(
+                'a',
+                state.key,
+                {
                     href: sanitizeUrl(node.target),
                     title: node.title,
                     children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             var attributes = {
@@ -1175,18 +1119,15 @@ var defaultRules = {
             return image;
         },
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'img',
-                key: state.key,
-                props: {
+            return reactElement(
+                'img',
+                state.key,
+                {
                     src: sanitizeUrl(node.target),
                     alt: node.alt,
                     title: node.title
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             var attributes = {
@@ -1259,16 +1200,13 @@ var defaultRules = {
             };
         },
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'em',
-                key: state.key,
-                props: {
+            return reactElement(
+                'em',
+                state.key,
+                {
                     children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             return htmlTag("em", output(node.content, state));
@@ -1282,16 +1220,13 @@ var defaultRules = {
         },
         parse: parseCaptureInline,
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'strong',
-                key: state.key,
-                props: {
+            return reactElement(
+                'strong',
+                state.key,
+                {
                     children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             return htmlTag("strong", output(node.content, state));
@@ -1305,16 +1240,13 @@ var defaultRules = {
         },
         parse: parseCaptureInline,
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'u',
-                key: state.key,
-                props: {
+            return reactElement(
+                'u',
+                state.key,
+                {
                     children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             return htmlTag("u", output(node.content, state));
@@ -1324,16 +1256,13 @@ var defaultRules = {
         match: inlineRegex(/^~~(?=\S)([\s\S]*?\S)~~/),
         parse: parseCaptureInline,
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'del',
-                key: state.key,
-                props: {
+            return reactElement(
+                'del',
+                state.key,
+                {
                     children: output(node.content, state)
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             return htmlTag("del", output(node.content, state));
@@ -1347,16 +1276,13 @@ var defaultRules = {
             };
         },
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'code',
-                key: state.key,
-                props: {
+            return reactElement(
+                'code',
+                state.key,
+                {
                     children: node.content
-                },
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+                }
+            );
         },
         html: function(node, output, state) {
             return htmlTag("code", node.content);
@@ -1366,14 +1292,11 @@ var defaultRules = {
         match: anyScopeRegex(/^ {2,}\n/),
         parse: ignoreCapture,
         react: function(node, output, state) {
-            return reactElement({
-                ref: null,
-                type: 'br',
-                key: state.key,
-                props: EMPTY_PROPS,
-                $$typeof: TYPE_SYMBOL,
-                _store: null,
-            });
+            return reactElement(
+                'br',
+                state.key,
+                EMPTY_PROPS
+            );
         },
         html: function(node, output, state) {
             return "<br>";
