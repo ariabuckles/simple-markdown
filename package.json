@@ -4,7 +4,7 @@
   "description": "Javascript markdown parsing, made simple",
   "main": "simple-markdown.js",
   "scripts": {
-    "test": "make test && size-limit",
+    "test": "make test",
     "size": "size-limit"
   },
   "repository": {
@@ -37,7 +37,7 @@
   "size-limit": [
     {
       "path": "simple-markdown.js",
-      "limit": "4 KB"
+      "limit": "5 KB"
     }
   ]
 }
