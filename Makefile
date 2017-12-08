@@ -1,6 +1,6 @@
-.PHONY: all install test minify
+.PHONY: all install test size minify
 
-all: install test
+all: install test size
 
 install:
 	npm install
@@ -13,6 +13,9 @@ test:
 	$(FIND_TESTS) | xargs ./node_modules/.bin/mocha --reporter spec
 shorttest:
 	$(FIND_TESTS) | xargs ./node_modules/.bin/mocha --reporter dot
+
+size:
+	./node_modules/.bin/size-limit
 
 simple-markdown.min.js: simple-markdown.js
 	uglifyjs simple-markdown.js > simple-markdown.min.js
