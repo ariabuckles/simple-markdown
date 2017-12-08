@@ -4,7 +4,8 @@
   "description": "Javascript markdown parsing, made simple",
   "main": "simple-markdown.js",
   "scripts": {
-    "test": "make test"
+    "test": "make test && size-limit",
+    "size": "size-limit"
   },
   "repository": {
     "type": "git",
@@ -29,7 +30,14 @@
     "mocha": "^2.5.3",
     "react": "^16.1.0",
     "react-dom": "^16.1.0",
+    "size-limit": "^0.13.1",
     "uglify-js": "^2.6.2",
     "underscore": "^1.8.3"
-  }
+  },
+  "size-limit": [
+    {
+      "path": "simple-markdown.js",
+      "limit": "4 KB"
+    }
+  ]
 }
