@@ -3050,15 +3050,15 @@ describe("simple markdown", function() {
                 "\n",
                 '<table><thead>' +
                 '<tr>' +
-                '<th style="text-align:left;" scope="col">h1</th>' +
-                '<th style="text-align:center;" scope="col">h2</th>' +
-                '<th style="text-align:right;" scope="col">h3</th>' +
+                '<th style="text-align:left" scope="col">h1</th>' +
+                '<th style="text-align:center" scope="col">h2</th>' +
+                '<th style="text-align:right" scope="col">h3</th>' +
                 '</tr>' +
                 '</thead><tbody>' +
                 '<tr>' +
-                '<td style="text-align:left;">d1</td>' +
-                '<td style="text-align:center;">d2</td>' +
-                '<td style="text-align:right;">d3</td>' +
+                '<td style="text-align:left">d1</td>' +
+                '<td style="text-align:center">d2</td>' +
+                '<td style="text-align:right">d3</td>' +
                 '</tr>' +
                 '</tbody></table>'
             );
