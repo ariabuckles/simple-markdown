@@ -474,18 +474,18 @@ var TABLES = (function() {
         }
     };
 
-    var parseTableHeader = function(capture, parse, state) {
+    var parseTableHeader = function(trimRegex, capture, parse, state) {
         var headerText = capture[1]
-            .replace(TABLE_HEADER_TRIM, "")
+            .replace(trimRegex, "")
             .split(TABLE_ROW_SPLIT);
         return headerText.map(function(text) {
             return parse(text, state);
         });
     };
 
-    var parseTableAlign = function(capture, parse, state) {
+    var parseTableAlign = function(trimRegex, capture, parse, state) {
         var alignText = capture[2]
-            .replace(TABLE_ALIGN_TRIM, "")
+            .replace(trimRegex, "")
             .split(TABLE_ROW_SPLIT);
 
         return alignText.map(parseTableAlignCapture);
@@ -521,8 +521,8 @@ var TABLES = (function() {
 
     var parseTable = function(capture, parse, state) {
         state.inline = true;
-        var header = parseTableHeader(capture, parse, state);
-        var align = parseTableAlign(capture, parse, state);
+        var header = parseTableHeader(TABLE_HEADER_TRIM, capture, parse, state);
+        var align = parseTableAlign(TABLE_ALIGN_TRIM, capture, parse, state);
         var cells = parseTableCells(capture, parse, state);
         state.inline = false;
 
@@ -536,8 +536,8 @@ var TABLES = (function() {
 
     var parseNpTable = function(capture, parse, state) {
         state.inline = true;
-        var header = parseTableHeader(capture, parse, state);
-        var align = parseTableAlign(capture, parse, state);
+        var header = parseTableHeader(TABLE_HEADER_TRIM, capture, parse, state);
+        var align = parseTableAlign(TABLE_ALIGN_TRIM, capture, parse, state);
         var cells = parseNpTableCells(capture, parse, state);
         state.inline = false;
 
