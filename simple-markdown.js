@@ -451,11 +451,9 @@ var TABLES = (function() {
     // sure, regex literals should be fast, even inside functions, but they
     // aren't in all browsers.
     var TABLE_HEADER_TRIM = /^ *| *\| *$/g;
-    var TABLE_ALIGN_TRIM = /^ *|\| *$/g;
-
-    var TABLE_CELLS_TRIM = /(?: *\| *)?\n$/;
-    var NPTABLE_CELLS_TRIM = /\n$/;
+    var TABLE_CELLS_TRIM = /\n+$/;
     var PLAIN_TABLE_ROW_TRIM = /^ *\| *| *\| *$/g;
+    var NPTABLE_ROW_TRIM = /^ *| *$/g;
     var TABLE_ROW_SPLIT = / *\| */;
 
     var TABLE_RIGHT_ALIGN = /^ *-+: *$/;
@@ -493,7 +491,7 @@ var TABLES = (function() {
 
     var parseTableCells = function(capture, parse, state) {
         var rowsText = capture[3]
-            .replace(TABLE_CELLS_TRIM, "|")
+            .replace(TABLE_CELLS_TRIM, "")
             .split("\n");
 
         return rowsText.map(function(rowText) {
@@ -508,7 +506,7 @@ var TABLES = (function() {
 
     var parseNpTableCells = function(capture, parse, state) {
         var rowsText = capture[3]
-            .replace(NPTABLE_CELLS_TRIM, "")
+            .replace(TABLE_CELLS_TRIM, "")
             .split("\n");
 
         return rowsText.map(function(rowText) {
@@ -522,7 +520,7 @@ var TABLES = (function() {
     var parseTable = function(capture, parse, state) {
         state.inline = true;
         var header = parseTableHeader(TABLE_HEADER_TRIM, capture, parse, state);
-        var align = parseTableAlign(TABLE_ALIGN_TRIM, capture, parse, state);
+        var align = parseTableAlign(TABLE_HEADER_TRIM, capture, parse, state);
         var cells = parseTableCells(capture, parse, state);
         state.inline = false;
 
@@ -536,8 +534,8 @@ var TABLES = (function() {
 
     var parseNpTable = function(capture, parse, state) {
         state.inline = true;
-        var header = parseTableHeader(TABLE_HEADER_TRIM, capture, parse, state);
-        var align = parseTableAlign(TABLE_ALIGN_TRIM, capture, parse, state);
+        var header = parseTableHeader(NPTABLE_ROW_TRIM, capture, parse, state);
+        var align = parseTableAlign(NPTABLE_ROW_TRIM, capture, parse, state);
         var cells = parseNpTableCells(capture, parse, state);
         state.inline = false;
 
