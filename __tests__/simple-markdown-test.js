@@ -51,10 +51,9 @@ var validateParse = function(parsed, expected) {
     }
 };
 
-var htmlThroughReact = function(parsed) {
-    var output = defaultReactOutput(parsed);
+var reactToHtml = function(reactElements) {
     var rawHtml = ReactDOMServer.renderToStaticMarkup(
-        React.createElement('div', {}, output)
+        React.createElement('div', {}, reactElements)
     );
     var innerHtml = rawHtml
         .replace(/^<div>/, '')
@@ -64,6 +63,11 @@ var htmlThroughReact = function(parsed) {
         .replace(/\n*</g, '<')
         .replace(/\s+/g, ' ');
     return simplifiedHtml;
+};
+
+var htmlThroughReact = function(parsed) {
+    var output = defaultReactOutput(parsed);
+    return reactToHtml(output);
 };
 
 var htmlFromReactMarkdown = function(source) {
@@ -3596,7 +3600,6 @@ describe("simple markdown", function() {
             );
         });
 
-        // TODO(aria): Make this pass:
         it("should output complex combined bold/italics", function() {
             assertParsesToHtml(
                 "***bold** italics*",
