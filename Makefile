@@ -1,4 +1,4 @@
-.PHONY: all install test size minify
+.PHONY: all install test size minify simple-markdown.min.js
 
 all: install test size
 

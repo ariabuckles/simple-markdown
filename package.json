@@ -5,6 +5,7 @@
   "main": "simple-markdown.js",
   "scripts": {
     "test": "make test",
+    "prepublishOnly": "make minify",
     "size": "size-limit"
   },
   "repository": {
