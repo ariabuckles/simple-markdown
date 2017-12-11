@@ -3294,6 +3294,33 @@ describe("simple markdown", function() {
             var elements = SimpleMarkdown.defaultReactOutput(parsed);
             assert.deepEqual(elements, ["hi, there!"]);
         });
+
+        it("should join text nodes before outputting them", function() {
+            var rules = Object.assign({}, SimpleMarkdown.defaultRules, {
+                text: Object.assign({}, SimpleMarkdown.defaultRules.text, {
+                    react: function(node, output, state) {
+                        return React.createElement(
+                            'span',
+                            {key: state.key, className: 'text'},
+                            node.content
+                        );
+                    }
+                }),
+            });
+
+            var output = SimpleMarkdown.outputFor(rules, 'react');
+
+            var parsed = SimpleMarkdown.defaultInlineParse(
+                "Hi! You! Are! <3!"
+            );
+
+            var html = reactToHtml(output(parsed));
+
+            assert.strictEqual(
+                html,
+                '<span class="text">Hi! You! Are! &lt;3!</span>'
+            );
+        });
     });
 
     describe("html output", function() {
