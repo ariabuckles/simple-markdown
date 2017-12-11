@@ -3665,4 +3665,46 @@ describe("simple markdown", function() {
             assert.deepEqual(elements, "hi, there!");
         });
     });
+
+    describe("convenience wrappers", function() {
+        describe("markdownToReact", function() {
+            it("should work on a basic 2 paragraph input", function() {
+                var elems = SimpleMarkdown.markdownToReact(
+                    "Hi there!\n\nYay!"
+                );
+
+                assert.strictEqual(reactToHtml(elems),
+                    '<div class="paragraph">Hi there!</div>' +
+                    '<div class="paragraph">Yay!</div>'
+                );
+            });
+        });
+
+        describe("markdownToHtml", function() {
+            it("should work on a basic 2 paragraph input", function() {
+                var html = SimpleMarkdown.markdownToHtml(
+                    "Hi there!\n\nYay!"
+                );
+
+                assert.strictEqual(html,
+                    '<div class="paragraph">Hi there!</div>' +
+                    '<div class="paragraph">Yay!</div>'
+                );
+            });
+        });
+
+        describe("ReactMarkdown component", function() {
+            it("should work on a basic 2 paragraph input", function() {
+                var elem = React.createElement(SimpleMarkdown.ReactMarkdown, {
+                    source: "Hi there!\n\nYay!"
+                });
+
+                assert.strictEqual(reactToHtml(elem), '<div>' +
+                    '<div class="paragraph">Hi there!</div>' +
+                    '<div class="paragraph">Yay!</div>' +
+                    '</div>'
+                );
+            });
+        });
+    });
 });
