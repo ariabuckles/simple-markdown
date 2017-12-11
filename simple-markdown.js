@@ -1691,6 +1691,33 @@ var defaultImplicitParse = function(source) {
 var defaultReactOutput /* : ReactOutput */ = outputFor(defaultRules, "react");
 var defaultHtmlOutput /* : HtmlOutput */ = outputFor(defaultRules, "html");
 
+var markdownToReact = function(source /* : string */) /* : ReactElements */ {
+    return defaultReactOutput(defaultBlockParse(source));
+};
+var markdownToHtml = function(source /* : string */) /* : string */ {
+    return defaultHtmlOutput(defaultBlockParse(source));
+};
+
+var ReactMarkdown = function(props) {
+    var divProps = {};
+
+    for (var prop in props) {
+        if (prop !== 'source' &&
+            Object.prototype.hasOwnProperty.call(props, prop)
+        ) {
+            divProps[prop] = props[prop];
+        }
+    }
+    divProps.children = markdownToReact(props.source);
+
+    return reactElement(
+        'div',
+        null,
+        divProps
+    );
+};
+
+
 /*:: // Flow exports:
 type Exports = {
     +defaultRules: typeof defaultRules,
@@ -1706,6 +1733,10 @@ type Exports = {
     +anyScopeRegex: (regex: RegExp) => MatchFunction,
     +parseInline: (parse: Parser, content: string, state: State) => ASTNode,
     +parseBlock: (parse: Parser, content: string, state: State) => ASTNode,
+
+    +markdownToReact: (source: string) => ReactElements,
+    +markdownToHtml: (source: string) => string,
+    +ReactMarkdown: (props: { source: string, [string]: any }) => ReactElement,
 
     +defaultRawParse: (source: string) => Array<SingleASTNode>,
     +defaultBlockParse: (source: string) => Array<SingleASTNode>,
@@ -1726,15 +1757,16 @@ var SimpleMarkdown /* : Exports */ = {
     parserFor: parserFor,
     outputFor: outputFor,
 
-    ruleOutput: ruleOutput,
-    reactFor: reactFor,
-    htmlFor: htmlFor,
-
     inlineRegex: inlineRegex,
     blockRegex: blockRegex,
     anyScopeRegex: anyScopeRegex,
     parseInline: parseInline,
     parseBlock: parseBlock,
+
+    // default wrappers:
+    markdownToReact: markdownToReact,
+    markdownToHtml: markdownToHtml,
+    ReactMarkdown: ReactMarkdown,
 
     defaultRawParse: defaultRawParse,
     defaultBlockParse: defaultBlockParse,
@@ -1749,6 +1781,10 @@ var SimpleMarkdown /* : Exports */ = {
     unescapeUrl: unescapeUrl,
 
     // deprecated:
+    ruleOutput: ruleOutput,
+    reactFor: reactFor,
+    htmlFor: htmlFor,
+
     defaultParse: function() {
         if (typeof console !== 'undefined') {
             console.warn('defaultParse is deprecated, please use `defaultImplicitParse`');
