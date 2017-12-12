@@ -259,6 +259,21 @@ var preprocess = function(source /* : string */) {
             .replace(TAB_R, '    ');
 };
 
+var populateInitialState = function(
+    givenState /* : ?State */,
+    defaultState /* : ?State */
+) /* : State */{
+    var state /* : State */ = givenState || {};
+    if (defaultState != null) {
+        for (var prop in defaultState) {
+            if (Object.prototype.hasOwnProperty.call(defaultState, prop)) {
+                state[prop] = defaultState[prop];
+            }
+        }
+    }
+    return state;
+};
+
 /**
  * Creates a parser for a given set of rules, with the precedence
  * specified as a list of rules.
@@ -278,7 +293,7 @@ var preprocess = function(source /* : string */) {
  *     some nesting is. For an example use-case, see passage-ref
  *     parsing in src/widgets/passage/passage-markdown.jsx
  */
-var parserFor = function(rules /*: ParserRules */) {
+var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
     // Sorts rules in order of increasing order, then
     // ascending rule name in case of ties.
     var ruleList = Object.keys(rules).filter(function(type) {
@@ -327,9 +342,11 @@ var parserFor = function(rules /*: ParserRules */) {
         }
     });
 
+    var latestState;
     var nestedParse = function(source /* : string */, state /* : ?State */) {
         var result = [];
-        state = state || {};
+        state = state || latestState;
+        latestState = state;
         // We store the previous capture so that match functions can
         // use some limited amount of lookbehind. Lists use this to
         // ensure they don't match arbitrary '- ' or '* ' in inline
@@ -424,7 +441,11 @@ var parserFor = function(rules /*: ParserRules */) {
     };
 
     var outerParse = function(source /* : string */, state /* : ?State */) {
-        return nestedParse(preprocess(source), state);
+        latestState = populateInitialState(state, defaultState);
+        if (!latestState.inline && !latestState.disableAutoBlockNewlines) {
+            source = source + '\n\n';
+        }
+        return nestedParse(preprocess(source), latestState);
     };
     return outerParse;
 };
@@ -1078,7 +1099,7 @@ var defaultRules /* : DefaultRules */ = {
         // block element, which is inconsistent with most of the rest of
         // simple-markdown.
         match: blockRegex(
-            /^ *\[([^\]]+)\]: *<?([^\s>]*)>?(?: +["(]([^\n]+)[")])? *\n(?: *\n)?/
+            /^ *\[([^\]]+)\]: *<?([^\s>]*)>?(?: +["(]([^\n]+)[")])? *\n(?: *\n)*/
         ),
         parse: function(capture, parse, state) {
             var def = capture[1]
@@ -1651,7 +1672,8 @@ var htmlFor = function(outputFunc /* : HtmlNodeOutput */) /* : HtmlOutput */ {
 
 var outputFor = function/* :: <Rule : Object> */(
     rules /* : OutputRules<Rule> */,
-    property /* : $Keys<Rule> */
+    property /* : $Keys<Rule> */,
+    defaultState /* : ?State */
 ) {
     if (!property) {
         throw new Error('simple-markdown: outputFor: `property` must be ' +
@@ -1660,32 +1682,35 @@ var outputFor = function/* :: <Rule : Object> */(
             'with `reactFor`'
         );
     }
+
+    var latestState;
     var nestedOutput /* : Output<any> */ = function(ast, state) {
-        state = state || {};
+        state = state || latestState;
+        latestState = state;
         if (Array.isArray(ast)) {
             return rules.Array[property](ast, nestedOutput, state);
         } else {
             return rules[ast.type][property](ast, nestedOutput, state);
         }
     };
-    return nestedOutput;
+
+    var outerOutput = function(ast, state) {
+      latestState = populateInitialState(state, defaultState);
+      return nestedOutput(ast, latestState);
+    };
+    return outerOutput;
 };
 
 var defaultRawParse = parserFor(defaultRules);
 var defaultBlockParse = function(source) {
-    return defaultRawParse(source + "\n\n", {
-        inline: false
-    });
+    return defaultRawParse(source, {inline: false});
 };
 var defaultInlineParse = function(source) {
-    return defaultRawParse(source, {
-        inline: true
-    });
+    return defaultRawParse(source, {inline: true});
 };
 var defaultImplicitParse = function(source) {
-    return defaultRawParse(source, {
-        inline: !(BLOCK_END_R.test(source))
-    });
+    var isBlock = BLOCK_END_R.test(source);
+    return defaultRawParse(source, {inline: !isBlock});
 };
 
 var defaultReactOutput /* : ReactOutput */ = outputFor(defaultRules, "react");
@@ -1721,8 +1746,8 @@ var ReactMarkdown = function(props) {
 /*:: // Flow exports:
 type Exports = {
     +defaultRules: typeof defaultRules,
-    +parserFor: (rules: ParserRules) => Parser,
-    +outputFor: <Rule : Object>(rules: OutputRules<Rule>, param: $Keys<Rule>) => Output<any>,
+    +parserFor: (rules: ParserRules, defaultState: ?State) => Parser,
+    +outputFor: <Rule : Object>(rules: OutputRules<Rule>, param: $Keys<Rule>, defaultState: ?State) => Output<any>,
 
     +ruleOutput: <Rule : Object>(rules: OutputRules<Rule>, param: $Keys<Rule>) => NodeOutput<any>,
     +reactFor: (ReactNodeOutput) => ReactOutput,
@@ -1768,7 +1793,6 @@ var SimpleMarkdown /* : Exports */ = {
     markdownToHtml: markdownToHtml,
     ReactMarkdown: ReactMarkdown,
 
-    defaultRawParse: defaultRawParse,
     defaultBlockParse: defaultBlockParse,
     defaultInlineParse: defaultInlineParse,
     defaultImplicitParse: defaultImplicitParse,
@@ -1781,6 +1805,7 @@ var SimpleMarkdown /* : Exports */ = {
     unescapeUrl: unescapeUrl,
 
     // deprecated:
+    defaultRawParse: defaultRawParse,
     ruleOutput: ruleOutput,
     reactFor: reactFor,
     htmlFor: htmlFor,
