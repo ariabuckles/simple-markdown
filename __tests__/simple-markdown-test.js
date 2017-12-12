@@ -3011,6 +3011,81 @@ describe("simple markdown", function() {
             assert.deepEqual(result2, ['hi', 'here', 'are', 'some', 'words']);
             assert.deepEqual(result1, result2);
         });
+
+        it("should allow default state params in parserFor", function() {
+            var parser1 = SimpleMarkdown.parserFor(
+                {
+                    fancy: {
+                        order: SimpleMarkdown.defaultRules.text.order - 1,
+                        match: function(source) {
+                            return /^\w+/.exec(source);
+                        },
+                        parse: function(capture, parse, state) {
+                            var word = capture[0];
+                            var translated = state.lookup[word];
+                            if (translated) {
+                                return {content: translated};
+                            } else {
+                                return {content: word, type: 'text'};
+                            }
+                        },
+                    },
+                    text: Object.assign({}, SimpleMarkdown.defaultRules.text, {
+                        match: function(source) {
+                            return /^\W+/.exec(source);
+                        },
+                    }),
+                },
+                {
+                    lookup: {
+                        "this": "thís",
+                        "is": "ìs",
+                        "text": "têxt"
+                    },
+                }
+            );
+
+            var parsed1 = parser1("this is some text", {inline: true});
+            validateParse(parsed1, [
+                {content: "thís", type: "fancy"},
+                {content: " ", type: "text"},
+                {content: "ìs", type: "fancy"},
+                {content: " ", type: "text"},
+                {content: "some", type: "text"},
+                {content: " ", type: "text"},
+                {content: "têxt", type: "fancy"},
+            ]);
+        });
+
+        it("should allow default state params in outputFor", function() {
+            var output = SimpleMarkdown.outputFor(
+                {
+                    Array: SimpleMarkdown.defaultRules.Array,
+                    text: Object.assign({}, SimpleMarkdown.defaultRules.text, {
+                        react: function(node, output, state) {
+                            return React.createElement(
+                                state.TextComponent,
+                                {key: state.key},
+                                node.content
+                            );
+                        },
+                    }),
+                },
+                'react',
+                {
+                    // make all text bold
+                    TextComponent: 'b',
+                }
+            );
+
+            var parsed1 = inlineParse("this is some text");
+            var results1 = output(parsed1);
+
+            assert.strictEqual(
+                reactToHtml(results1),
+                '<b>this is some text</b>'
+            );
+        });
     });
 
     describe("react output", function() {
