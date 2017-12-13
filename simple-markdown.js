@@ -178,6 +178,24 @@ export type OutputRules<Rule> = {
     },
     +[type: string]: Rule
 };
+export type Rules<OutputRule> = {
+    +Array: {
+        +[string]: ArrayNodeOutput<any>,
+    },
+    +[type: string]: ParserRule & OutputRule,
+}
+export type ReactRules = {
+    +Array: {
+        +[string]: ArrayNodeOutput<ReactElements>,
+    },
+    +[type: string]: ParserRule & ReactOutputRule,
+};
+export type HtmlRules = {
+    +Array: {
+        +[string]: ArrayNodeOutput<string>,
+    },
+    +[type: string]: ParserRule & HtmlOutputRule,
+};
 
 type DefaultInRule = SingleNodeParserRule & ReactOutputRule & HtmlOutputRule;
 type TextInOutRule = SingleNodeParserRule & TextReactOutputRule & NonNullHtmlOutputRule;
