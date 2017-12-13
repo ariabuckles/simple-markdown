@@ -2949,6 +2949,68 @@ describe("simple markdown", function() {
                 {content: "text", type: "text"},
             ]);
         });
+
+        it("should support [repeated] data extraction via mutating state", function() {
+            // This is sort of a more complex example than is necessary,  but I
+            // wanted to have some more in-depth tests, so here!
+            // This result counts the words in input/output through state, and also
+            // gives a flattened array result of the words.
+            var rules = {
+                Array: {
+                    result: function(arr, output, state) {
+                        return arr.map(function(node) {
+                            return output(node, state);
+                        }).filter(function(word) {
+                            return !!word;
+                        });
+                    },
+                },
+                word: {
+                    order: SimpleMarkdown.defaultRules.text.order - 1,
+                    match: function(source) {
+                        return /^\w+/.exec(source);
+                    },
+                    parse: function(capture, parse, state) {
+                        state.wordCount++;
+                        return {content: capture[0]};
+                    },
+                    result: function(node, output, state) {
+                        state.wordCount++;
+                        return node.content;
+                    },
+                },
+                delimiter: Object.assign({}, SimpleMarkdown.defaultRules.text, {
+                    match: function(source) {
+                        return /^\W+/.exec(source);
+                    },
+                    result: function(node, output, state) {
+                        return null;
+                    },
+                }),
+            };
+
+            var parse = SimpleMarkdown.parserFor(rules, {wordCount: 0});
+            var output = SimpleMarkdown.outputFor(rules, 'result', {wordCount: 0});
+
+            // test parsing
+            var parseState = {};
+            var ast1 = parse('hi here are some words', parseState);
+            assert.strictEqual(parseState.wordCount, 5);
+            // and repeated parsing
+            var ast2 = parse('hi here are some words', parseState);
+            assert.strictEqual(parseState.wordCount, 5);
+            assert.deepEqual(ast1, ast2);
+
+            // test output
+            var outputState = {};
+            var result1 = output(ast1, outputState);
+            assert.deepEqual(result1, ['hi', 'here', 'are', 'some', 'words']);
+            assert.strictEqual(outputState.wordCount, 5);
+            var result2 = output(ast2, outputState);
+            assert.strictEqual(outputState.wordCount, 5);
+            assert.deepEqual(result2, ['hi', 'here', 'are', 'some', 'words']);
+            assert.deepEqual(result1, result2);
+        });
     });
 
     describe("react output", function() {
