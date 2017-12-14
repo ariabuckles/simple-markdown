@@ -47,7 +47,7 @@
 /*::
 // Flow Type Definitions:
 
-export type Capture = {
+type Capture = {
   [number]: string,
 };
 
@@ -69,57 +69,57 @@ type State = {[string]: any};
 type ReactElement = React$Element<any>;
 type ReactElements = React$Node;
 
-export type MatchFunction = (
+type MatchFunction = (
     source: string,
     state: State,
     prevCapture: string
 ) => ?Capture;
 
-export type Parser = (
+type Parser = (
     source: string,
     state: ?State
 ) => ASTNode;
 
-export type ParseFunction = (
+type ParseFunction = (
     capture: Capture,
     nestedParse: Parser,
     state: State,
 ) => (UnTypedASTNode | ASTNode);
 
-export type SingleNodeParseFunction = (
+type SingleNodeParseFunction = (
     capture: Capture,
     nestedParse: Parser,
     state: State,
 ) => UnTypedASTNode;
 
-export type Output<Result> = (
+type Output<Result> = (
     node: ASTNode,
     state: ?State
 ) => Result;
 
-export type NestedOutput<Result> = (
+type NestedOutput<Result> = (
     node: ASTNode,
     state: State
 ) => Result;
 
-export type NodeOutput<Result> = (
+type NodeOutput<Result> = (
     node: SingleASTNode,
     nestedOutput: NestedOutput<Result>,
     state: State
 ) => Result;
 
-export type ArrayNodeOutput<Result> = (
+type ArrayNodeOutput<Result> = (
     node: Array<SingleASTNode>,
     nestedOutput: NestedOutput<Result>,
     state: State
 ) => Result;
 
-export type ReactOutput = Output<ReactElements>;
-export type ReactNodeOutput = NodeOutput<ReactElements>;
-export type HtmlOutput = Output<string>;
-export type HtmlNodeOutput = NodeOutput<string>;
+type ReactOutput = Output<ReactElements>;
+type ReactNodeOutput = NodeOutput<ReactElements>;
+type HtmlOutput = Output<string>;
+type HtmlNodeOutput = NodeOutput<string>;
 
-export type ParserRule = {
+type ParserRule = {
     +order: number,
     +match: MatchFunction,
     +quality?: (capture: Capture, state: State, prevCapture: string) => number,
@@ -133,7 +133,7 @@ type SingleNodeParserRule = {
     +parse: SingleNodeParseFunction,
 };
 
-export type ReactOutputRule = {
+type ReactOutputRule = {
     // we allow null because some rules are never output results, and that's
     // legal as long as no parsers return an AST node matching that rule.
     // We don't use ? because this makes it be explicitly defined as either
@@ -141,8 +141,44 @@ export type ReactOutputRule = {
     +react: ReactNodeOutput | null,
 };
 
-export type HtmlOutputRule = {
+type HtmlOutputRule = {
     +html: HtmlNodeOutput | null,
+};
+
+type StrictParserRules = {
+    +[type: string]: ParserRule,
+};
+type LenientParserRules = {
+    +Array: {
+        +[string]: ArrayNodeOutput<any>,
+    },
+    +[type: string]: ParserRule,
+};
+type ParserRules = StrictParserRules | LenientParserRules;
+
+type OutputRules<Rule> = {
+    +Array: {
+        +[string]: ArrayNodeOutput<any>,
+    },
+    +[type: string]: Rule
+};
+type Rules<OutputRule> = {
+    +Array: {
+        +[string]: ArrayNodeOutput<any>,
+    },
+    +[type: string]: ParserRule & OutputRule,
+}
+type ReactRules = {
+    +Array: {
+        +[string]: ArrayNodeOutput<ReactElements>,
+    },
+    +[type: string]: ParserRule & ReactOutputRule,
+};
+type HtmlRules = {
+    +Array: {
+        +[string]: ArrayNodeOutput<string>,
+    },
+    +[type: string]: ParserRule & HtmlOutputRule,
 };
 
 // We want to clarify our types a little bit more so clients can reuse
@@ -159,42 +195,6 @@ type TextReactOutputRule = {
 };
 type NonNullHtmlOutputRule = {
     +html: HtmlNodeOutput,
-};
-
-type StrictParserRules = {
-    +[type: string]: ParserRule,
-};
-type LenientParserRules = {
-    +Array: {
-        +[string]: ArrayNodeOutput<any>,
-    },
-    +[type: string]: ParserRule,
-};
-export type ParserRules = StrictParserRules | LenientParserRules;
-
-export type OutputRules<Rule> = {
-    +Array: {
-        +[string]: ArrayNodeOutput<any>,
-    },
-    +[type: string]: Rule
-};
-export type Rules<OutputRule> = {
-    +Array: {
-        +[string]: ArrayNodeOutput<any>,
-    },
-    +[type: string]: ParserRule & OutputRule,
-}
-export type ReactRules = {
-    +Array: {
-        +[string]: ArrayNodeOutput<ReactElements>,
-    },
-    +[type: string]: ParserRule & ReactOutputRule,
-};
-export type HtmlRules = {
-    +Array: {
-        +[string]: ArrayNodeOutput<string>,
-    },
-    +[type: string]: ParserRule & HtmlOutputRule,
 };
 
 type DefaultInRule = SingleNodeParserRule & ReactOutputRule & HtmlOutputRule;
@@ -1774,6 +1774,40 @@ type Exports = {
     +preprocess: (source: string) => string,
     +sanitizeUrl: (url: ?string) => ?string,
     +unescapeUrl: (url: string) => string,
+};
+
+export type {
+    // Hopefully you shouldn't have to use these, but they're here if you need!
+    // Top-level API:
+    State,
+    Parser,
+    Output,
+    ReactOutput,
+    HtmlOutput,
+
+    // Most of the following types should be considered experimental and
+    // subject to change or change names. Again, they shouldn't be necessary,
+    // but if they are I'd love to hear how so I can better support them!
+
+    // Individual Rule fields:
+    Capture,
+    MatchFunction,
+    ParseFunction,
+    NodeOutput,
+    ArrayNodeOutput,
+    ReactNodeOutput,
+
+    // Single rules:
+    ParserRule,
+    ReactOutputRule,
+    HtmlOutputRule,
+
+    // Sets of rules:
+    ParserRules,
+    OutputRules,
+    Rules,
+    ReactRules,
+    HtmlRules,
 };
 */
 
