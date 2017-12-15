@@ -298,7 +298,7 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
     // ascending rule name in case of ties.
     var ruleList = Object.keys(rules).filter(function(type) {
         var rule = rules[type];
-        if (rule === undefined || rule.match == null) {
+        if (rule == null || rule.match == null) {
           return false;
         }
         var order = rule.order;
