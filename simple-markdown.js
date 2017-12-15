@@ -48,6 +48,8 @@
 // Flow Type Definitions:
 
 type Capture = {
+  '0': string,
+  index?: number,
   [number]: string,
 };
 
@@ -408,11 +410,29 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
                 )
             );
 
-            // TODO(aria): Write tests for this
-            if (!rule || !capture || !ruleType) {
-                throw new Error(
-                    "could not find rule to match content: " + source
-                );
+            // TODO(aria): Write tests for these
+            // Lie to flow and say these checks always happen
+            if (state.disableErrorGuards !== true) { /*:: } { */
+                if (rule == null || capture == null /*:: || ruleType == null */) {
+                    throw new Error(
+                        "Could not find a matching rule for the below " +
+                        "content. The rule with highest `order` should " +
+                        "always match content provided to it. Check " +
+                        "the definition of `match` for '" +
+                        ruleList[ruleList.length - 1] +
+                        "'. It seems to not match the following source:\n" +
+                        source
+                    );
+                }
+                if (capture.index !== 0 &&
+                    source.slice(0, capture[0].length) !== capture[0]
+                ) {
+                    throw new Error(
+                        "`match` must return a capture starting at index 0 " +
+                        "(the current parse index). Did you forget a ^ at the " +
+                        "start of the RegExp?"
+                    );
+                }
             }
 
             var parsed = rule.parse(capture, nestedParse, state);
