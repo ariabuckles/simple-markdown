@@ -3086,6 +3086,106 @@ describe("simple markdown", function() {
                 '<b>this is some text</b>'
             );
         });
+
+        it("should not require passing state to recursiveParse", function() {
+            var parse = SimpleMarkdown.parserFor({
+                bracketed: {
+                    order: SimpleMarkdown.defaultRules.text.order - 1,
+                    match: function(source) {
+                        return /^\{((?:\\[\S\s]|[^\\\*])+)\}/.exec(source);
+                    },
+                    parse: function(capture, parse, state) {
+                        var result = {
+                            // note no passing state here:
+                            content: parse(capture[1]),
+                            token: state.token || 0,
+                        };
+                        state.token = (state.token || 0) + 1;
+                        return result;
+                    },
+                },
+                text: SimpleMarkdown.defaultRules.text,
+            }, {disableAutoBlockNewlines: true});
+
+            var parsed1 = parse('{outer {inner}}', {inline: true, token: 5327});
+
+            validateParse(parsed1, [{
+                type: 'bracketed',
+                content: [
+                    {
+                        type: 'text',
+                        content: 'outer ',
+                    },
+                    {
+                        type: 'bracketed',
+                        content: [{
+                            type: 'text',
+                            content: 'inner',
+                        }],
+                        token: 5327,
+                    }
+                ],
+                token: 5328,
+            }]);
+
+            // but shouldn't keep old state around between parses:
+            var parsed2 = parse('{outer {inner}}');
+
+            validateParse(parsed2, [{
+                type: 'bracketed',
+                content: [
+                    {
+                        type: 'text',
+                        content: 'outer ',
+                    },
+                    {
+                        type: 'bracketed',
+                        content: [{
+                            type: 'text',
+                            content: 'inner',
+                        }],
+                        token: 0,
+                    }
+                ],
+                token: 1,
+            }]);
+        });
+
+        it("should not require passing state to recursiveOutput", function() {
+            var output = SimpleMarkdown.outputFor({
+                Array: SimpleMarkdown.defaultRules.Array,
+                paragraph: Object.assign({}, SimpleMarkdown.defaultRules.paragraph, {
+                    html: function(node, output) {
+                        return '<p>' + output(node.content) + '</p>';
+                    },
+                }),
+                text: Object.assign({}, SimpleMarkdown.defaultRules.text, {
+                    html: function(node, output, state) {
+                        return '<span class="' +
+                            (state.spanClass || 'default') +
+                            '">' +
+                            /*SimpleMarkdown.sanitizeText*/(node.content) +
+                            '</span>';
+                    },
+                }),
+            }, 'html');
+
+            var parsed1 = SimpleMarkdown.defaultBlockParse('hi there!');
+            var result1 = output(parsed1, {spanClass: 'special'});
+            assert.strictEqual(
+                result1,
+                '<p><span class="special">hi there!</span></p>'
+            );
+
+            // but shouldn't keep state around between outputs:
+            var parsed2 = SimpleMarkdown.defaultBlockParse('hi there!');
+            var result2 = output(parsed2);
+            assert.strictEqual(
+                result2,
+                '<p><span class="default">hi there!</span></p>'
+            );
+        });
+
     });
 
     describe("react output", function() {
