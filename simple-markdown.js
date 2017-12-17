@@ -548,7 +548,9 @@ var htmlTag = function(
         // Removes falsey attributes
         if (Object.prototype.hasOwnProperty.call(attributes, attr) &&
                 attribute) {
-            attributeString += " " + attr + '="' + attribute + '"';
+            attributeString += " " +
+                sanitizeText(attr) + '="' +
+                sanitizeText(attribute) + '"';
         }
     }
 
@@ -581,6 +583,22 @@ var sanitizeUrl = function(url /* : ?string */) {
         return null;
     }
     return url;
+};
+
+var SANITIZE_TEXT_R = /[<>&"']/g;
+var SANITIZE_TEXT_CODES = {
+    '<': '&lt;',
+    '>': '&gt;',
+    '&': '&amp;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;',
+    "`": '&#96;'
+};
+var sanitizeText = function(text /* : Attr */) {
+    return String(text).replace(SANITIZE_TEXT_R, function(chr) {
+        return SANITIZE_TEXT_CODES[chr];
+    });
 };
 
 var UNESCAPE_URL_R = /\\([^0-9A-Za-z\s])/g;
@@ -937,7 +955,7 @@ var defaultRules /* : DefaultRules */ = {
                 "markdown-code-" + node.lang :
                 undefined;
 
-            var codeBlock = htmlTag("code", node.content, {
+            var codeBlock = htmlTag("code", sanitizeText(node.content), {
                 class: className
             });
             return htmlTag("pre", codeBlock);
@@ -1585,7 +1603,7 @@ var defaultRules /* : DefaultRules */ = {
             );
         },
         html: function(node, output, state) {
-            return htmlTag("code", node.content);
+            return htmlTag("code", sanitizeText(node.content));
         }
     },
     br: {
@@ -1621,7 +1639,7 @@ var defaultRules /* : DefaultRules */ = {
             return node.content;
         },
         html: function(node, output, state) {
-            return node.content;
+            return sanitizeText(node.content);
         }
     }
 };
@@ -1793,6 +1811,7 @@ type Exports = {
     +defaultHtmlOutput: HtmlOutput,
 
     +preprocess: (source: string) => string,
+    +sanitizeText: (text: string) => string,
     +sanitizeUrl: (url: ?string) => ?string,
     +unescapeUrl: (url: string) => string,
 };
@@ -1856,6 +1875,7 @@ var SimpleMarkdown /* : Exports */ = {
     defaultHtmlOutput: defaultHtmlOutput,
 
     preprocess: preprocess,
+    sanitizeText: sanitizeText,
     sanitizeUrl: sanitizeUrl,
     unescapeUrl: unescapeUrl,
 
