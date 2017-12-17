@@ -575,6 +575,22 @@ var sanitizeUrl = function(url /* : ?string */) {
     return url;
 };
 
+var SANITIZE_TEXT_R = /[<>&"']g/;
+var SANITIZE_TEXT_CODES = {
+    '<': '&lt;',
+    '>': '&gt;',
+    '&': '&amp;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;',
+    "`": '&#96;'
+};
+var sanitizeText = function(text /* : string */) {
+    return text.replace(SANITIZE_TEXT_R, function(chr) {
+        return SANITIZE_TEXT_CODES[chr];
+    });
+};
+
 var UNESCAPE_URL_R = /\\([^0-9A-Za-z\s])/g;
 
 var unescapeUrl = function(rawUrlString /* : string */) {
@@ -1611,7 +1627,7 @@ var defaultRules /* : DefaultRules */ = {
             return node.content;
         },
         html: function(node, output, state) {
-            return node.content;
+            return sanitizeText(node.content);
         }
     }
 };
@@ -1783,6 +1799,7 @@ type Exports = {
     +defaultHtmlOutput: HtmlOutput,
 
     +preprocess: (source: string) => string,
+    +sanitizeText: (text: string) => string,
     +sanitizeUrl: (url: ?string) => ?string,
     +unescapeUrl: (url: string) => string,
 };
@@ -1846,6 +1863,7 @@ var SimpleMarkdown /* : Exports */ = {
     defaultHtmlOutput: defaultHtmlOutput,
 
     preprocess: preprocess,
+    sanitizeText: sanitizeText,
     sanitizeUrl: sanitizeUrl,
     unescapeUrl: unescapeUrl,
 
