@@ -1,0 +1,53 @@
+<head>
+<title>
+try simple-markdown!
+</title>
+<script src="simple-markdown.js"></script>
+<style>
+body {
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+</style>
+</head>
+<body>
+<div style="display: flex; flex: 1; align-self: stretch;">
+<textarea id="source" style="flex: 1; align-self: stretch;">
+# Welcome to simple-markdown!
+
+We're
+
+* glad to have you with us
+* excited for this new demo page
+and more?
+</textarea>
+<div id="output" style="flex: 1; align-self: stretch;">
+</div>
+<script>
+var rules = {};
+for (var rule in SimpleMarkdown.defaultRules) {
+  rules[rule] = SimpleMarkdown.defaultRules[rule];
+}
+rules.paragraph = {
+  order: SimpleMarkdown.defaultRules.paragraph.order,
+  match: SimpleMarkdown.defaultRules.paragraph.match,
+  parse: SimpleMarkdown.defaultRules.paragraph.parse,
+  html: function(node, output, state) {
+    // use default p tags
+    return '<p>' + output(node.content) + '</p>';
+  },
+};
+var output = SimpleMarkdown.outputFor(rules, 'html');
+var sourceBox = document.getElementById('source');
+var outputBox = document.getElementById('output');
+var process = function(e) {
+  var source = sourceBox.value;
+  var parsedContentTree = SimpleMarkdown.defaultBlockParse(source);
+  var html = output(parsedContentTree);
+  outputBox.innerHTML = html;
+}
+sourceBox.addEventListener('input', process);
+process();
+</script>
+</body>
