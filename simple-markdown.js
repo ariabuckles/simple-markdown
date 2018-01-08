@@ -544,10 +544,11 @@ var htmlTag = function(
 
     var attributeString = "";
     for (var attr in attributes) {
+        var attribute = attributes[attr];
         // Removes falsey attributes
         if (Object.prototype.hasOwnProperty.call(attributes, attr) &&
-                attributes[attr]) {
-            attributeString += " " + attr + '="' + attributes[attr] + '"';
+                attribute) {
+            attributeString += " " + attr + '="' + attribute + '"';
         }
     }
 
