@@ -99,20 +99,15 @@ type Output<Result> = (
     state: ?State
 ) => Result;
 
-type NestedOutput<Result> = (
-    node: ASTNode,
-    state: State
-) => Result;
-
 type NodeOutput<Result> = (
     node: SingleASTNode,
-    nestedOutput: NestedOutput<Result>,
+    nestedOutput: Output<Result>,
     state: State
 ) => Result;
 
 type ArrayNodeOutput<Result> = (
     node: Array<SingleASTNode>,
-    nestedOutput: NestedOutput<Result>,
+    nestedOutput: Output<Result>,
     state: State
 ) => Result;
 
