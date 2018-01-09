@@ -1736,25 +1736,31 @@ var outputFor = function/* :: <Rule : Object> */(
 };
 
 var defaultRawParse = parserFor(defaultRules);
-var defaultBlockParse = function(source) {
-    return defaultRawParse(source, {inline: false});
+var defaultBlockParse = function(source, state) {
+    state = state || {};
+    state.inline = false;
+    return defaultRawParse(source, state);
 };
-var defaultInlineParse = function(source) {
-    return defaultRawParse(source, {inline: true});
+var defaultInlineParse = function(source, state) {
+    state = state || {};
+    state.inline = true;
+    return defaultRawParse(source, state);
 };
-var defaultImplicitParse = function(source) {
+var defaultImplicitParse = function(source, state) {
     var isBlock = BLOCK_END_R.test(source);
-    return defaultRawParse(source, {inline: !isBlock});
+    state = state || {};
+    state.inline = !isBlock;
+    return defaultRawParse(source, state);
 };
 
 var defaultReactOutput /* : ReactOutput */ = outputFor(defaultRules, "react");
 var defaultHtmlOutput /* : HtmlOutput */ = outputFor(defaultRules, "html");
 
-var markdownToReact = function(source /* : string */) /* : ReactElements */ {
-    return defaultReactOutput(defaultBlockParse(source));
+var markdownToReact = function(source, state) /* : ReactElements */ {
+    return defaultReactOutput(defaultBlockParse(source, state), state);
 };
-var markdownToHtml = function(source /* : string */) /* : string */ {
-    return defaultHtmlOutput(defaultBlockParse(source));
+var markdownToHtml = function(source, state) /* : string */ {
+    return defaultHtmlOutput(defaultBlockParse(source, state), state);
 };
 
 var ReactMarkdown = function(props) {
@@ -1793,14 +1799,14 @@ type Exports = {
     +parseInline: (parse: Parser, content: string, state: State) => ASTNode,
     +parseBlock: (parse: Parser, content: string, state: State) => ASTNode,
 
-    +markdownToReact: (source: string) => ReactElements,
-    +markdownToHtml: (source: string) => string,
+    +markdownToReact: (source: string, state?: ?State) => ReactElements,
+    +markdownToHtml: (source: string, state?: ?State) => string,
     +ReactMarkdown: (props: { source: string, [string]: any }) => ReactElement,
 
-    +defaultRawParse: (source: string) => Array<SingleASTNode>,
-    +defaultBlockParse: (source: string) => Array<SingleASTNode>,
-    +defaultInlineParse: (source: string) => Array<SingleASTNode>,
-    +defaultImplicitParse: (source: string) => Array<SingleASTNode>,
+    +defaultRawParse: (source: string, state?: ?State) => Array<SingleASTNode>,
+    +defaultBlockParse: (source: string, state?: ?State) => Array<SingleASTNode>,
+    +defaultInlineParse: (source: string, state?: ?State) => Array<SingleASTNode>,
+    +defaultImplicitParse: (source: string, state?: ?State) => Array<SingleASTNode>,
 
     +defaultReactOutput: ReactOutput,
     +defaultHtmlOutput: HtmlOutput,
