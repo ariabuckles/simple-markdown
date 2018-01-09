@@ -79,7 +79,7 @@ type MatchFunction = (
 
 type Parser = (
     source: string,
-    state: ?State
+    state?: ?State
 ) => ASTNode;
 
 type ParseFunction = (
@@ -96,7 +96,7 @@ type SingleNodeParseFunction = (
 
 type Output<Result> = (
     node: ASTNode,
-    state: ?State
+    state?: ?State
 ) => Result;
 
 type NodeOutput<Result> = (
@@ -1780,8 +1780,8 @@ var ReactMarkdown = function(props) {
 /*:: // Flow exports:
 type Exports = {
     +defaultRules: typeof defaultRules,
-    +parserFor: (rules: ParserRules, defaultState: ?State) => Parser,
-    +outputFor: <Rule : Object>(rules: OutputRules<Rule>, param: $Keys<Rule>, defaultState: ?State) => Output<any>,
+    +parserFor: (rules: ParserRules, defaultState?: ?State) => Parser,
+    +outputFor: <Rule : Object>(rules: OutputRules<Rule>, param: $Keys<Rule>, defaultState?: ?State) => Output<any>,
 
     +ruleOutput: <Rule : Object>(rules: OutputRules<Rule>, param: $Keys<Rule>) => NodeOutput<any>,
     +reactFor: (ReactNodeOutput) => ReactOutput,
