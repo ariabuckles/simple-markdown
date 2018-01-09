@@ -1806,7 +1806,7 @@ type Exports = {
     +defaultHtmlOutput: HtmlOutput,
 
     +preprocess: (source: string) => string,
-    +sanitizeText: (text: string) => string,
+    +sanitizeText: (text: Attr) => string,
     +sanitizeUrl: (url: ?string) => ?string,
     +unescapeUrl: (url: string) => string,
 };
