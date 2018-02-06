@@ -489,6 +489,7 @@ var parseRef = function(capture, state, refNode) {
     return refNode;
 };
 
+const TABLES = {};
 var defaultRules = {
     heading: {
         match: blockRegex(/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/),
@@ -1252,8 +1253,11 @@ var defaultRules = {
 };
 
 Object.keys(defaultRules).forEach(function(type, i) {
+  console.log(type);
     defaultRules[type].order = i;
 });
+
+console.log(defaultRules)
 
 var ruleOutput = function(rules, property) {
     if (!property && typeof console !== "undefined") {

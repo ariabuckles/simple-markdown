@@ -3,7 +3,7 @@ var _ = require("underscore");
 var React = require("react");
 var ReactDOMServer = require("react-dom/server");
 
-var SimpleMarkdown = require("../simple-markdown.js");
+var SimpleMarkdown = require("../main.js");
 var blockParse = SimpleMarkdown.defaultBlockParse;
 var inlineParse = SimpleMarkdown.defaultInlineParse;
 var implicitParse = SimpleMarkdown.defaultImplicitParse;
@@ -2872,7 +2872,7 @@ describe("simple markdown", function() {
             );
             assert.strictEqual(
                 html2,
-                "<div class=\"paragraph\"><a>link</a></div>"
+                "<p><a>link</a></p>"
             );
         });
 
@@ -2891,9 +2891,9 @@ describe("simple markdown", function() {
             );
             assert.strictEqual(
                 html2,
-                "<div class=\"paragraph\">" +
+                "<p>" +
                     "<a href=\"https://www.google.com\">link</a>" +
-                "</div>"
+                "</p>"
             );
         });
 
@@ -2969,16 +2969,16 @@ describe("simple markdown", function() {
         it("should output blockQuotes", function() {
             assertParsesToReact(
                 "> hi there this is a\ntest\n\n",
-                '<blockquote><div class="paragraph">' +
+                '<blockquote><p>' +
                 'hi there this is a test' +
-                '</div></blockquote>'
+                '</p></blockquote>'
             );
 
             assertParsesToReact(
                 "> hi there this is a\n> test\n\n",
-                '<blockquote><div class="paragraph">' +
+                '<blockquote><p>' +
                 'hi there this is a test' +
-                '</div></blockquote>'
+                '</p></blockquote>'
             );
         });
 
@@ -3072,7 +3072,7 @@ describe("simple markdown", function() {
             );
             assert.strictEqual(
                 html,
-                '<div class="paragraph">hi</div>'
+                '<p>hi</p>'
             );
 
             var html2 = htmlFromReactMarkdown(
@@ -3081,8 +3081,8 @@ describe("simple markdown", function() {
             );
             assert.strictEqual(
                 html2,
-                '<div class="paragraph">hi</div>' +
-                '<div class="paragraph">bye</div>'
+                '<p>hi</p>' +
+                '<p>bye</p>'
             );
         });
 
@@ -3124,11 +3124,11 @@ describe("simple markdown", function() {
 
             assertParsesToReact(
                 "[KA][1]\n\n[1]: https://www.khanacademy.org\n\n",
-                '<div class="paragraph">' +
+                '<p>' +
                 '<a href="https://www.khanacademy.org">' +
                 'KA' +
                 '</a>' +
-                '</div>'
+                '</p>'
             );
         });
 
@@ -3216,7 +3216,7 @@ describe("simple markdown", function() {
                 "[1]: javascript:alert('hi');\n\n";
             assertParsesToHtml(
                 markdown2,
-                "<div class=\"paragraph\"><a>link</a></div>"
+                "<p><a>link</a></p>"
             );
         });
 
@@ -3235,9 +3235,9 @@ describe("simple markdown", function() {
             );
             assert.strictEqual(
                 html2,
-                "<div class=\"paragraph\">" +
+                "<p>" +
                     "<a href=\"https://www.google.com\">link</a>" +
-                "</div>"
+                "</p>"
             );
         });
 
@@ -3313,16 +3313,16 @@ describe("simple markdown", function() {
         it("should output blockQuotes", function() {
             assertParsesToHtml(
                 "> hi there this is a\ntest\n\n",
-                '<blockquote><div class="paragraph">' +
+                '<blockquote><p>' +
                 'hi there this is a test' +
-                '</div></blockquote>'
+                '</p></blockquote>'
             );
 
             assertParsesToHtml(
                 "> hi there this is a\n> test\n\n",
-                '<blockquote><div class="paragraph">' +
+                '<blockquote><p>' +
                 'hi there this is a test' +
-                '</div></blockquote>'
+                '</p></blockquote>'
             );
         });
 
@@ -3416,7 +3416,7 @@ describe("simple markdown", function() {
             );
             assert.strictEqual(
                 html,
-                '<div class="paragraph">hi</div>'
+                '<p>hi</p>'
             );
 
             var html2 = htmlFromMarkdown(
@@ -3425,8 +3425,8 @@ describe("simple markdown", function() {
             );
             assert.strictEqual(
                 html2,
-                '<div class="paragraph">hi</div>' +
-                '<div class="paragraph">bye</div>'
+                '<p>hi</p>' +
+                '<p>bye</p>'
             );
         });
 
@@ -3468,11 +3468,11 @@ describe("simple markdown", function() {
 
             assertParsesToHtml(
                 "[KA][1]\n\n[1]: https://www.khanacademy.org\n\n",
-                '<div class="paragraph">' +
+                '<p>' +
                 '<a href="https://www.khanacademy.org">' +
                 'KA' +
                 '</a>' +
-                '</div>'
+                '</p>'
             );
         });
 

@@ -5,7 +5,7 @@ import { blockRegex } from '../utils/regex';
 
 const hr = {
   match: blockRegex(/^( *[-*_]){3,} *(?:\n *)+\n/),
-  parse: ignoreCapture,
+  parse: () => ({}),
   react: (node, output, state) => <hr key={state.key} />,
   html: () => '<hr>',
 };
