@@ -3186,6 +3186,43 @@ describe("simple markdown", function() {
             );
         });
 
+        it("should ignore null or undefined rules", function() {
+            var rules = {
+                Array: SimpleMarkdown.defaultRules.Array,
+                spoiler: {
+                    order: SimpleMarkdown.defaultRules.text.order - 1,
+                    match: function(source) {
+                        return /^\[\[((?:[^\]]|\][^\]])+)\]\]/.exec(source);
+                    },
+                    parse: function(capture, parse) {
+                        return {content: parse(capture[1])};
+                    },
+                    html: function(node, output) {
+                        return '<span style="background: black;">' +
+                            output(node.content) +
+                            '</span>';
+                    },
+                },
+                text: SimpleMarkdown.defaultRules.text,
+            };
+
+            var parse = SimpleMarkdown.parserFor(rules, {inline: true});
+            var output = SimpleMarkdown.outputFor(rules, 'html');
+
+            var parsed1 = parse('Hi this is a [[spoiler]]');
+            validateParse(parsed1, [
+                {type: 'text', content: 'Hi this is a '},
+                {
+                    type: 'spoiler', content: [
+                        {type: 'text', content: 'spoiler'},
+                    ]
+                },
+            ]);
+            var result1 = output(parsed1);
+            assert.strictEqual(result1,
+                'Hi this is a <span style="background: black;">spoiler</span>'
+            );
+        });
     });
 
     describe("react output", function() {
@@ -3940,6 +3977,20 @@ describe("simple markdown", function() {
                     '<div class="paragraph">Hi there!</div>' +
                     '<div class="paragraph">Yay!</div>' +
                     '</div>'
+                );
+            });
+        });
+    });
+
+    describe("helper functions", function() {
+        describe("sanitizeText", function() {
+            it("should escape basic html", function() {
+                var result = SimpleMarkdown.sanitizeText(
+                    'hi <span class="my-class">there</span>'
+                );
+                assert.strictEqual(
+                    result,
+                    'hi &lt;span class=&quot;my-class&quot;&gt;there&lt;/span&gt;'
                 );
             });
         });

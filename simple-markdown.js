@@ -142,44 +142,40 @@ type HtmlOutputRule = {
     +html: HtmlNodeOutput | null,
 };
 
-type StrictParserRules = {
+type ArrayRule = {
+    +react?: ArrayNodeOutput<ReactElements>,
+    +html?: ArrayNodeOutput<string>,
+    +[string]: ArrayNodeOutput<any>,
+};
+
+type ParserRules = {
+    +Array?: ArrayRule,
     +[type: string]: ParserRule,
 };
-type LenientParserRules = {
-    +Array: {
-        +[string]: ArrayNodeOutput<any>,
-    },
-    +[type: string]: ParserRule,
-};
-type ParserRules = StrictParserRules | LenientParserRules;
 
 type OutputRules<Rule> = {
-    +Array: {
-        +[string]: ArrayNodeOutput<any>,
-    },
+    +Array?: ArrayRule,
     +[type: string]: Rule
 };
 type Rules<OutputRule> = {
-    +Array: {
-        +[string]: ArrayNodeOutput<any>,
-    },
+    +Array?: ArrayRule,
     +[type: string]: ParserRule & OutputRule,
 }
 type ReactRules = {
-    +Array: {
-        +[string]: ArrayNodeOutput<ReactElements>,
+    +Array?: {
+        +react: ArrayNodeOutput<ReactElements>,
     },
     +[type: string]: ParserRule & ReactOutputRule,
 };
 type HtmlRules = {
-    +Array: {
-        +[string]: ArrayNodeOutput<string>,
+    +Array?: {
+        +html: ArrayNodeOutput<string>,
     },
     +[type: string]: ParserRule & HtmlOutputRule,
 };
 
-// We want to clarify our types a little bit more so clients can reuse
-// defaultRules built-ins. So we make some stronger guarantess when
+// We want to clarify our defaultRules types a little bit more so clients can
+// reuse defaultRules built-ins. So we make some stronger guarantess when
 // we can:
 type NonNullReactOutputRule = {
     +react: ReactNodeOutput,
@@ -201,8 +197,8 @@ type DefaultInOutRule = SingleNodeParserRule & ElementReactOutputRule & NonNullH
 
 type DefaultRules = {
     +Array: {
-        react: ArrayNodeOutput<ReactElements>,
-        html: ArrayNodeOutput<string>
+        +react: ArrayNodeOutput<ReactElements>,
+        +html: ArrayNodeOutput<string>
     },
     +heading: DefaultInOutRule,
     +nptable: DefaultInRule,
@@ -1718,11 +1714,12 @@ var outputFor = function/* :: <Rule : Object> */(
     }
 
     var latestState;
+    var arrayRule = rules.Array || defaultRules.Array;
     var nestedOutput /* : Output<any> */ = function(ast, state) {
         state = state || latestState;
         latestState = state;
         if (Array.isArray(ast)) {
-            return rules.Array[property](ast, nestedOutput, state);
+            return arrayRule[property](ast, nestedOutput, state);
         } else {
             return rules[ast.type][property](ast, nestedOutput, state);
         }
@@ -1785,7 +1782,7 @@ var ReactMarkdown = function(props) {
 
 /*:: // Flow exports:
 type Exports = {
-    +defaultRules: typeof defaultRules,
+    +defaultRules: DefaultRules,
     +parserFor: (rules: ParserRules, defaultState?: ?State) => Parser,
     +outputFor: <Rule : Object>(rules: OutputRules<Rule>, param: $Keys<Rule>, defaultState?: ?State) => Output<any>,
 
