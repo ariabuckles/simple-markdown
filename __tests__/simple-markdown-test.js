@@ -1948,6 +1948,38 @@ describe("simple markdown", function() {
                 ],
                 type: "list",
             }]);
+
+            var parsed = blockParse(
+                " * hi\n" +
+                "    * bye\n" +
+                "    * there\n\n"
+            );
+            validateParse(parsed, [{
+                ordered: false,
+                start: undefined,
+                items: [
+                    [{
+                        content: 'hi\n ', // NOTE(aria): The extra space here is
+                        type: 'text',     //  weird and we should consider fixing
+                    },
+                    {
+                        ordered: false,
+                        start: undefined,
+                        items: [
+                            [{
+                                content: "bye",
+                                type: "text",
+                            }],
+                            [{
+                                content: "there",
+                                type: "text",
+                            }],
+                        ],
+                        type: "list",
+                    }]
+                ],
+                type: "list",
+            }]);
         });
 
         it("should parse loose lists", function() {

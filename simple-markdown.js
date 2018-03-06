@@ -444,7 +444,7 @@ var LIST_R = new RegExp(
     // lists, where our content might end before we receive two `\n`s
     "|\\s*\n*$)"
 );
-var LIST_LOOKBEHIND_R = /^$|\n *$/;
+var LIST_LOOKBEHIND_R = /(?:^|\n)( *)$/;
 
 var TABLES = (function() {
     // predefine regexes so we don't have to create them inside functions
@@ -725,10 +725,12 @@ var defaultRules = {
             // lists can be inline, because they might be inside another list,
             // in which case we can parse with inline scope, but need to allow
             // nested lists inside this inline scope.
-            var isStartOfLine = LIST_LOOKBEHIND_R.test(prevCapture);
+            var isStartOfLineCapture = LIST_LOOKBEHIND_R.exec(prevCapture);
             var isListBlock = state._list || !state.inline;
 
-            if (isStartOfLine && isListBlock) {
+            if (isStartOfLineCapture && isListBlock) {
+                source = isStartOfLineCapture[1] + source;
+                var res = LIST_R.exec(source);
                 return LIST_R.exec(source);
             } else {
                 return null;
