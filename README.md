@@ -519,13 +519,16 @@ Let's take a look at what it looks like in action:
 ```javascript
 var rules = Object.assign({}, SimpleMarkdown.defaultRules, {
     superscript: {
-        order: SimpleMarkdown.rules.text.order - 0.5,
+        order: SimpleMarkdown.defaultRules.text.order - 0.5,
 
         match: function(source) {
+            if (!state.inline) {
+                return null;
+            }
             // This regex matches @handles at the current source position (^)
             // match a `^` followed by either non-whitespace, non-()s, or
             // a ( followed by non `)`s followed by a `)`
-            return /^\^([^\s\(\)]+|\([^\)]+\))|/.exec(source);
+            return /^\^(?:([^\s\(\)]+)|\(([^\)]+)\))/.exec(source);
         },
 
         parse: function(capture, recursiveParse) {
@@ -535,7 +538,7 @@ var rules = Object.assign({}, SimpleMarkdown.defaultRules, {
 
                 // we want to parse the parenthesized group of the capture
                 // as markdown as well, so we pass it to `recursiveParse`
-                content: recursiveParse(capture[1]),
+                content: recursiveParse(capture[1] || capture[2]),
             };
         },
 
