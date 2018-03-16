@@ -1,6 +1,6 @@
 {
   "name": "simple-markdown",
-  "version": "0.3.3",
+  "version": "1.0.0-alpha.0",
   "description": "Javascript markdown parsing, made simple",
   "main": "simple-markdown.js",
   "scripts": {
@@ -21,7 +21,7 @@
     "markup",
     "text processing"
   ],
-  "author": "Khan Academy",
+  "author": "Aria Buckles",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Khan/simple-markdown/issues"
