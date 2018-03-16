@@ -1,6 +1,6 @@
 {
   "name": "simple-markdown",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "Javascript markdown parsing, made simple",
   "main": "simple-markdown.js",
   "scripts": {
@@ -21,21 +21,22 @@
     "markup",
     "text processing"
   ],
-  "author": "Khan Academy",
+  "author": "Aria Buckles",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Khan/simple-markdown/issues"
   },
   "homepage": "https://github.com/Khan/simple-markdown",
+  "dependencies": {},
   "devDependencies": {
-    "flow-bin": "0.61.*",
-    "flow-typed": "^2.1.5",
-    "mocha": "^3.5.0",
-    "react": "^16.1.0",
-    "react-dom": "^16.1.0",
-    "size-limit": "^0.13.1",
-    "uglify-js": "^2.6.2",
-    "underscore": "^1.8.3"
+    "flow-bin": "^0.71.0",
+    "flow-typed": "^2.4.0",
+    "mocha": "^5.1.1",
+    "react": "^16.3.2",
+    "react-dom": "^16.3.2",
+    "size-limit": "^0.17.0",
+    "uglify-js": "^3.3.22",
+    "underscore": "^1.9.0"
   },
   "size-limit": [
     {

@@ -51,4 +51,4 @@ size:
 # avoid potentially missing a compilation during an npm publish
 .PHONY: simple-markdown.min.js
 simple-markdown.min.js: simple-markdown.js
-	uglifyjs simple-markdown.js > simple-markdown.min.js
+	uglifyjs simple-markdown.js -o simple-markdown.min.js
