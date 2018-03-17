@@ -244,7 +244,7 @@ type RefNode = {
 
 var CR_NEWLINE_R = /\r\n?/g;
 var TAB_R = /\t/g;
-var FORMFEED_R = /\f/g
+var FORMFEED_R = /\f/g;
 // Turn various crazy whitespace into easy to process things
 var preprocess = function(source /* : string */) {
     return source.replace(CR_NEWLINE_R, '\n')
@@ -292,7 +292,7 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
     var ruleList = Object.keys(rules).filter(function(type) {
         var rule = rules[type];
         if (rule == null || rule.match == null) {
-          return false;
+            return false;
         }
         var order = rule.order;
         if ((typeof order !== 'number' || !isFinite(order)) &&
@@ -433,8 +433,7 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
             // of power--see reflinks.)
             if (Array.isArray(parsed)) {
                 Array.prototype.push.apply(result, parsed);
-            }
-            else {
+            } else {
                 // We also let rules override the default type of
                 // their parsed node if they would like to, so that
                 // there can be a single output function for all links,
@@ -454,7 +453,7 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
     var outerParse = function(source /* : string */, state /* : ?State */) {
         latestState = populateInitialState(state, defaultState);
         if (!latestState.inline && !latestState.disableAutoBlockNewlines) {
-            source = source + '\n\n';
+            source = source + "\n\n";
         }
         return nestedParse(preprocess(source), latestState);
     };
@@ -850,7 +849,7 @@ var defaultRules /* : DefaultRules */ = {
                 result += output(node, state);
             }
             return result;
-        },
+        }
     },
     heading: {
         order: currOrder++,
@@ -1177,7 +1176,9 @@ var defaultRules /* : DefaultRules */ = {
     },
     table: {
         order: currOrder++,
-        match: blockRegex(/^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/),
+        match: blockRegex(
+            /^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/
+        ),
         parse: TABLES.parseTable,
         react: function(node, output, state) {
             var getStyle = function(colIndex) {
@@ -1726,8 +1727,8 @@ var outputFor = function/* :: <Rule : Object> */(
     };
 
     var outerOutput = function(ast, state) {
-      latestState = populateInitialState(state, defaultState);
-      return nestedOutput(ast, latestState);
+        latestState = populateInitialState(state, defaultState);
+        return nestedOutput(ast, latestState);
     };
     return outerOutput;
 };
@@ -1894,7 +1895,7 @@ var SimpleMarkdown /* : Exports */ = {
             console.warn('defaultOutput is deprecated, please use `defaultReactOutput`');
         }
         return defaultReactOutput.apply(null, arguments);
-    },
+    }
 };
 
 if (typeof module !== "undefined" && module.exports) {
