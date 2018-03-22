@@ -695,7 +695,7 @@ var defaultRules = {
         }
     },
     blockQuote: {
-        match: blockRegex(/^( *>[^\n]+(\n[^\n]+)*\n*)+\n{2,}/),
+        match: blockRegex(/^( *>[^\n]+(\n[^\n]+)*\n{0,2})+\n{2,}/),
         parse: function(capture, parse, state) {
             var content = capture[0].replace(/^ *> ?/gm, '');
             return {

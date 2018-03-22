@@ -1629,6 +1629,44 @@ describe("simple markdown", function() {
             ]);
         });
 
+        it("should allow blockquotes to continue over one but not two blank lines", function() {
+            var parsed = blockParse(
+                "> blockquote 1\n\n" +
+                "> blockquote 1 continued\n\n\n" +
+                ">blockquote 2\n\n"
+            );
+            validateParse(parsed, [
+                {
+                    type: "blockQuote",
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: [{
+                                type: "text",
+                                content: "blockquote 1"
+                            }],
+                        },
+                        {
+                            type: "paragraph",
+                            content: [{
+                                type: "text",
+                                content: "blockquote 1 continued"
+                            }],
+                        }
+                    ]
+                },
+                {
+                    type: "blockQuote",
+                    content: [{
+                        type: "paragraph",
+                        content: [{
+                            type: "text",
+                            content: "blockquote 2"
+                        }],
+                    }],
+                },
+            ]);
+        });
         it("should not let a > escape a paragraph as a blockquote", function() {
             var parsed = blockParse(
                 "para 1 > not a quote\n\n"
