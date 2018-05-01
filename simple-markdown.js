@@ -1813,6 +1813,8 @@ type Exports = {
     +sanitizeText: (text: Attr) => string,
     +sanitizeUrl: (url: ?string) => ?string,
     +unescapeUrl: (url: string) => string,
+    +htmlTag: (tagName: string, content: string, attributes: ?{[any]: ?Attr}, isClosed: ?boolean) => string,
+    +reactElement: (type: string, key: string | null, props: { [string]: any }),
 };
 
 export type {
@@ -1877,6 +1879,8 @@ var SimpleMarkdown /* : Exports */ = {
     sanitizeText: sanitizeText,
     sanitizeUrl: sanitizeUrl,
     unescapeUrl: unescapeUrl,
+    htmlTag: htmlTag,
+    reactElement: reactElement,
 
     // deprecated:
     defaultRawParse: defaultRawParse,
