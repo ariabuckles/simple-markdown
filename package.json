@@ -34,7 +34,7 @@
     "mocha": "^5.1.1",
     "react": "^16.3.2",
     "react-dom": "^16.3.2",
-    "size-limit": "^0.17.0",
+    "size-limit": "^0.18.0",
     "uglify-js": "^3.3.22",
     "underscore": "^1.9.0"
   },
