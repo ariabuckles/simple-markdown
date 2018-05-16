@@ -1814,7 +1814,7 @@ type Exports = {
     +sanitizeUrl: (url: ?string) => ?string,
     +unescapeUrl: (url: string) => string,
     +htmlTag: (tagName: string, content: string, attributes: ?{[any]: ?Attr}, isClosed: ?boolean) => string,
-    +reactElement: (type: string, key: string | null, props: { [string]: any }),
+    +reactElement: (type: string, key: string | null, props: { [string]: any }) => ReactElement,
 };
 
 export type {
