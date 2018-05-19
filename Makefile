@@ -8,8 +8,6 @@ install:
 .PHONY: minify
 minify: simple-markdown.min.js
 
-FIND_TESTS := find __tests__ -type f -regex '.*\.js'
-
 .PHONY: test
 test: check runtests size
 
@@ -19,10 +17,10 @@ check:
 
 .PHONY: runtests
 runtests:
-	$(FIND_TESTS) | xargs ./node_modules/.bin/mocha --reporter spec
-.PHONY: shorttest
-shorttest:
-	$(FIND_TESTS) | xargs ./node_modules/.bin/mocha --reporter dot
+	./node_modules/.bin/mocha __tests__
+
+.PHONY: coverage
+	./node_modules/.bin/nyc --reporter=html --reporter=text ./node_modules/.bin/mocha __tests__
 
 # Start a chrome debugger for test case(s). Usage:
 # `make debug` or `make debug TEST="part of a test name"`
