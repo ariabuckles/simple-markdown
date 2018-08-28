@@ -6,7 +6,8 @@
   "scripts": {
     "test": "make test",
     "prepublishOnly": "make minify",
-    "size": "size-limit"
+    "size": "size-limit",
+    "heroku": "node babelmark.js"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   "homepage": "https://github.com/Khan/simple-markdown",
   "dependencies": {},
   "devDependencies": {
+    "express": "^4.16.3",
     "flow-bin": "^0.71.0",
     "flow-typed": "^2.4.0",
     "mocha": "^5.1.1",
