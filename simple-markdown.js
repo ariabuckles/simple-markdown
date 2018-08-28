@@ -1485,13 +1485,19 @@ var defaultRules /* : DefaultRules */ = {
                 // Only match *s that are followed by a non-space:
                 "^\\*(?=\\S)(" +
                 // Match at least one of:
-                //  - `**`: so that bolds inside italics don't close the
-                //          italics
-                //  - whitespace: followed by a non-* (we don't
-                //          want ' *' to close an italics--it might
-                //          start a list)
-                //  - non-whitespace, non-* characters
-                "(?:\\*\\*|\\s+(?:[^\\*\\s]|\\*\\*)|[^\\s\\*])+?" +
+                "(?:" +
+                  //  - `**`: so that bolds inside italics don't close the
+                  //          italics
+                  "\\*\\*|" +
+                  //  - escape sequence: so escaped *s don't close us
+                  "\\\\[\\s\\S]|" +
+                  //  - whitespace: followed by a non-* (we don't
+                  //          want ' *' to close an italics--it might
+                  //          start a list)
+                  "\\s+(?:\\\\[\\s\\S]|[^\\s\\*\\\\]|\\*\\*)|" +
+                  //  - non-whitespace, non-*, non-backslash characters
+                  "[^\\s\\*\\\\]" +
+                ")+?" +
                 // followed by a non-space, non-* then *
                 ")\\*(?!\\*)"
             )
