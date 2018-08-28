@@ -317,7 +317,41 @@ describe("simple markdown", function() {
             }]);
         });
 
-        // TODO(aria): Make this pass:
+        it("should allow escaped underscores in asterisk italics", function() {
+            var parsed1 = inlineParse("*hi\\* there*");
+            validateParse(parsed1, [{
+                type: "em",
+                content: [{
+                    type: "text",
+                    content: "hi",
+                }, {
+                    type: "text",
+                    content: "*",
+                }, {
+                    type: "text",
+                    content: " there",
+                }]
+            }]);
+
+            var parsed2 = inlineParse("_**ABC\\*DEF**_");
+            validateParse(parsed2, [{
+                type: "em",
+                content: [{
+                    type: "strong",
+                    content: [{
+                        type: "text",
+                        content: "ABC",
+                    }, {
+                        type: "text",
+                        content: "*",
+                    }, {
+                        type: "text",
+                        content: "DEF",
+                    }]
+                }]
+            }]);
+        });
+
         it("should parse complex combined bold/italics", function() {
             var parsed = inlineParse("***bold** italics*");
             validateParse(parsed, [{
@@ -3530,7 +3564,6 @@ describe("simple markdown", function() {
             );
         });
 
-        // TODO(aria): Make this pass:
         it("should output complex combined bold/italics", function() {
             assertParsesToReact(
                 "***bold** italics*",
