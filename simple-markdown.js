@@ -1526,7 +1526,7 @@ var defaultRules /* : DefaultRules */ = {
     },
     strong: {
         order: currOrder /* same as em */,
-        match: inlineRegex(/^\*\*([\s\S]+?)\*\*(?!\*)/),
+        match: inlineRegex(/^\*\*((?:\\[\s\S]|[^\\])+?)\*\*(?!\*)/),
         quality: function(capture) {
             // precedence by length, wins ties vs `u`:
             return capture[0].length + 0.1;
