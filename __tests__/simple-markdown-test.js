@@ -352,6 +352,37 @@ describe("simple markdown", function() {
             }]);
         });
 
+        it("should allow escaped underscores in bolds", function() {
+            var parsed1 = inlineParse("**hi\\* there**");
+            validateParse(parsed1, [{
+                type: "strong",
+                content: [{
+                    type: "text",
+                    content: "hi",
+                }, {
+                    type: "text",
+                    content: "*",
+                }, {
+                    type: "text",
+                    content: " there",
+                }]
+            }]);
+
+            validateParse(inlineParse("**hi\\** there**"), [{
+                type: "strong",
+                content: [{
+                    type: "text",
+                    content: "hi",
+                }, {
+                    type: "text",
+                    content: "*",
+                }, {
+                    type: "text",
+                    content: "* there",
+                }]
+            }]);
+        });
+
         it("should parse complex combined bold/italics", function() {
             var parsed = inlineParse("***bold** italics*");
             validateParse(parsed, [{
