@@ -317,7 +317,7 @@ describe("simple markdown", function() {
             }]);
         });
 
-        it("should allow escaped underscores in asterisk italics", function() {
+        it("should allow escaped asterisks in asterisk italics", function() {
             var parsed1 = inlineParse("*hi\\* there*");
             validateParse(parsed1, [{
                 type: "em",
@@ -352,7 +352,7 @@ describe("simple markdown", function() {
             }]);
         });
 
-        it("should allow escaped underscores in bolds", function() {
+        it("should allow escaped asterisks in asterisk bolds", function() {
             var parsed1 = inlineParse("**hi\\* there**");
             validateParse(parsed1, [{
                 type: "strong",
@@ -379,6 +379,23 @@ describe("simple markdown", function() {
                 }, {
                     type: "text",
                     content: "* there",
+                }]
+            }]);
+        });
+
+        it("should allow escaped underscores in underlines", function() {
+            var parsed1 = inlineParse("__hi\\__ there__");
+            validateParse(parsed1, [{
+                type: "u",
+                content: [{
+                    type: "text",
+                    content: "hi",
+                }, {
+                    type: "text",
+                    content: "_",
+                }, {
+                    type: "text",
+                    content: "_ there",
                 }]
             }]);
         });
