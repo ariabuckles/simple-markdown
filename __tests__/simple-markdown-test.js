@@ -172,6 +172,25 @@ describe("simple markdown", function() {
             }]);
         });
 
+        it("should support escapes in strikethrough", function() {
+            validateParse(inlineParse("~~hi\\~~ there~~"), [{
+                type: "del",
+                content: [
+                    { type: "text", content: "hi" },
+                    { type: "text", content: "~" },
+                    { type: "text", content: "~ there" },
+                ]
+            }]);
+        });
+
+        it("should not allow strikethrough to contain non-closing ~~s", function() {
+            validateParse(inlineParse("~~hi ~~there~~"), [
+                { type: "text", content: "~" },
+                { type: "text", content: "~hi " },
+                { type: "del", content: [{ type: "text", content: "there" }] },
+            ]);
+        });
+
         it("should parse underlines", function() {
             var parsed = inlineParse("__hi__");
             validateParse(parsed, [{
