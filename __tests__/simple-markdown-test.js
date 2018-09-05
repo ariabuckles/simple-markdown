@@ -163,13 +163,13 @@ describe("simple markdown", function() {
             // not super important that it parses this like this, but
             // it should be a valid something...
             var parsed2 = inlineParse("~~~~~");
-            validateParse(parsed2, [{
-                type: "del",
-                content: [{
-                    type: "text",
-                    content: "~"
-                }]
-            }]);
+            validateParse(parsed2, [
+                { content: "~", type: "text" },
+                { content: "~", type: "text" },
+                { content: "~", type: "text" },
+                { content: "~", type: "text" },
+                { content: "~", type: "text" },
+            ]);
         });
 
         it("should support escapes in strikethrough", function() {
