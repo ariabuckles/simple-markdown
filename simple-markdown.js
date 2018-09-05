@@ -1547,7 +1547,7 @@ var defaultRules /* : DefaultRules */ = {
     },
     u: {
         order: currOrder++ /* same as em&strong; increment for next rule */,
-        match: inlineRegex(/^__([\s\S]+?)__(?!_)/),
+        match: inlineRegex(/^__((?:\\[\s\S]|[^\\])+?)__(?!_)/),
         quality: function(capture) {
             // precedence by length, loses all ties
             return capture[0].length;
