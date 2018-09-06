@@ -1568,7 +1568,6 @@ var defaultRules /* : DefaultRules */ = {
     },
     del: {
         order: currOrder++,
-        match: inlineRegex(/^~~(?=\S)([\s\S]*?\S)~~/),
         match: inlineRegex(/^~~(?=\S)((?:\\[\s\S]|~(?!~)|[^\s\\~]|\s+(?!~~))+?)~~/),
         parse: parseCaptureInline,
         react: function(node, output, state) {
