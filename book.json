@@ -1,0 +1,14 @@
+{
+    "title": "simple-markdown",
+    "summary": "markdown parsing, made simple",
+    "root": "./docs-md/0.4.2",
+    "structure": {
+        "readme": "simple-markdown.md",
+        "summary": "table-of-contents.md"
+    },
+    "plugins": [
+      "-lunr",
+      "-search",
+      "search-plus"
+    ]
+}

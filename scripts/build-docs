@@ -1,0 +1,52 @@
+#!/bin/bash
+VERSION="$(scripts/version)"
+DOCSMD="docs-md/$VERSION"
+DOCS="docs/$VERSION"
+rm -rf "$DOCSMD"
+rm -rf "$DOCS"
+mkdir -p "$DOCSMD"
+mkdir -p temp
+
+echo "docs-md:"
+echo "$DOCSMD"
+ls "$DOCSMD"
+
+
+# gitbook doesn't like numbers in the name, so 'split' uses a-z :/,
+# while csplit uses 0-9
+cat README.md | sed 's|docs-md/\([[:alnum:][:punct:]]*\.md\)|\1|g' > temp/README.md
+split -p '^##? ' -a 1 temp/README.md "$DOCSMD/doc."
+ls "$DOCSMD" | xargs -I% mv "$DOCSMD/%" "$DOCSMD/%.md"
+
+ls "$DOCSMD" > temp/docs.txt
+cat temp/README.md | grep '^##\? ' | sed -e 's/`//g' -e 's/^\(##* [a-zA-Z0-9_[.-.]. ]*\).*$/\1/g' > temp/sections.txt
+cat temp/sections.txt | sed -e 's/^##* //g' -e 's/$/.md/g' | tr ' ' '-' | tr '[:upper:]' '[:lower:]' > temp/files.txt
+cat temp/sections.txt | sed -e 's/^# \(.*\)/ * [\1]/' -e 's/^## \(.*\)/    * [\1]/' > temp/links.txt
+
+# hacky way of renaming the files from temp/docs.txt to temp/files.txt
+(cd "$DOCSMD" && paste ../../temp/docs.txt ../../temp/files.txt | xargs -I% bash -c 'mv %')
+
+paste temp/files.txt temp/links.txt | sed 's|^\([^[:blank:]]*\)[[:blank:]]\(.*\)|\2(\1)|g' > "$DOCSMD/table-of-contents.md"
+
+rm -rf temp/
+
+# heredoc multiline input syntax:
+cat > book.json <<BOOKJSON
+{
+    "title": "simple-markdown",
+    "summary": "markdown parsing, made simple",
+    "root": "./$DOCSMD",
+    "structure": {
+        "readme": "simple-markdown.md",
+        "summary": "table-of-contents.md"
+    },
+    "plugins": [
+      "-lunr",
+      "-search",
+      "search-plus"
+    ]
+}
+BOOKJSON
+
+./node_modules/.bin/gitbook install
+./node_modules/.bin/gitbook build . "$DOCS"
