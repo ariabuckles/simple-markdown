@@ -686,6 +686,19 @@ describe("simple markdown", function() {
             ]);
         });
 
+        it("should allow one level of balanced parens in link urls", function() {
+            var parsed = inlineParse("[link]((foo)and(bar))");
+            validateParse(parsed, [{
+                type: "link",
+                content: [{
+                    "content": "link",
+                    "type": "text"
+                }],
+                target: "(foo)and(bar)",
+                title: undefined
+            }]);
+        })
+
         it("should parse basic <autolinks>", function() {
             var parsed = inlineParse("<http://www.google.com>");
             validateParse(parsed, [{
