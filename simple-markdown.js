@@ -20,7 +20,7 @@
  * the wonderful [marked.js](https://github.com/chjj/marked)
  *
  * LICENSE (MIT):
- * New code copyright (c) 2014 Khan Academy.
+ * New code copyright (c) 2014-2019 Khan Academy & Aria Buckles.
  *
  * Portions adapted from marked.js copyright (c) 2011-2014
  * Christopher Jeffrey (https://github.com/chjj/).
@@ -47,11 +47,9 @@
 /*::
 // Flow Type Definitions:
 
-type Capture = {
-  '0': string,
-  index?: number,
-  [number]: string,
-};
+type Capture =
+    Array<string> & {index: number} |
+    Array<string> & {index?: number};
 
 type Attr = string | number | boolean;
 
@@ -1023,7 +1021,8 @@ var defaultRules /* : DefaultRules */ = {
             var lastItemWasAParagraph = false;
             var itemContent = items.map(function(item, i) {
                 // We need to see how far indented this item is:
-                var space = LIST_ITEM_PREFIX_R.exec(item)[0].length;
+                var prefixCapture = LIST_ITEM_PREFIX_R.exec(item);
+                var space = prefixCapture ? prefixCapture[0].length : 0;
                 // And then we construct a regex to "unindent" the subsequent
                 // lines of the items by that amount:
                 var spaceRegex = new RegExp("^ {1," + space + "}", "gm");
