@@ -30,16 +30,16 @@
   "homepage": "https://github.com/Khan/simple-markdown",
   "dependencies": {},
   "devDependencies": {
-    "express": "^4.16.3",
-    "flow-bin": "^0.71.0",
-    "flow-typed": "^2.4.0",
-    "mocha": "^5.1.1",
-    "nyc": "^11.8.0",
-    "react": "^16.3.2",
-    "react-dom": "^16.3.2",
-    "size-limit": "^0.18.0",
-    "uglify-js": "^3.3.22",
-    "underscore": "^1.9.0"
+    "express": "^4.16.4",
+    "flow-bin": "^0.94.0",
+    "flow-typed": "^2.5.1",
+    "mocha": "^6.0.2",
+    "nyc": "^13.3.0",
+    "react": "^16.8.4",
+    "react-dom": "^16.8.4",
+    "size-limit": "^0.21.1",
+    "uglify-js": "^3.4.9",
+    "underscore": "^1.9.1"
   },
   "size-limit": [
     {
