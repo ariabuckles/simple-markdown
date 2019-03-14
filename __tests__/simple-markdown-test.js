@@ -3341,6 +3341,34 @@ describe("simple markdown", function() {
                 html2,
                 "<div class=\"paragraph\"><a>link</a></div>"
             );
+
+            var html3 = htmlFromReactMarkdown(
+                "[link](data:text/html;base64,PHNjcmlwdD5hbGVydCgnaGknKTwvc2NyaXB0Pg==)"
+            );
+            assert.strictEqual(html3, "<a>link</a>");
+
+            var html4 = htmlFromReactMarkdown(
+                "[link][1]\n\n" +
+                "[1]: data:text/html;base64,PHNjcmlwdD5hbGVydCgnaGknKTwvc2NyaXB0Pg==\n\n"
+            );
+            assert.strictEqual(
+                html4,
+                "<div class=\"paragraph\"><a>link</a></div>"
+            );
+
+            var html5 = htmlFromReactMarkdown(
+                "[link](vbscript:alert)"
+            );
+            assert.strictEqual(html5, "<a>link</a>");
+
+            var html6 = htmlFromReactMarkdown(
+                "[link][1]\n\n" +
+                "[1]: vbscript:alert\n\n"
+            );
+            assert.strictEqual(
+                html6,
+                "<div class=\"paragraph\"><a>link</a></div>"
+            );
         });
 
         it("should not sanitize safe links", function() {
@@ -3709,6 +3737,32 @@ describe("simple markdown", function() {
                 "[1]: javascript:alert('hi');\n\n";
             assertParsesToHtml(
                 markdown2,
+                "<div class=\"paragraph\"><a>link</a></div>"
+            );
+
+            var markdown3 = "[link](data:text/html;base64,PHNjcmlwdD5hbGVydCgnaGknKTwvc2NyaXB0Pg==)";
+            assertParsesToHtml(
+                markdown3,
+                "<a>link</a>"
+            );
+
+            var markdown4 = "[link][1]\n\n" +
+                "[1]: data:text/html;base64,PHNjcmlwdD5hbGVydCgnaGknKTwvc2NyaXB0Pg==\n\n";
+            assertParsesToHtml(
+                markdown4,
+                "<div class=\"paragraph\"><a>link</a></div>"
+            );
+
+            var markdown5 = "[link](vbscript:alert)";
+            assertParsesToHtml(
+                markdown5,
+                "<a>link</a>"
+            );
+
+            var markdown6 = "[link][1]\n\n" +
+                "[1]: vbscript:alert\n\n";
+            assertParsesToHtml(
+                markdown6,
                 "<div class=\"paragraph\"><a>link</a></div>"
             );
         });
