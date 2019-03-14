@@ -561,7 +561,7 @@ var sanitizeUrl = function(url /* : ?string */) {
         var prot = decodeURIComponent(url)
             .replace(/[^A-Za-z0-9/:]/g, '')
             .toLowerCase();
-        if (prot.indexOf('javascript:') === 0) {
+        if (prot.indexOf('javascript:') === 0 || prot.indexOf('vbscript:') === 0 || prot.indexOf('data:') === 0) {
             return null;
         }
     } catch (e) {
