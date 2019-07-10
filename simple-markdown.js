@@ -72,7 +72,8 @@ type ReactElements = React$Node;
 type MatchFunction = (
     source: string,
     state: State,
-    prevCapture: string
+    prevCapture: string,
+    globalPrevCapture: string
 ) => ?Capture;
 
 type Parser = (
@@ -333,6 +334,16 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
         }
     });
 
+    // The prevCapture below operates at a per-nesting-level scope,
+    // meaning that it's impossible to use it to determine if you're
+    // at the beginning of the whole input string, or merely at the
+    // beginning of a nested parse. When trying to determine whether
+    // the current string is at the start of a line, this is an
+    // important distinction. To get around this, we introduce a
+    // global prev capture that tracks the previous capture across
+    // nested scopes.
+    var globalPrevCapture = "";
+
     var latestState;
     var nestedParse = function(source /* : string */, state /* : ?State */) {
         var result = [];
@@ -357,7 +368,7 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
 
             do {
                 var currOrder = currRule.order;
-                var currCapture = currRule.match(source, state, prevCapture);
+                var currCapture = currRule.match(source, state, prevCapture, globalPrevCapture);
 
                 if (currCapture) {
                     var currQuality = currRule.quality ? currRule.quality(
@@ -424,6 +435,7 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
                 }
             }
 
+            globalPrevCapture = capture[0];
             var parsed = rule.parse(capture, nestedParse, state);
             // We maintain the same object here so that rules can
             // store references to the objects they return and
@@ -453,6 +465,7 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
         if (!latestState.inline && !latestState.disableAutoBlockNewlines) {
             source = source + "\n\n";
         }
+        globalPrevCapture = "";
         return nestedParse(preprocess(source), latestState);
     };
     return outerParse;
