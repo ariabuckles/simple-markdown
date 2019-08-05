@@ -2632,6 +2632,86 @@ describe("simple markdown", function() {
             validateParse(parsedNp, expected);
         });
 
+        it("should allow escaping pipes inside tables", function() {
+            var expected = [{
+                type: "table",
+                header: [
+                    [
+                        {type: "text", content: '|'},
+                        {type: "text", content: 'Attribute'},
+                        {type: "text", content: '|'},
+                    ],
+                    [
+                        {type: "text", content: '|'},
+                        {type: "text", content: 'Type'},
+                        {type: "text", content: '|'},
+                    ],
+                ],
+                align: [null, null],
+                cells: [[
+                    [
+                        {type: "text", content: "pos"},
+                        {type: "text", content: "|"},
+                        {type: "text", content: "position"}
+                    ],
+                    [
+                        {type: "text", content: '"left'},
+                        {type: "text", content: '" '},
+                        {type: "text", content: '|'},
+                        {type: "text", content: ' '},
+                        {type: "text", content: '"right'},
+                        {type: "text", content: '"'}
+                    ],
+                ]]
+            }];
+
+            var parsedPiped = blockParse(
+                '| \\|Attribute\\| | \\|Type\\|         |\n' +
+                '| --------------- | ------------------ |\n' +
+                '| pos\\|position  | "left" \\| "right" |\n' +
+                '\n'
+            );
+            validateParse(parsedPiped, expected);
+
+            var parsedNp = blockParse(
+                '\\|Attribute\\| | \\|Type\\|        \n' +
+                '--------------- | ------------------\n' +
+                'pos\\|position  | "left" \\| "right"\n' +
+                '\n'
+            );
+            validateParse(parsedNp, expected);
+        });
+
+        it("should allow pipes in code inside tables", function() {
+            var expected = [{
+                type: "table",
+                header: [
+                    [{type: "text", content: 'Attribute'}],
+                    [{type: "text", content: 'Type'}],
+                ],
+                align: [null, null],
+                cells: [[
+                    [{type: "inlineCode", content: "position"}],
+                    [{type: "inlineCode", content: '"left" | "right"'}],
+                ]]
+            }];
+
+            var parsedPiped = blockParse(
+                '| Attribute    | Type                  |\n' +
+                '| ------------ | --------------------- |\n' +
+                '| `position`   | `"left" | "right"`   |\n' +
+                '\n'
+            );
+            validateParse(parsedPiped, expected);
+
+            var parsedNp = blockParse(
+                'Attribute    | Type                 \n' +
+                '------------ | ---------------------\n' +
+                '`position`   | `"left" | "right"`\n' +
+                '\n'
+            );
+            validateParse(parsedNp, expected);
+        });
 
         it("should be able to parse <br>s", function() {
             // Inside a paragraph:

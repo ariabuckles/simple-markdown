@@ -78,7 +78,7 @@ type MatchFunction = (
 type Parser = (
     source: string,
     state?: ?State
-) => ASTNode;
+) => Array<SingleASTNode>;
 
 type ParseFunction = (
     capture: Capture,
@@ -660,12 +660,9 @@ var TABLES = (function() {
     // predefine regexes so we don't have to create them inside functions
     // sure, regex literals should be fast, even inside functions, but they
     // aren't in all browsers.
-    var TABLE_HEADER_TRIM = /^ *| *\| *$/g;
-    var TABLE_CELLS_TRIM = /\n+$/;
-    var PLAIN_TABLE_ROW_TRIM = /^ *\| *| *\| *$/g;
-    var NPTABLE_ROW_TRIM = /^ *| *$/g;
-    var TABLE_ROW_SPLIT = / *\| */;
-
+    var TABLE_BLOCK_TRIM = /\n+/g;
+    var TABLE_ROW_SEPARATOR_TRIM = /^ *\| *| *\| *$/g;
+    var TABLE_CELL_END_TRIM = / *$/;
     var TABLE_RIGHT_ALIGN = /^ *-+: *$/;
     var TABLE_CENTER_ALIGN = /^ *:-+: *$/;
     var TABLE_LEFT_ALIGN = /^ *:-+ *$/;
@@ -682,84 +679,71 @@ var TABLES = (function() {
         }
     };
 
-    var parseTableHeader = function(trimRegex, capture, parse, state) {
-        var headerText = capture[1]
-            .replace(trimRegex, "")
-            .split(TABLE_ROW_SPLIT);
-        return headerText.map(function(text) {
-            return parse(text, state);
-        });
-    };
-
-    var parseTableAlign = function(trimRegex, capture, parse, state) {
-        var alignText = capture[2]
-            .replace(trimRegex, "")
-            .split(TABLE_ROW_SPLIT);
-
+    var parseTableAlign = function(source, parse, state, trimEndSeparators) {
+        if (trimEndSeparators) {
+            source = source.replace(TABLE_ROW_SEPARATOR_TRIM, "");
+        }
+        var alignText = source.trim().split("|");
         return alignText.map(parseTableAlignCapture);
     };
 
-    var parseTableCells = function(capture, parse, state) {
-        var rowsText = capture[3]
-            .replace(TABLE_CELLS_TRIM, "")
-            .split("\n");
+    var parseTableRow = function(source, parse, state, trimEndSeparators) {
+        var prevInTable = state.inTable;
+        state.inTable = true;
+        var tableRow = parse(source.trim(), state);
+        state.inTable = prevInTable;
+
+        var cells = [[]];
+        tableRow.forEach(function(node, i) {
+            if (node.type === 'tableSeparator') {
+                // Filter out empty table separators at the start/end:
+                if (!trimEndSeparators || i !== 0 && i !== tableRow.length - 1) {
+                    // Split the current row:
+                    cells.push([]);
+                }
+            } else {
+                if (node.type === 'text' && (
+                    tableRow[i + 1] == null ||
+                    tableRow[i + 1].type === 'tableSeparator'
+                )) {
+                    node.content = node.content.replace(TABLE_CELL_END_TRIM, "");
+                }
+                cells[cells.length - 1].push(node);
+            }
+        });
+
+        return cells;
+    };
+
+    var parseTableCells = function(source, parse, state, trimEndSeparators) {
+        var rowsText = source.trim().split("\n");
 
         return rowsText.map(function(rowText) {
-            var cellText = rowText
-                .replace(PLAIN_TABLE_ROW_TRIM, "")
-                .split(TABLE_ROW_SPLIT);
-            return cellText.map(function(text) {
-                return parse(text, state);
-            });
+            return parseTableRow(rowText, parse, state, trimEndSeparators);
         });
     };
 
-    var parseNpTableCells = function(capture, parse, state) {
-        var rowsText = capture[3]
-            .replace(TABLE_CELLS_TRIM, "")
-            .split("\n");
+    var parseTable = function(trimEndSeparators) {
+        return function(capture, parse, state) {
+            state.inline = true;
+            var header = parseTableRow(capture[1], parse, state, trimEndSeparators);
+            var align = parseTableAlign(capture[2], parse, state, trimEndSeparators);
+            var cells = parseTableCells(capture[3], parse, state, trimEndSeparators);
+            state.inline = false;
 
-        return rowsText.map(function(rowText) {
-            var cellText = rowText.split(TABLE_ROW_SPLIT);
-            return cellText.map(function(text) {
-                return parse(text, state);
-            });
-        });
-    };
-
-    var parseTable = function(capture, parse, state) {
-        state.inline = true;
-        var header = parseTableHeader(TABLE_HEADER_TRIM, capture, parse, state);
-        var align = parseTableAlign(TABLE_HEADER_TRIM, capture, parse, state);
-        var cells = parseTableCells(capture, parse, state);
-        state.inline = false;
-
-        return {
-            type: "table",
-            header: header,
-            align: align,
-            cells: cells
-        };
-    };
-
-    var parseNpTable = function(capture, parse, state) {
-        state.inline = true;
-        var header = parseTableHeader(NPTABLE_ROW_TRIM, capture, parse, state);
-        var align = parseTableAlign(NPTABLE_ROW_TRIM, capture, parse, state);
-        var cells = parseNpTableCells(capture, parse, state);
-        state.inline = false;
-
-        return {
-            type: "table",
-            header: header,
-            align: align,
-            cells: cells
+            return {
+                type: "table",
+                header: header,
+                align: align,
+                cells: cells
+            };
         };
     };
 
     return {
-        parseTable: parseTable,
-        parseNpTable: parseNpTable,
+        parseTable: parseTable(true),
+        parseNpTable: parseTable(false),
+        TABLE_REGEX: /^ *(\|.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/,
         NPTABLE_REGEX: /^ *(\S.*\|.*)\n *([-:]+ *\|[-| :]*)\n((?:.*\|.*(?:\n|$))*)\n*/
     };
 })();
@@ -1175,9 +1159,7 @@ var defaultRules /* : DefaultRules */ = {
     },
     table: {
         order: currOrder++,
-        match: blockRegex(
-            /^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/
-        ),
+        match: blockRegex(TABLES.TABLE_REGEX),
         parse: TABLES.parseTable,
         react: function(node, output, state) {
             var getStyle = function(colIndex) {
@@ -1312,6 +1294,21 @@ var defaultRules /* : DefaultRules */ = {
         },
         react: null,
         html: null
+    },
+    tableSeparator: {
+        order: currOrder++,
+        match: function(source, state) {
+            if (!state.inTable) {
+                return null;
+            }
+            return /^ *\| */.exec(source);
+        },
+        parse: function() {
+            return { type: 'tableSeparator' };
+        },
+        // These shouldn't be reached, but in case they are, be reasonable:
+        react: function() { return ' | '; },
+        html: function() { return ' &vert; '; },
     },
     autolink: {
         order: currOrder++,
