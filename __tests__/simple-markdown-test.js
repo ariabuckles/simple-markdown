@@ -550,6 +550,26 @@ describe("simple markdown", function() {
             }]);
         });
 
+        it("should ignore a single space at the start and end of an inline code block separating a '`'", function() {
+            var parsed1 = inlineParse(
+                "test `` ` `` escaping a code block"
+            );
+            validateParse(parsed1, [
+                {type: "text", content: "test "},
+                {type: "inlineCode", content: "`"},
+                {type: "text", content: " escaping a code block"},
+            ]);
+
+            var parsed1 = inlineParse(
+                "test ``  `  `` escaping a code block"
+            );
+            validateParse(parsed1, [
+                {type: "text", content: "test "},
+                {type: "inlineCode", content: " ` "},
+                {type: "text", content: " escaping a code block"},
+            ]);
+        });
+
         it("should allow you to escape special characters with \\", function() {
             var parsed = inlineParse(
                 "\\`hi\\` \\*bye\\* \\~\\|\\<\\[\\{"
