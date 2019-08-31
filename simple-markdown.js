@@ -936,7 +936,7 @@ var defaultRules /* : DefaultRules */ = {
     },
     fence: {
         order: currOrder++,
-        match: blockRegex(/^ *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\1 *(?:\n *)+\n/),
+        match: blockRegex(/^ *(`{3,}|~{3,}) *(?:(\S+) *)?\n([\s\S]+?)\n?\1 *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
                 type: "codeBlock",
