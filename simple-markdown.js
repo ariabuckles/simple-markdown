@@ -836,11 +836,11 @@ var defaultRules /* : DefaultRules */ = {
     },
     heading: {
         order: currOrder++,
-        match: blockRegex(/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n *)+\n/),
+        match: blockRegex(/^ *(#{1,6})([^\n]+?)#* *(?:\n *)+\n/),
         parse: function(capture, parse, state) {
             return {
                 level: capture[1].length,
-                content: parseInline(parse, capture[2], state)
+                content: parseInline(parse, capture[2].trim(), state)
             };
         },
         react: function(node, output, state) {
