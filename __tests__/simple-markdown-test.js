@@ -4280,5 +4280,19 @@ describe("simple markdown", function() {
             duration = Date.now() - startTime;
             assert.ok(duration < 10, "Expected parsing to finish in <10ms, but was " + duration + "ms.");
         });
+
+        it("should parse long code fences quickly", function() {
+            var source = '~~~' + Array(1000).join(' ') + '\n' + Array(1000).join(' ') + '\n';
+            var startTime = Date.now();
+            var parsed = blockParse(source);
+            var duration = Date.now() - startTime;
+            assert.ok(duration < 10, "Expected parsing to finish in <10ms, but was " + duration + "ms.");
+
+            var source = '~~~' + Array(2000).join(' ') + '\n' + Array(10000).join(' ') + '\n';
+            var startTime = Date.now();
+            var parsed = blockParse(source);
+            var duration = Date.now() - startTime;
+            assert.ok(duration < 10, "Expected parsing to finish in <10ms, but was " + duration + "ms.");
+        });
     });
 });
