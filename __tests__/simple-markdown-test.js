@@ -4229,4 +4229,14 @@ describe("simple markdown", function() {
             });
         });
     });
+
+    describe("Exponential backtracking avoidance", function() {
+        it("should parse long inlineCode quickly", function() {
+            var source = '`' + Array(2000).join(' ');
+            var startTime = Date.now();
+            var parsed = inlineParse(source);
+            var duration = Date.now() - startTime;
+            assert.ok(duration < 10, "Expected parsing to finish in <10ms, but was " + duration + "ms.");
+        });
+    });
 });
