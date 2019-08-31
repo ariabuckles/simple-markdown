@@ -4266,5 +4266,19 @@ describe("simple markdown", function() {
             var duration = Date.now() - startTime;
             assert.ok(duration < 10, "Expected parsing to finish in <10ms, but was " + duration + "ms.");
         });
+
+        it("should parse long del strikethroughs quickly", function() {
+            var source = '~~~h' + Array(30).join(' ') + 'i';
+            var startTime = Date.now();
+            var parsed = inlineParse(source);
+            var duration = Date.now() - startTime;
+            assert.ok(duration < 10, "Expected parsing to finish in <10ms, but was " + duration + "ms.");
+
+            source = '~~~h' + Array(1000).join(' ') + 'i';
+            startTime = Date.now();
+            parsed = inlineParse(source);
+            duration = Date.now() - startTime;
+            assert.ok(duration < 10, "Expected parsing to finish in <10ms, but was " + duration + "ms.");
+        });
     });
 });
