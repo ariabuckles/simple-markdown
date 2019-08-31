@@ -4258,5 +4258,13 @@ describe("simple markdown", function() {
             var duration = Date.now() - startTime;
             assert.ok(duration < 10, "Expected parsing to finish in <10ms, but was " + duration + "ms.");
         });
+
+        it("should parse long headings quickly", function() {
+            var source = '### Hi ' + Array(1200).join(' ') + 'there ### \n\n';
+            var startTime = Date.now();
+            var parsed = blockParse(source);
+            var duration = Date.now() - startTime;
+            assert.ok(duration < 10, "Expected parsing to finish in <10ms, but was " + duration + "ms.");
+        });
     });
 });
