@@ -73,7 +73,6 @@ type MatchFunction = (
     source: string,
     state: State,
     prevCapture: string,
-    globalPrevCapture: string
 ) => ?Capture;
 
 type Parser = (
@@ -334,26 +333,11 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
         }
     });
 
-    // The prevCapture below operates at a per-nesting-level scope,
-    // meaning that it's impossible to use it to determine if you're
-    // at the beginning of the whole input string, or merely at the
-    // beginning of a nested parse. When trying to determine whether
-    // the current string is at the start of a line, this is an
-    // important distinction. To get around this, we introduce a
-    // global prev capture that tracks the previous capture across
-    // nested scopes.
-    var globalPrevCapture = "";
-
     var latestState;
     var nestedParse = function(source /* : string */, state /* : ?State */) {
         var result = [];
         state = state || latestState;
         latestState = state;
-        // We store the previous capture so that match functions can
-        // use some limited amount of lookbehind. Lists use this to
-        // ensure they don't match arbitrary '- ' or '* ' in inline
-        // text (see the list rule for more information).
-        var prevCapture = "";
         while (source) {
             // store the best match, it's rule, and quality:
             var ruleType = null;
@@ -368,13 +352,14 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
 
             do {
                 var currOrder = currRule.order;
-                var currCapture = currRule.match(source, state, prevCapture, globalPrevCapture);
+                var prevCaptureStr = state.prevCapture === null ? "" : state.prevCapture[0];
+                var currCapture = currRule.match(source, state, prevCaptureStr);
 
                 if (currCapture) {
                     var currQuality = currRule.quality ? currRule.quality(
                         currCapture,
                         state,
-                        prevCapture
+                        prevCaptureStr
                     ) : 0;
                     // This should always be true the first time because
                     // the initial quality is NaN (that's why there's the
@@ -435,7 +420,6 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
                 }
             }
 
-            globalPrevCapture = capture[0];
             var parsed = rule.parse(capture, nestedParse, state);
             // We maintain the same object here so that rules can
             // store references to the objects they return and
@@ -454,8 +438,8 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
                 result.push(parsed);
             }
 
-            prevCapture = capture[0];
-            source = source.substring(prevCapture.length);
+            state.prevCapture = capture;
+            source = source.substring(state.prevCapture[0].length);
         }
         return result;
     };
@@ -465,7 +449,12 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
         if (!latestState.inline && !latestState.disableAutoBlockNewlines) {
             source = source + "\n\n";
         }
-        globalPrevCapture = "";
+        // We store the previous capture so that match functions can
+        // use some limited amount of lookbehind. Lists use this to
+        // ensure they don't match arbitrary '- ' or '* ' in inline
+        // text (see the list rule for more information). This stores
+        // the full regex capture object, if there is one.
+        latestState.prevCapture = null;
         return nestedParse(preprocess(source), latestState);
     };
     return outerParse;
@@ -984,7 +973,7 @@ var defaultRules /* : DefaultRules */ = {
     },
     list: {
         order: currOrder++,
-        match: function(source, state, prevCapture) {
+        match: function(source, state) {
             // We only want to break into a list if we are at the start of a
             // line. This is to avoid parsing "hi * there" with "* there"
             // becoming a part of a list.
@@ -993,7 +982,8 @@ var defaultRules /* : DefaultRules */ = {
             // lists can be inline, because they might be inside another list,
             // in which case we can parse with inline scope, but need to allow
             // nested lists inside this inline scope.
-            var isStartOfLineCapture = LIST_LOOKBEHIND_R.exec(prevCapture);
+            var prevCaptureStr = state.prevCapture === null ? "" : state.prevCapture[0];
+            var isStartOfLineCapture = LIST_LOOKBEHIND_R.exec(prevCaptureStr);
             var isListBlock = state._list || !state.inline;
 
             if (isStartOfLineCapture && isListBlock) {

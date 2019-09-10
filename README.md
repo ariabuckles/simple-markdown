@@ -298,7 +298,7 @@ and parsing. The most common field on `state` is `inline`, which all of
 the default rules set to true when we are in an inline scope, and false
 or undefined when we are in a block scope.
 
-`lookbehind` is the string previously captured at this parsing level, to
+**DEPRECATED - use `state.prevCapture` instead.** `lookbehind` is the string previously captured at this parsing level, to
 allow for lookbehind. For example, lists check that lookbehind ends with
 `/^$|\n *$/` to ensure that lists only match at the beginning of a new
 line.
