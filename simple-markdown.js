@@ -72,7 +72,7 @@ type ReactElements = React$Node;
 type MatchFunction = (
     source: string,
     state: State,
-    prevCapture: string,
+    prevCapture: string
 ) => ?Capture;
 
 type Parser = (
