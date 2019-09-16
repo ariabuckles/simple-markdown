@@ -640,7 +640,7 @@ var LIST_ITEM_R = new RegExp(
     "gm"
 );
 var BLOCK_END_R = /\n{2,}$/;
-var INLINE_CODE_ESCAPE_BACKTICKS_R = /^ ( *` *) $|^ ( *`)|(` *) $/g;
+var INLINE_CODE_ESCAPE_BACKTICKS_R = /^ (?= *`)|(` *) $/g;
 // recognize the end of a paragraph block inside a list item:
 // two or more newlines at end end of the item
 var LIST_BLOCK_END_R = BLOCK_END_R;
