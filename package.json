@@ -1,6 +1,6 @@
 {
   "name": "simple-markdown",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Javascript markdown parsing, made simple",
   "main": "simple-markdown.js",
   "scripts": {
@@ -39,8 +39,8 @@
     "express": "^4.16.4",
     "flow-bin": "^0.94.0",
     "flow-typed": "^2.5.1",
-    "mocha": "^6.0.2",
-    "nyc": "^13.3.0",
+    "mocha": "^6.2.0",
+    "nyc": "^14.1.1",
     "react": "^16.8.4",
     "react-dom": "^16.8.4",
     "size-limit": "^0.21.1",
