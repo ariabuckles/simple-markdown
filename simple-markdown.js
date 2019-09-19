@@ -352,7 +352,7 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
 
             do {
                 var currOrder = currRule.order;
-                var prevCaptureStr = state.prevCapture === null ? "" : state.prevCapture[0];
+                var prevCaptureStr = state.prevCapture == null ? "" : state.prevCapture[0];
                 var currCapture = currRule.match(source, state, prevCaptureStr);
 
                 if (currCapture) {
@@ -982,7 +982,7 @@ var defaultRules /* : DefaultRules */ = {
             // lists can be inline, because they might be inside another list,
             // in which case we can parse with inline scope, but need to allow
             // nested lists inside this inline scope.
-            var prevCaptureStr = state.prevCapture === null ? "" : state.prevCapture[0];
+            var prevCaptureStr = state.prevCapture == null ? "" : state.prevCapture[0];
             var isStartOfLineCapture = LIST_LOOKBEHIND_R.exec(prevCaptureStr);
             var isListBlock = state._list || !state.inline;
 
