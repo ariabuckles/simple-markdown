@@ -44,6 +44,7 @@
     "react": "^16.8.4",
     "react-dom": "^16.8.4",
     "size-limit": "^0.21.1",
+    "typescript": "^3.6.4",
     "uglify-js": "^3.4.9",
     "underscore": "^1.9.1"
   },
