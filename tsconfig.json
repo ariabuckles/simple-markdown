@@ -4,7 +4,7 @@
     "simple-markdown.d.ts",
   ],
   "include": [
-    "__tests__/**/*",
+    // "__tests__/**/*",
   ],
   "exclude": [
     "node_modules",

@@ -36,6 +36,8 @@
   ],
   "dependencies": {},
   "devDependencies": {
+    "@types/react": "^16.9.5",
+    "@types/react-dom": "^16.9.1",
     "express": "^4.16.4",
     "flow-bin": "^0.94.0",
     "flow-typed": "^2.5.1",

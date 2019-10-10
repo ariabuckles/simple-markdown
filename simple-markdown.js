@@ -158,7 +158,7 @@ type OutputRules<Rule> = {
 type Rules<OutputRule> = {
     +Array?: ArrayRule,
     +[type: string]: ParserRule & OutputRule,
-}
+};
 type ReactRules = {
     +Array?: {
         +react: ArrayNodeOutput<ReactElements>,
