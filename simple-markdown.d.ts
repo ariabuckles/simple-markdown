@@ -6,6 +6,8 @@
 // INTERFACES & TYPES
 //
 
+export as namespace SimpleMarkdown;
+
 // FIXME
 export type Capture = any;
 
@@ -14,24 +16,31 @@ export type Attr = string | number | boolean;
 export interface SingleASTNode {
     type: string,
     [prop: string]: any,
-};
+}
 
 export interface UnTypedASTNode {
     [prop: string]: any
-};
+}
 
 export type ASTNode = SingleASTNode | Array<SingleASTNode>;
 
-export type State = {[prop: string]: any};
+// export type State = {[prop: string]: any};
+export interface State {
+    [prop: string]: any,
+}
 
 export type ReactElement = React.ReactElement<any>;
-export type ReactElements = React.ReactNode;
+export type ReactElements = React.ReactNode | ReactElement;
 
-export type MatchFunction = (
-    source: string,
-    state: State,
-    prevCapture: string
-) => Capture | null;
+//export type MatchFunction = { regex?: RegExp } & (
+//    source: string,
+//    state: State,
+//    prevCapture: string
+//) => Capture | null;
+export interface MatchFunction {
+    (source: string, state: State, prevCapture: string): Capture | null,
+    regex?: RegExp,
+}
 
 export type Parser = (
     source: string,
@@ -55,11 +64,13 @@ export type Output<Result> = (
     state?: State | null | undefined
 ) => Result;
 
-export type NodeOutput<Result> = (
+export type RefiningNodeOutput<Input, Result extends Input> = (
     node: SingleASTNode,
-    nestedOutput: Output<Result>,
+    nestedOutput: Output<Input>,
     state: State
 ) => Result;
+
+export type NodeOutput<Result> = RefiningNodeOutput<Result, Result>;
 
 export type ArrayNodeOutput<Result> = (
     node: Array<SingleASTNode>,
@@ -77,14 +88,14 @@ export interface ParserRule {
     readonly match: MatchFunction,
     readonly quality?: (capture: Capture, state: State, prevCapture: string) => number,
     readonly parse: ParseFunction,
-};
+}
 
-export interface SingleNodeParserRule {
+export interface SingleNodeParserRule extends ParserRule {
     readonly order: number,
     readonly match: MatchFunction,
     readonly quality?: (capture: Capture, state: State, prevCapture: string) => number,
     readonly parse: SingleNodeParseFunction,
-};
+}
 
 export interface ReactOutputRule {
     // we allow null because some rules are never output results, and that's
@@ -92,70 +103,83 @@ export interface ReactOutputRule {
     // We don't use ? because this makes it be explicitly defined as either
     // a valid function or null, so it can't be forgotten.
     readonly react: ReactNodeOutput | null,
-};
+}
 
-export interface HtmlOutputRule = {
+export interface HtmlOutputRule {
     readonly html: HtmlNodeOutput | null,
-};
+}
 
 export interface ArrayRule {
     readonly react?: ArrayNodeOutput<ReactElements>,
     readonly html?: ArrayNodeOutput<string>,
-    readonly [string]: ArrayNodeOutput<any>,
-};
+    readonly [other: string]: ArrayNodeOutput<any> | undefined,
+}
+export interface ReactArrayRule extends ArrayRule {
+    readonly react: ArrayNodeOutput<ReactElements>,
+    readonly html?: ArrayNodeOutput<string>,
+    readonly [other: string]: ArrayNodeOutput<any> | undefined,
+}
+export interface HtmlArrayRule extends ArrayRule {
+    readonly react?: ArrayNodeOutput<ReactElements>,
+    readonly html: ArrayNodeOutput<string>,
+    readonly [other: string]: ArrayNodeOutput<any> | undefined,
+}
+export interface DefaultArrayRule extends ArrayRule {
+    readonly react: ArrayNodeOutput<ReactElements>,
+    readonly html: ArrayNodeOutput<string>
+}
 
 export interface ParserRules {
     readonly Array?: ArrayRule,
-    readonly [type: string]: ParserRule,
-};
+    readonly [type: string]: ParserRule | /* only for Array: */ ArrayRule | undefined,
+}
 
 export interface OutputRules<Rule> {
     readonly Array?: ArrayRule,
-    readonly [type: string]: Rule
-};
+    readonly [type: string]: Rule | /* only for Array: */ ArrayRule | undefined,
+}
 export interface Rules<OutputRule> {
     readonly Array?: ArrayRule,
-    readonly [type: string]: ParserRule & OutputRule,
-};
+    readonly [type: string]: ParserRule & OutputRule | /* only for Array: */ ArrayRule | undefined,
+}
 export interface ReactRules {
-    readonly Array?: {
-        readonly react: ArrayNodeOutput<ReactElements>,
-    },
-    readonly [type: string]: ParserRule & ReactOutputRule,
-};
+    readonly Array?: ReactArrayRule,
+    readonly [type: string]: ParserRule & ReactOutputRule | ReactArrayRule | undefined,
+}
 export interface HtmlRules {
-    readonly Array?: {
-        readonly html: ArrayNodeOutput<string>,
-    },
-    readonly [type: string]: ParserRule & HtmlOutputRule,
-};
+    readonly Array?: HtmlArrayRule,
+    readonly [type: string]: ParserRule & HtmlOutputRule | HtmlArrayRule | undefined,
+}
 
 // We want to clarify our defaultRules types a little bit more so clients can
 // reuse defaultRules built-ins. So we make some stronger guarantess when
 // we can:
-export interface NonNullReactOutputRule = {
+export interface NonNullReactOutputRule extends ReactOutputRule {
     readonly react: ReactNodeOutput,
-};
-export interface ElementReactOutputRule = {
-    readonly react: NodeOutput<ReactElement>,
-};
-export interface TextReactOutputRule = {
-    readonly react: NodeOutput<string>,
-};
-export interface NonNullHtmlOutputRule = {
+}
+export interface ElementReactOutputRule extends ReactOutputRule {
+    readonly react: RefiningNodeOutput<ReactElements, ReactElement>,
+}
+export interface TextReactOutputRule extends ReactOutputRule {
+    readonly react: RefiningNodeOutput<ReactElements, string>,
+}
+export interface NonNullHtmlOutputRule extends HtmlOutputRule {
     readonly html: HtmlNodeOutput,
-};
+}
+
+export interface ReactMarkdownProps {
+    source: string,
+    [prop: string]: any,
+}
 
 export type DefaultInRule = SingleNodeParserRule & ReactOutputRule & HtmlOutputRule;
 export type TextInOutRule = SingleNodeParserRule & TextReactOutputRule & NonNullHtmlOutputRule;
 export type LenientInOutRule = SingleNodeParserRule & NonNullReactOutputRule & NonNullHtmlOutputRule;
 export type DefaultInOutRule = SingleNodeParserRule & ElementReactOutputRule & NonNullHtmlOutputRule;
 
-export interface DefaultRules = {
-    readonly Array: {
-        readonly react: ArrayNodeOutput<ReactElements>,
-        readonly html: ArrayNodeOutput<string>
-    },
+type DefaultRulesIndexer = ReactRules & HtmlRules;
+export interface DefaultRules extends DefaultRulesIndexer {
+    readonly Array: DefaultArrayRule,
     readonly heading: DefaultInOutRule,
     readonly nptable: DefaultInRule,
     readonly lheading: DefaultInRule,
@@ -166,6 +190,7 @@ export interface DefaultRules = {
     readonly list: DefaultInOutRule,
     readonly def: LenientInOutRule,
     readonly table: DefaultInOutRule,
+    readonly tableSeparator: DefaultInRule,
     readonly newline: TextInOutRule,
     readonly paragraph: DefaultInOutRule,
     readonly escape: DefaultInRule,
@@ -183,13 +208,12 @@ export interface DefaultRules = {
     readonly inlineCode: DefaultInOutRule,
     readonly br: DefaultInOutRule,
     readonly text: TextInOutRule,
-};
+}
 
 export interface RefNode {
     type: string,
     content?: ASTNode,
     target?: string,
     title?: string,
-};
-
-
+    alt?: string,
+}
