@@ -6,6 +6,9 @@
 // INTERFACES & TYPES
 //
 
+import "node";
+import * as React from "react";
+
 export as namespace SimpleMarkdown;
 
 // FIXME

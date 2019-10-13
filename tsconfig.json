@@ -17,7 +17,6 @@
     "checkJs": true,                          /* Report errors in .js files. */
     "noEmit": true,                           /* Do not emit outputs. */
     "esModuleInterop": true,                  /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
-    "types": ["node"],                        /* Type declaration files to be included in compilation. */
 
     /* Basic Options */
     // "incremental": true,                   /* Enable incremental compilation */
@@ -35,6 +34,7 @@
     // "downlevelIteration": true,            /* Provide full support for iterables in 'for-of', spread, and destructuring when targeting 'ES5' or 'ES3'. */
     // "isolatedModules": true,               /* Transpile each file as a separate module (similar to 'ts.transpileModule'). */
     // "lib": ["ES2018"],                     /* Specify library files to be included in the compilation. */
+    // "types": [],                           /* Type declaration files to be included in compilation. */
 
     /* Strict Type-Checking Options */
     // "strict": true,                        /* Enable all strict type-checking options. */
