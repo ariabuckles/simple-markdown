@@ -51,7 +51,7 @@ type Capture =
     Array<string> & {index: number} |
     Array<string> & {index?: number};
 
-type Attr = string | number | boolean;
+type Attr = string | number | boolean | null | void;
 
 type SingleASTNode = {
     type: string,
@@ -64,7 +64,11 @@ type UnTypedASTNode = {
 
 type ASTNode = SingleASTNode | Array<SingleASTNode>;
 
-type State = {[string]: any};
+type State = {
+    key?: string | number | void,
+    inline?: ?boolean,
+    [string]: any,
+};
 
 type ReactElement = React$Element<any>;
 type ReactElements = React$Node;
@@ -158,7 +162,7 @@ type OutputRules<Rule> = {
 type Rules<OutputRule> = {
     +Array?: ArrayRule,
     +[type: string]: ParserRule & OutputRule,
-}
+};
 type ReactRules = {
     +Array?: {
         +react: ArrayNodeOutput<ReactElements>,
@@ -208,6 +212,7 @@ type DefaultRules = {
     +list: DefaultInOutRule,
     +def: LenientInOutRule,
     +table: DefaultInOutRule,
+    +tableSeparator: DefaultInRule,
     +newline: TextInOutRule,
     +paragraph: DefaultInOutRule,
     +escape: DefaultInRule,
@@ -232,6 +237,7 @@ type RefNode = {
     content?: ASTNode,
     target?: string,
     title?: string,
+    alt?: string,
 };
 
 // End Flow Definitions
@@ -1819,7 +1825,7 @@ type Exports = {
     +sanitizeText: (text: Attr) => string,
     +sanitizeUrl: (url: ?string) => ?string,
     +unescapeUrl: (url: string) => string,
-    +htmlTag: (tagName: string, content: string, attributes: ?{[any]: ?Attr}, isClosed: ?boolean) => string,
+    +htmlTag: (tagName: string, content: string, attributes: ?{ [any]: ?Attr }, isClosed: ?boolean) => string,
     +reactElement: (type: string, key: string | null, props: { [string]: any }) => ReactElement,
 };
 
