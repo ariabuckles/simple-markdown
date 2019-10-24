@@ -3202,7 +3202,7 @@ describe("simple markdown", function() {
                         /** @type {SimpleMarkdown.Parser} */ parse,
                         /** @type {SimpleMarkdown.State} */ state
                     ) {
-                        return capture[0].split(' ').map(function(word) {
+                        return capture[0].split(' ').map(function(/** @type {string} */ word) {
                             return { type: "text", content: word };
                         });
                     },
@@ -3226,7 +3226,11 @@ describe("simple markdown", function() {
             // gives a flattened array result of the words.
             var rules = {
                 Array: {
-                    result: function(arr, output, state) {
+                    result: function(
+                        /** @type {Array<SimpleMarkdown.SingleASTNode>} */ arr,
+                        /** @type {SimpleMarkdown.Output<string[]>} */ output,
+                        /** @type {SimpleMarkdown.State} */ state
+                    ) {
                         return arr.map(function(node) {
                             return output(node, state);
                         }).filter(function(word) {
@@ -3274,6 +3278,7 @@ describe("simple markdown", function() {
             var output = SimpleMarkdown.outputFor(rules, 'result', {wordCount: 0});
 
             // test parsing
+            /** @type {{ wordCount?: number }} */
             var parseState = {};
             var ast1 = parse('hi here are some words', parseState);
             assert.strictEqual(parseState.wordCount, 5);
@@ -3283,6 +3288,7 @@ describe("simple markdown", function() {
             assert.deepEqual(ast1, ast2);
 
             // test output
+            /** @type {{ wordCount?: number }} */
             var outputState = {};
             var result1 = output(ast1, outputState);
             assert.deepEqual(result1, ['hi', 'here', 'are', 'some', 'words']);
@@ -3298,10 +3304,14 @@ describe("simple markdown", function() {
                 {
                     fancy: {
                         order: SimpleMarkdown.defaultRules.text.order - 1,
-                        match: function(source) {
+                        match: function(/** @type {string} */ source) {
                             return /^\w+/.exec(source);
                         },
-                        parse: function(capture, parse, state) {
+                        parse: function(
+                            /** @type {SimpleMarkdown.Capture} */ capture,
+                            /** @type {SimpleMarkdown.Parser} */ parse,
+                            /** @type {SimpleMarkdown.State} */ state
+                        ) {
                             var word = capture[0];
                             var translated = state.lookup[word];
                             if (translated) {
@@ -3312,7 +3322,7 @@ describe("simple markdown", function() {
                         },
                     },
                     text: Object.assign({}, SimpleMarkdown.defaultRules.text, {
-                        match: function(source) {
+                        match: function(/** @type {string} */ source) {
                             return /^\W+/.exec(source);
                         },
                     }),
@@ -3343,7 +3353,11 @@ describe("simple markdown", function() {
                 {
                     Array: SimpleMarkdown.defaultRules.Array,
                     text: Object.assign({}, SimpleMarkdown.defaultRules.text, {
-                        react: function(node, output, state) {
+                        react: function(
+                            /** @type {SimpleMarkdown.SingleASTNode} */ node,
+                            /** @type {SimpleMarkdown.ReactNodeOutput} */ output,
+                            /** @type {SimpleMarkdown.State} */ state
+                        ) {
                             return React.createElement(
                                 state.TextComponent,
                                 {key: state.key},
@@ -3372,10 +3386,14 @@ describe("simple markdown", function() {
             var parse = SimpleMarkdown.parserFor({
                 bracketed: {
                     order: SimpleMarkdown.defaultRules.text.order - 1,
-                    match: function(source) {
+                    match: function(/** @type {string} */ source) {
                         return /^\{((?:\\[\S\s]|[^\\\*])+)\}/.exec(source);
                     },
-                    parse: function(capture, parse, state) {
+                    parse: function(
+                        /** @type {SimpleMarkdown.Capture} */ capture,
+                        /** @type {SimpleMarkdown.Parser} */ parse,
+                        /** @type {SimpleMarkdown.State} */ state
+                    ) {
                         var result = {
                             // note no passing state here:
                             content: parse(capture[1]),
@@ -3436,12 +3454,19 @@ describe("simple markdown", function() {
             var output = SimpleMarkdown.outputFor({
                 Array: SimpleMarkdown.defaultRules.Array,
                 paragraph: Object.assign({}, SimpleMarkdown.defaultRules.paragraph, {
-                    html: function(node, output) {
+                    html: function(
+                        /** @type {SimpleMarkdown.SingleASTNode} */ node,
+                        /** @type {SimpleMarkdown.HtmlOutput} */ output
+                    ) {
                         return '<p>' + output(node.content) + '</p>';
                     },
                 }),
                 text: Object.assign({}, SimpleMarkdown.defaultRules.text, {
-                    html: function(node, output, state) {
+                    html: function(
+                        /** @type {SimpleMarkdown.SingleASTNode} */ node,
+                        /** @type {SimpleMarkdown.HtmlOutput} */ output,
+                        /** @type {SimpleMarkdown.State} */ state
+                    ) {
                         return '<span class="' +
                             (state.spanClass || 'default') +
                             '">' +
@@ -3472,13 +3497,19 @@ describe("simple markdown", function() {
                 Array: SimpleMarkdown.defaultRules.Array,
                 spoiler: {
                     order: SimpleMarkdown.defaultRules.text.order - 1,
-                    match: function(source) {
+                    match: function(/** @type {string} */ source) {
                         return /^\[\[((?:[^\]]|\][^\]])+)\]\]/.exec(source);
                     },
-                    parse: function(capture, parse) {
+                    parse: function(
+                        /** @type {SimpleMarkdown.Capture} */ capture,
+                        /** @type {SimpleMarkdown.Parser} */ parse
+                    ) {
                         return {content: parse(capture[1])};
                     },
-                    html: function(node, output) {
+                    html: function(
+                        /** @type {SimpleMarkdown.SingleASTNode} */ node,
+                        /** @type {SimpleMarkdown.HtmlOutput} */ output
+                    ) {
                         return '<span style="background: black;">' +
                             output(node.content) +
                             '</span>';
@@ -3880,7 +3911,11 @@ describe("simple markdown", function() {
         it("should join text nodes before outputting them", function() {
             var rules = Object.assign({}, SimpleMarkdown.defaultRules, {
                 text: Object.assign({}, SimpleMarkdown.defaultRules.text, {
-                    react: function(node, output, state) {
+                    react: function(
+                        /** @type {SimpleMarkdown.SingleASTNode} */ node,
+                        /** @type {SimpleMarkdown.ReactOutput} */ output,
+                        /** @type {SimpleMarkdown.State} */ state
+                    ) {
                         return React.createElement(
                             'span',
                             {key: state.key, className: 'text'},
