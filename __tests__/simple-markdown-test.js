@@ -2893,13 +2893,17 @@ describe("simple markdown", function() {
     describe("parser extension api", function() {
         it("should parse a simple %variable% extension", function() {
             var percentVarRule = {
-                match: function(source) {
+                match: function(/** @type {string} */ source) {
                     return /^%([\s\S]+?)%/.exec(source);
                 },
 
                 order: SimpleMarkdown.defaultRules.em.order + 0.5,
 
-                parse: function(capture, parse, state) {
+                parse: function(
+                    /** @type {SimpleMarkdown.Capture} */ capture,
+                    /** @type {SimpleMarkdown.Parser} */ parse,
+                    /** @type {SimpleMarkdown.State} */ state
+                ) {
                     return {
                         content: capture[1]
                     };
@@ -2912,6 +2916,7 @@ describe("simple markdown", function() {
 
             var rawBuiltParser = SimpleMarkdown.parserFor(rules);
 
+            /** @type {SimpleMarkdown.Parser} */
             var inlineParse = function(source) {
                 return rawBuiltParser(source, {inline: true});
             };
@@ -2928,7 +2933,11 @@ describe("simple markdown", function() {
         describe("should sort rules by order and name", function() {
             var emRule = {
                 match: SimpleMarkdown.inlineRegex(/^_([\s\S]+?)_/),
-                parse: function(capture, parse, state) {
+                parse: function(
+                    /** @type {SimpleMarkdown.Capture} */ capture,
+                    /** @type {SimpleMarkdown.Parser} */ parse,
+                    /** @type {SimpleMarkdown.State} */ state
+                ) {
                     return {
                         content: capture[1]
                     };
@@ -2936,7 +2945,11 @@ describe("simple markdown", function() {
             };
             var strongRule = {
                 match: SimpleMarkdown.defaultRules.strong.match,
-                parse: function(capture, parse, state) {
+                parse: function(
+                    /** @type {SimpleMarkdown.Capture} */ capture,
+                    /** @type {SimpleMarkdown.Parser} */ parse,
+                    /** @type {SimpleMarkdown.State} */ state
+                ) {
                     return {
                         content: capture[1]
                     };
@@ -3078,8 +3091,9 @@ describe("simple markdown", function() {
 
             it("should output a warning for non-numeric orders", function() {
                 var oldconsolewarn = console.warn;
+                /** @type {any[]} */
                 var warnings = [];
-                /*::FLOW_IGNORE_COVARIANCE.*/ console.warn = function(warning) {
+                /*::FLOW_IGNORE_COVARIANCE.*/ console.warn = function(/** @type {any} */ warning) {
                     warnings.push(warning);
                 };
                 var parser1 = SimpleMarkdown.parserFor({
@@ -3180,10 +3194,14 @@ describe("simple markdown", function() {
             var parser1 = SimpleMarkdown.parserFor({
                 fancy: {
                     order: SimpleMarkdown.defaultRules.text.order - 1,
-                    match: function(source) {
+                    match: function(/** @type {string} */ source) {
                         return /^.*/.exec(source);
                     },
-                    parse: function(capture, parse, state) {
+                    parse: function(
+                        /** @type {SimpleMarkdown.Capture} */ capture,
+                        /** @type {SimpleMarkdown.Parser} */ parse,
+                        /** @type {SimpleMarkdown.State} */ state
+                    ) {
                         return capture[0].split(' ').map(function(word) {
                             return { type: "text", content: word };
                         });
@@ -3218,23 +3236,35 @@ describe("simple markdown", function() {
                 },
                 word: {
                     order: SimpleMarkdown.defaultRules.text.order - 1,
-                    match: function(source) {
+                    match: function(/** @type {string} */ source) {
                         return /^\w+/.exec(source);
                     },
-                    parse: function(capture, parse, state) {
+                    parse: function(
+                        /** @type {SimpleMarkdown.Capture} */ capture,
+                        /** @type {SimpleMarkdown.Parser} */ parse,
+                        /** @type {SimpleMarkdown.State} */ state
+                    ) {
                         state.wordCount++;
                         return {content: capture[0]};
                     },
-                    result: function(node, output, state) {
+                    result: function(
+                        /** @type {SimpleMarkdown.SingleASTNode} */ node,
+                        /** @type {SimpleMarkdown.NodeOutput<string>} */ output,
+                        /** @type {SimpleMarkdown.State} */ state
+                    ) {
                         state.wordCount++;
                         return node.content;
                     },
                 },
                 delimiter: Object.assign({}, SimpleMarkdown.defaultRules.text, {
-                    match: function(source) {
+                    match: function(/** @type {string} */ source) {
                         return /^\W+/.exec(source);
                     },
-                    result: function(node, output, state) {
+                    result: function(
+                        /** @type {SimpleMarkdown.SingleASTNode} */ node,
+                        /** @type {SimpleMarkdown.NodeOutput<string>} */ output,
+                        /** @type {SimpleMarkdown.State} */ state
+                    ) {
                         return null;
                     },
                 }),
