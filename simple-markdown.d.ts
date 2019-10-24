@@ -13,7 +13,7 @@ export interface Capture extends Array<string> {
     index?: number,
     input?: string,
 }
-export type Attr = string | number | boolean;
+export type Attr = string | number | boolean | null | undefined;
 export type TableAlignment = "right" | "center" | "left" | null;
 
 export interface SingleASTNode {
@@ -252,6 +252,6 @@ export const preprocess: (source: string) => string;
 export const sanitizeText: (text: Attr) => string;
 export const sanitizeUrl: (url: string | null | undefined) => string | null;
 export const unescapeUrl: (url: string) => string;
-export const htmlTag: (tagName: string, content: string, attributes?: { [attr: string]: Attr | null | undefined } | null | undefined, isClosed?: boolean) => string;
+export const htmlTag: (tagName: string, content: string, attributes?: { [attr: string]: Attr }, isClosed?: boolean) => string;
 export const reactElement: (type: string, key: string | null, props: { [prop: string]: any }) => ReactElement;
 

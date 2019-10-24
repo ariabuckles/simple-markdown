@@ -56,7 +56,7 @@ type Capture =
     Array<string> & {index: number} |
     Array<string> & {index?: number};
 
-type Attr = string | number | boolean;
+type Attr = string | number | boolean | null | undefined;
 
 type SingleASTNode = {
     type: string,
@@ -552,7 +552,7 @@ var reactElement = function(
 /** Returns a closed HTML tag.
  * @param {string} tagName - Name of HTML tag (eg. "em" or "a")
  * @param {string} content - Inner content of tag
- * @param {Object<string,SimpleMarkdown.Attr>} [attributes] - Optional extra attributes of tag as an object of key-value pairs
+ * @param {{ [attr: string]: SimpleMarkdown.Attr }} [attributes] - Optional extra attributes of tag as an object of key-value pairs
  *   eg. { "href": "http://google.com" }. Falsey attributes are filtered out.
  * @param {boolean} [isClosed] - boolean that controls whether tag is closed or not (eg. img tags).
  *   defaults to true
@@ -590,7 +590,7 @@ var htmlTag = function(
 var EMPTY_PROPS = {};
 
 /**
- * @param {string} url - url to sanitize
+ * @param {string | null | undefined} url - url to sanitize
  * @returns {string | null} - url if safe, or null if a safe url could not be made
  */
 var sanitizeUrl = function(url /* : ?string */) {
@@ -760,7 +760,7 @@ var TABLES = (function() {
      * @param {SimpleMarkdown.Parser} parse
      * @param {SimpleMarkdown.State} state
      * @param {boolean} trimEndSeparators
-     * @returns {Array<string>}
+     * @returns {Array<SimpleMarkdown.TableAlignment>}
      */
     var parseTableAlign = function(source, parse, state, trimEndSeparators) {
         if (trimEndSeparators) {
@@ -1277,7 +1277,7 @@ var defaultRules /* : DefaultRules */ = {
         react: function(node, output, state) {
             /**
              * @param {number} colIndex
-             * @returns {Object<string,SimpleMarkdown.Attr>}
+             * @returns {{ [attr: string]: SimpleMarkdown.Attr }}
              */
             var getStyle = function(colIndex) {
                 return node.align[colIndex] == null ? {} : {
