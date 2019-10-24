@@ -402,28 +402,23 @@ var parserFor = function(rules /*: ParserRules */, defaultState /*: ?State */) {
             );
 
             // TODO(aria): Write tests for these
-            // Lie to flow and say these checks always happen
-            if (state.disableErrorGuards !== true) { /*:: } { */
-                if (rule == null || capture == null /*:: || ruleType == null */) {
-                    throw new Error(
-                        "Could not find a matching rule for the below " +
-                        "content. The rule with highest `order` should " +
-                        "always match content provided to it. Check " +
-                        "the definition of `match` for '" +
-                        ruleList[ruleList.length - 1] +
-                        "'. It seems to not match the following source:\n" +
-                        source
-                    );
-                }
-                if (capture.index !== 0 &&
-                    source.slice(0, capture[0].length) !== capture[0]
-                ) {
-                    throw new Error(
-                        "`match` must return a capture starting at index 0 " +
-                        "(the current parse index). Did you forget a ^ at the " +
-                        "start of the RegExp?"
-                    );
-                }
+            if (rule == null || capture == null /*:: || ruleType == null */) {
+                throw new Error(
+                    "Could not find a matching rule for the below " +
+                    "content. The rule with highest `order` should " +
+                    "always match content provided to it. Check " +
+                    "the definition of `match` for '" +
+                    ruleList[ruleList.length - 1] +
+                    "'. It seems to not match the following source:\n" +
+                    source
+                );
+            }
+            if (capture.index) { // If present and non-zero, i.e. a non-^ regexp result:
+                throw new Error(
+                    "`match` must return a capture starting at index 0 " +
+                    "(the current parse index). Did you forget a ^ at the " +
+                    "start of the RegExp?"
+                );
             }
 
             var parsed = rule.parse(capture, nestedParse, state);
@@ -1728,11 +1723,21 @@ var outputFor = function/* :: <Rule : Object> */(
 
     var latestState;
     var arrayRule = rules.Array || defaultRules.Array;
+
+    var arrayRuleOutput = arrayRule[property];
+    if (!arrayRuleOutput) {
+        throw new Error('simple-markdown: outputFor: to join nodes of type `' +
+            property + '` you must provide an `Array:` joiner rule with that type, ' +
+            'Please see the docs for details on specifying an Array rule.'
+        );
+    }
+
+    /** @type {SimpleMarkdown.Output<any>} */
     var nestedOutput /* : Output<any> */ = function(ast, state) {
         state = state || latestState;
         latestState = state;
         if (Array.isArray(ast)) {
-            return arrayRule[property](ast, nestedOutput, state);
+            return arrayRuleOutput(ast, nestedOutput, state);
         } else {
             return rules[ast.type][property](ast, nestedOutput, state);
         }
