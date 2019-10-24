@@ -36,7 +36,10 @@
     "simple-markdown.min.js",
     "README.md"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "@types/node": ">=10.0.0",
+    "@types/react": ">=16.0.0"
+  },
   "devDependencies": {
     "express": "^4.16.4",
     "flow-bin": "^0.94.0",
