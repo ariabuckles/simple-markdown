@@ -3,6 +3,9 @@
     "simple-markdown.d.ts",
     "simple-markdown.js"
   ],
+  "include": [
+    "__tests__/**/*"
+  ],
   "exclude": [
     "node_modules"
   ],
