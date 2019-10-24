@@ -1,4 +1,5 @@
-// @flow
+/* @flow */
+/* @ts-check */
 
 var assert = require("assert");
 var _ = require("underscore");

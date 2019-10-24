@@ -741,7 +741,7 @@ var TABLES = (function() {
 
     /**
      * @param {SimpleMarkdown.Capture} alignCapture
-     * @returns {"right" | "center" | "left" | null}
+     * @returns {SimpleMarkdown.TableAlignment}
      */
     var parseTableAlignCapture = function(alignCapture) {
         if (TABLE_RIGHT_ALIGN.test(alignCapture)) {
