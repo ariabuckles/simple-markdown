@@ -7,7 +7,6 @@ import * as React from "react";
 
 export as namespace SimpleMarkdown;
 
-
 /** Types **/
 
 // FIXME
@@ -26,7 +25,6 @@ export interface UnTypedASTNode {
 
 export type ASTNode = SingleASTNode | Array<SingleASTNode>;
 
-// export type State = {[prop: string]: any};
 export interface State {
     [prop: string]: any,
 }
@@ -35,11 +33,6 @@ export type OptionalState = State | null | undefined;
 export type ReactElement = React.ReactElement<any>;
 export type ReactElements = React.ReactNode | ReactElement;
 
-//export type MatchFunction = { regex?: RegExp } & (
-//    source: string,
-//    state: State,
-//    prevCapture: string
-//) => Capture | null;
 export interface MatchFunction {
     (source: string, state: State, prevCapture: string): Capture | null,
     regex?: RegExp,
@@ -223,34 +216,6 @@ export interface RefNode {
 
 
 /** exported api **/
-
-// export const inlineRegex: RegExHelper;
-// export const blockRegex: RegExHelper;
-// export const anyScopeRegex: RegExHelper;
-// export const parseInline: ParseHelper;
-// export const parseBlock: ParseHelper;
-
-// export const defaultRawParse: ImplicitParser;
-// export const defaultBlockParse: ImplicitParser;
-// export const defaultInlineParse: ImplicitParser;
-// export const defaultImplicitParse: ImplicitParser;
-
-// export const defaultReactOutput: DefaultReactOutput;
-// export const defaultHtmlOutput: DefaultHtmlOutput;
-
-// export const preprocess: (source: string) => string;
-// export const sanitizeUrl: (url: string) => string;
-// export const unescapeUrl: (url: string) => string;
-
-// export const defaultParse: ImplicitParser;
-// export const outputFor: (outputFunction: RuleASTFunction) => DefaultReactOutput;
-// export const defaultOutput: DefaultReactOutput;
-
-// export const defaultRules: MarkdownRules;
-// export const reactFor: (outputFunction: RuleASTFunction) => DefaultReactOutput;
-// export const htmlFor: (outputFunction: RuleASTFunction) => DefaultHtmlOutput;
-// export const ruleOutput: (rules: MarkdownRules, property: string) => RuleASTFunction;
-// export const parserFor: (rules: MarkdownRules) => Parser;
 
 type OutputFor = <Rule extends Object, Type extends keyof Rule>(
     rules: SimpleMarkdown.OutputRules<Rule>,
