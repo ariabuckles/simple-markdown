@@ -56,7 +56,7 @@ type Capture =
     Array<string> & {index: number} |
     Array<string> & {index?: number};
 
-type Attr = string | number | boolean | null | undefined;
+type Attr = string | number | boolean | null | void;
 
 type SingleASTNode = {
     type: string,
@@ -1860,12 +1860,21 @@ var outputFor = function/* :: <Rule : Object> */(
     var latestState;
     /** @type {SimpleMarkdown.ArrayRule} */
     var arrayRule = rules.Array || defaultRules.Array;
+
+    var arrayRuleOutput = arrayRule[property];
+    if (arrayRuleOutput == null) {
+        throw new Error('simple-markdown: outputFor: to join nodes of type `' +
+            property + '` you must provide an `Array:` joiner rule with that type, ' +
+            'Please see the docs for details on specifying an Array rule.'
+        );
+    }
+
     /** @type {SimpleMarkdown.Output<any>} */
     var nestedOutput /* : Output<any> */ = function(ast, state) {
         state = state || latestState;
         latestState = state;
         if (Array.isArray(ast)) {
-            return arrayRule[property](ast, nestedOutput, state);
+            return arrayRuleOutput(ast, nestedOutput, state);
         } else {
             return rules[ast.type][property](ast, nestedOutput, state);
         }
