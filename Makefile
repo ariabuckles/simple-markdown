@@ -13,7 +13,12 @@ test: check runtests size
 
 .PHONY: check
 check:
+	@echo "Checking flow types..."
 	./node_modules/.bin/flow
+	@echo "Flow types complete."
+	@echo "Checking typescript types..."
+	./node_modules/.bin/tsc
+	@echo "Typescript types complete."
 
 .PHONY: runtests
 runtests:
