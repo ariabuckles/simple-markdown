@@ -263,8 +263,8 @@ var preprocess = function(source /* : string */) {
 };
 
 /**
- * @param {SimpleMarkdown.State | null | undefined} givenState
- * @param {SimpleMarkdown.State | null | undefined} defaultState
+ * @param {SimpleMarkdown.OptionalState} givenState
+ * @param {SimpleMarkdown.OptionalState} defaultState
  * @returns {SimpleMarkdown.State}
  */
 var populateInitialState = function(
@@ -290,7 +290,7 @@ var populateInitialState = function(
  *     an object containing
  *     rule type -> {match, order, parse} objects
  *     (lower order is higher precedence)
- * @param {SimpleMarkdown.State | null | undefined} [defaultState]
+ * @param {SimpleMarkdown.OptionalState} [defaultState]
  *
  * @returns {SimpleMarkdown.Parser}
  *     The resulting parse function, with the following parameters:
@@ -1841,13 +1841,7 @@ var htmlFor = function(outputFunc /* : HtmlNodeOutput */) /* : HtmlOutput */ {
 };
 
 /**
- * @type {<Rule extends Object, Type extends keyof Rule>
- *   (
- *     rules: SimpleMarkdown.OutputRules<Rule>,
- *     property: Type,
- *     defaultState?: SimpleMarkdown.State | null | undefined
- *   ) => SimpleMarkdown.Output<any>
- * }
+ * @type {SimpleMarkdown.OutputFor}
  */
 var outputFor = function/* :: <Rule : Object> */(
     rules /* : OutputRules<Rule> */,
@@ -1888,8 +1882,8 @@ var outputFor = function/* :: <Rule : Object> */(
 var defaultRawParse = parserFor(defaultRules);
 /**
  * @param {string} source
- * @param {SimpleMarkdown.State | null | undefined} [state]
- * @returns {SimpleMarkdown.ASTNode}
+ * @param {SimpleMarkdown.OptionalState} [state]
+ * @returns {Array<SimpleMarkdown.SingleASTNode>}
  */
 var defaultBlockParse = function(source, state) {
     state = state || {};
@@ -1898,8 +1892,8 @@ var defaultBlockParse = function(source, state) {
 };
 /**
  * @param {string} source
- * @param {SimpleMarkdown.State | null | undefined} [state]
- * @returns {SimpleMarkdown.ASTNode}
+ * @param {SimpleMarkdown.OptionalState} [state]
+ * @returns {Array<SimpleMarkdown.SingleASTNode>}
  */
 var defaultInlineParse = function(source, state) {
     state = state || {};
@@ -1908,8 +1902,8 @@ var defaultInlineParse = function(source, state) {
 };
 /**
  * @param {string} source
- * @param {SimpleMarkdown.State | null | undefined} [state]
- * @returns {SimpleMarkdown.ASTNode}
+ * @param {SimpleMarkdown.OptionalState} [state]
+ * @returns {Array<SimpleMarkdown.SingleASTNode>}
  */
 var defaultImplicitParse = function(source, state) {
     var isBlock = BLOCK_END_R.test(source);
@@ -1925,7 +1919,7 @@ var defaultHtmlOutput /* : HtmlOutput */ = outputFor(defaultRules, "html");
 
 /**
  * @param {string} source
- * @param {SimpleMarkdown.State | null | undefined} [state]
+ * @param {SimpleMarkdown.OptionalState} [state]
  * @returns {SimpleMarkdown.ReactElements}
  */
 var markdownToReact = function(source, state) /* : ReactElements */ {
@@ -1933,7 +1927,7 @@ var markdownToReact = function(source, state) /* : ReactElements */ {
 };
 /**
  * @param {string} source
- * @param {SimpleMarkdown.State | null | undefined} [state]
+ * @param {SimpleMarkdown.OptionalState} [state]
  * @returns {string}
  */
 var markdownToHtml = function(source, state) /* : string */ {
@@ -1997,7 +1991,7 @@ type Exports = {
     +sanitizeText: (text: Attr) => string,
     +sanitizeUrl: (url: ?string) => ?string,
     +unescapeUrl: (url: string) => string,
-    +htmlTag: (tagName: string, content: string, attributes: ?{[any]: ?Attr}, isClosed: ?boolean) => string,
+    +htmlTag: (tagName: string, content: string, attributes: ?{ [any]: ?Attr }, isClosed: ?boolean) => string,
     +reactElement: (type: string, key: string | null, props: { [string]: any }) => ReactElement,
 };
 

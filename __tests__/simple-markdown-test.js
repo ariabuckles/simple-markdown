@@ -21,21 +21,31 @@ var FLOW_IGNORE_COVARIANCE = {
 };
 */
 
-// A pretty-printer that handles `undefined` and functions better
-// than JSON.stringify
-// Important because some AST node fields can be undefined, and
-// if those don't show up in the assert output, it can be
-// very confusing to figure out how the actual and expected differ
-// Whether node's util.inspect or JSON.stringify is better seems
-// context dependent.
+/**
+ * A pretty-printer that handles `undefined` and functions better
+ * than JSON.stringify
+ * Important because some AST node fields can be undefined, and
+ * if those don't show up in the assert output, it can be
+ * very confusing to figure out how the actual and expected differ
+ * Whether node's util.inspect or JSON.stringify is better seems
+ * context dependent.
+ *
+ * @param {SimpleMarkdown.ASTNode | Array<SimpleMarkdown.TableAlignment>} ast
+ */
 var prettyPrintAST = function(ast) {
     return JSON.stringify(ast, null, 4);
+//    // FIXME(aria): For debugging in more depth? This used to work?
 //    return nodeUtil.inspect(ast, {
 //        depth: null,
 //        colors: false
 //    });
 };
 
+/**
+ * Asset that two ast parse trees are equal
+ * @param {SimpleMarkdown.ASTNode | Array<SimpleMarkdown.TableAlignment>} parsed
+ * @param {SimpleMarkdown.ASTNode | Array<SimpleMarkdown.TableAlignment>} expected
+ */
 var validateParse = function(parsed, expected) {
     if (!_.isEqual(parsed, expected)) {
         var parsedStr = prettyPrintAST(parsed);
@@ -51,6 +61,10 @@ var validateParse = function(parsed, expected) {
     }
 };
 
+/**
+ * @param {SimpleMarkdown.ReactElements} reactElements
+ * @returns {string}
+ */
 var reactToHtml = function(reactElements) {
     var rawHtml = ReactDOMServer.renderToStaticMarkup(
         React.createElement('div', {}, reactElements)
@@ -65,26 +79,46 @@ var reactToHtml = function(reactElements) {
     return simplifiedHtml;
 };
 
+/**
+ * @param {SimpleMarkdown.ASTNode} parsed
+ * @returns {string}
+ */
 var htmlThroughReact = function(parsed) {
     var output = defaultReactOutput(parsed);
     return reactToHtml(output);
 };
 
+/**
+ * @param {string} source
+ * @returns {string}
+ */
 var htmlFromReactMarkdown = function(source) {
     return htmlThroughReact(implicitParse(source));
 };
 
+/**
+ * @param {string} source
+ * @returns {string}
+ */
 var htmlFromMarkdown = function(source) {
     var html = defaultHtmlOutput(implicitParse(source));
     var simplifiedHtml = html.replace(/\s+/g, ' ');
     return simplifiedHtml;
 };
 
+/**
+ * @param {string} source
+ * @param {string} html
+ */
 var assertParsesToReact = function(source, html) {
     var actualHtml = htmlFromReactMarkdown(source);
     assert.strictEqual(actualHtml, html);
 };
 
+/**
+ * @param {string} source
+ * @param {string} html
+ */
 var assertParsesToHtml = function(source, html) {
     var actualHtml = htmlFromMarkdown(source);
     assert.strictEqual(actualHtml, html);
@@ -2492,7 +2526,9 @@ describe("simple markdown", function() {
                     [{type: "text", content: "h2"}],
                     [{type: "text", content: "h3"}]
                 ],
-                align: [null, null, null],
+                align: /** @type {Array<SimpleMarkdown.TableAlignment>} */ (
+                    [null, null, null]
+                ),
                 cells: [
                     [
                         [{type: "text", content: "d1"}],
@@ -2534,7 +2570,9 @@ describe("simple markdown", function() {
                     [{type: "em", content: [{type: "text", content: "h2"}]}],
                     [{type: "em", content: [{type: "text", content: "h3"}]}],
                 ],
-                align: [null, null, null],
+                align: /** @type {Array<SimpleMarkdown.TableAlignment>} */ (
+                    [null, null, null]
+                ),
                 cells: [[
                     [{type: "em", content: [{type: "text", content: "d1"}]}],
                     [{type: "em", content: [{type: "text", content: "d2"}]}],
@@ -2560,6 +2598,10 @@ describe("simple markdown", function() {
         });
 
         it("should parse table alignments", function() {
+            /**
+             * @param {string} tableSrc
+             * @param {Array<SimpleMarkdown.TableAlignment>} expectedAligns
+             */
             var validateAligns = function(tableSrc, expectedAligns) {
                 var parsed = blockParse(tableSrc + "\n");
                 assert.strictEqual(parsed[0].type, "table");
@@ -2571,7 +2613,9 @@ describe("simple markdown", function() {
                 "| h1 | h2 | h3 |\n" +
                 "| -- | -- | -- |\n" +
                 "| d1 | d2 | d3 |\n",
-                [null, null, null]
+                /** @type {Array<SimpleMarkdown.TableAlignment>} */ (
+                    [null, null, null]
+                )
             );
 
             validateAligns(
@@ -2613,13 +2657,15 @@ describe("simple markdown", function() {
         it("should parse empty table cells", function() {
             var expected = [{
                 type: "table",
-                header: [
+                header: /** @type {any[][]} */ ([
                     [],
                     [],
                     []
-                ],
-                align: [null, null, null],
-                cells: [
+                ]),
+                align: /** @type {Array<SimpleMarkdown.TableAlignment>} */ (
+                    [null, null, null]
+                ),
+                cells: /** @type {any[][]} */ ([
                     [
                         [],
                         [],
@@ -2630,7 +2676,7 @@ describe("simple markdown", function() {
                         [],
                         []
                     ]
-                ]
+                ]),
             }];
 
             var parsedPiped = blockParse(
@@ -2667,7 +2713,9 @@ describe("simple markdown", function() {
                         {type: "text", content: '|'},
                     ],
                 ],
-                align: [null, null],
+                align: /** @type {Array<SimpleMarkdown.TableAlignment>} */ (
+                    [null, null]
+                ),
                 cells: [[
                     [
                         {type: "text", content: "pos"},
@@ -2709,7 +2757,9 @@ describe("simple markdown", function() {
                     [{type: "text", content: 'Attribute'}],
                     [{type: "text", content: 'Type'}],
                 ],
-                align: [null, null],
+                align: /** @type {Array<SimpleMarkdown.TableAlignment>} */ (
+                    [null, null]
+                ),
                 cells: [[
                     [{type: "inlineCode", content: "position"}],
                     [{type: "inlineCode", content: '"left" | "right"'}],

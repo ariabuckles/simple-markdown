@@ -2,19 +2,18 @@
  * Typings are current as of simple-markdown 0.3.1.
  */
 
-//
-// INTERFACES & TYPES
-//
-
 import "node";
 import * as React from "react";
 
 export as namespace SimpleMarkdown;
 
+
+/** Types **/
+
 // FIXME
 export type Capture = any;
-
 export type Attr = string | number | boolean;
+export type TableAlignment = "right" | "center" | "left" | null;
 
 export interface SingleASTNode {
     type: string,
@@ -31,6 +30,7 @@ export type ASTNode = SingleASTNode | Array<SingleASTNode>;
 export interface State {
     [prop: string]: any,
 }
+export type OptionalState = State | null | undefined;
 
 export type ReactElement = React.ReactElement<any>;
 export type ReactElements = React.ReactNode | ReactElement;
@@ -47,7 +47,7 @@ export interface MatchFunction {
 
 export type Parser = (
     source: string,
-    state?: State | null | undefined,
+    state?: OptionalState,
 ) => Array<SingleASTNode>;
 
 export type ParseFunction = (
@@ -64,7 +64,7 @@ export type SingleNodeParseFunction = (
 
 export type Output<Result> = (
     node: ASTNode,
-    state?: State | null | undefined
+    state?: OptionalState
 ) => Result;
 
 export type RefiningNodeOutput<Input, Result extends Input> = (
@@ -220,3 +220,71 @@ export interface RefNode {
     title?: string,
     alt?: string,
 }
+
+
+/** exported api **/
+
+// export const inlineRegex: RegExHelper;
+// export const blockRegex: RegExHelper;
+// export const anyScopeRegex: RegExHelper;
+// export const parseInline: ParseHelper;
+// export const parseBlock: ParseHelper;
+
+// export const defaultRawParse: ImplicitParser;
+// export const defaultBlockParse: ImplicitParser;
+// export const defaultInlineParse: ImplicitParser;
+// export const defaultImplicitParse: ImplicitParser;
+
+// export const defaultReactOutput: DefaultReactOutput;
+// export const defaultHtmlOutput: DefaultHtmlOutput;
+
+// export const preprocess: (source: string) => string;
+// export const sanitizeUrl: (url: string) => string;
+// export const unescapeUrl: (url: string) => string;
+
+// export const defaultParse: ImplicitParser;
+// export const outputFor: (outputFunction: RuleASTFunction) => DefaultReactOutput;
+// export const defaultOutput: DefaultReactOutput;
+
+// export const defaultRules: MarkdownRules;
+// export const reactFor: (outputFunction: RuleASTFunction) => DefaultReactOutput;
+// export const htmlFor: (outputFunction: RuleASTFunction) => DefaultHtmlOutput;
+// export const ruleOutput: (rules: MarkdownRules, property: string) => RuleASTFunction;
+// export const parserFor: (rules: MarkdownRules) => Parser;
+
+type OutputFor = <Rule extends Object, Type extends keyof Rule>(
+    rules: SimpleMarkdown.OutputRules<Rule>,
+    property: Type,
+    defaultState?: OptionalState
+) => Output<any>;
+
+export const defaultRules: DefaultRules;
+export const parserFor: (rules: ParserRules, defaultState?: OptionalState) => Parser;
+
+export const outputFor: OutputFor;
+
+export const inlineRegex: (regex: RegExp) => MatchFunction;
+export const blockRegex: (regex: RegExp) => MatchFunction;
+export const anyScopeRegex: (regex: RegExp) => MatchFunction;
+export const parseInline: (parse: Parser, content: string, state: State) => ASTNode;
+export const parseBlock: (parse: Parser, content: string, state: State) => ASTNode;
+
+export const markdownToReact: (source: string, state?: OptionalState) => ReactElements;
+export const markdownToHtml: (source: string, state?: OptionalState) => string;
+export const ReactMarkdown: (props: { source: string, [prop: string]: any }) => ReactElement;
+
+export const defaultRawParse: (source: string, state?: OptionalState) => Array<SingleASTNode>;
+export const defaultBlockParse: (source: string, state?: OptionalState) => Array<SingleASTNode>;
+export const defaultInlineParse: (source: string, state?: OptionalState) => Array<SingleASTNode>;
+export const defaultImplicitParse: (source: string, state?: OptionalState) => Array<SingleASTNode>;
+
+export const defaultReactOutput: ReactOutput;
+export const defaultHtmlOutput: HtmlOutput;
+
+export const preprocess: (source: string) => string;
+export const sanitizeText: (text: Attr) => string;
+export const sanitizeUrl: (url: string | null | undefined) => string | null;
+export const unescapeUrl: (url: string) => string;
+export const htmlTag: (tagName: string, content: string, attributes?: { [attr: string]: Attr | null | undefined } | null | undefined, isClosed?: boolean) => string;
+export const reactElement: (type: string, key: string | null, props: { [prop: string]: any }) => ReactElement;
+
