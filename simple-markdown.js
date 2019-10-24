@@ -1861,13 +1861,15 @@ var outputFor = function/* :: <Rule : Object> */(
     /** @type {SimpleMarkdown.ArrayRule} */
     var arrayRule = rules.Array || defaultRules.Array;
 
-    var arrayRuleOutput = arrayRule[property];
-    if (arrayRuleOutput == null) {
+    // Tricks to convince tsc that this var is not null:
+    var arrayRuleCheck = arrayRule[property];
+    if (!arrayRuleCheck) {
         throw new Error('simple-markdown: outputFor: to join nodes of type `' +
             property + '` you must provide an `Array:` joiner rule with that type, ' +
             'Please see the docs for details on specifying an Array rule.'
         );
     }
+    var arrayRuleOutput = arrayRuleCheck;
 
     /** @type {SimpleMarkdown.Output<any>} */
     var nestedOutput /* : Output<any> */ = function(ast, state) {
