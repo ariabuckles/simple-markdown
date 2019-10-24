@@ -9,8 +9,10 @@ export as namespace SimpleMarkdown;
 
 /** Types **/
 
-// FIXME
-export type Capture = any;
+export interface Capture extends Array<string> {
+    index?: number,
+    input?: string,
+}
 export type Attr = string | number | boolean;
 export type TableAlignment = "right" | "center" | "left" | null;
 

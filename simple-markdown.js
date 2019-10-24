@@ -740,7 +740,7 @@ var TABLES = (function() {
     var TABLE_LEFT_ALIGN = /^ *:-+ *$/;
 
     /**
-     * @param {SimpleMarkdown.Capture} alignCapture
+     * @param {string} alignCapture
      * @returns {SimpleMarkdown.TableAlignment}
      */
     var parseTableAlignCapture = function(alignCapture) {
