@@ -1,20 +1,20 @@
 {
   "files": [
-    "simple-markdown.js",
     "simple-markdown.d.ts",
+    "simple-markdown.js"
   ],
   "include": [
-    "__tests__/**/*",
+    "__tests__/**/*"
   ],
   "exclude": [
-    "node_modules",
+    "node_modules"
   ],
   "compilerOptions": {
-    /* Enabled config: */
     "target": "es5",                          /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019' or 'ESNEXT'. */
     "module": "commonjs",                     /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', or 'ESNext'. */
     "allowJs": true,                          /* Allow javascript files to be compiled. */
     "checkJs": true,                          /* Report errors in .js files. */
+    "strict": true,                           /* Enable all strict type-checking options. */
     "noEmit": true,                           /* Do not emit outputs. */
     "esModuleInterop": true,                  /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
 
@@ -37,13 +37,12 @@
     // "types": [],                           /* Type declaration files to be included in compilation. */
 
     /* Strict Type-Checking Options */
-    // "strict": true,                        /* Enable all strict type-checking options. */
-    "noImplicitAny": true,                    /* Raise error on expressions and declarations with an implied 'any' type. */
-    "strictNullChecks": false,                /* Enable strict null checks. */
-    "strictFunctionTypes": true,              /* Enable strict checking of function types. */
-    "strictBindCallApply": true,              /* Enable strict 'bind', 'call', and 'apply' methods on functions. */
-    "noImplicitThis": true,                   /* Raise error on 'this' expressions with an implied 'any' type. */
-    "alwaysStrict": true,                     /* Parse in strict mode and emit "use strict" for each source file. */
+    // "noImplicitAny": true,                 /* Raise error on expressions and declarations with an implied 'any' type. */
+    // "strictNullChecks": true,              /* Enable strict null checks. */
+    // "strictFunctionTypes": true,           /* Enable strict checking of function types. */
+    // "strictBindCallApply": true,           /* Enable strict 'bind', 'call', and 'apply' methods on functions. */
+    // "noImplicitThis": true,                /* Raise error on 'this' expressions with an implied 'any' type. */
+    // "alwaysStrict": true,                  /* Parse in strict mode and emit "use strict" for each source file. */
     // "strictPropertyInitialization": true,  /* Enable strict checking of property initialization in classes. */
 
     /* Additional Checks */
