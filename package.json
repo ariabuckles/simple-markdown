@@ -3,6 +3,7 @@
   "version": "0.6.1",
   "description": "Javascript markdown parsing, made simple",
   "main": "simple-markdown.js",
+  "types": "simple-markdown.d.ts",
   "scripts": {
     "test": "make test",
     "prepublishOnly": "make minify",
@@ -31,6 +32,7 @@
   "files": [
     "index.js",
     "simple-markdown.js",
+    "simple-markdown.d.ts",
     "simple-markdown.min.js",
     "README.md"
   ],
