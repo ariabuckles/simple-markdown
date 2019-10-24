@@ -508,13 +508,13 @@ var TYPE_SYMBOL =
 
 var reactElement = function(
     type /* : string */,
-    key /* : string | null */,
+    key /* : string | number | null | void */,
     props /* : { [string]: any } */
 ) {
     var element = {
         $$typeof: TYPE_SYMBOL,
         type: type,
-        key: key,
+        key: key == null ? undefined : key,
         ref: null,
         props: props,
         _owner: null
