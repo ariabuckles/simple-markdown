@@ -1,8 +1,3 @@
-(function (factory) {
-    typeof define === 'function' && define.amd ? define(factory) :
-    factory();
-}((function () { 'use strict';
-
 /* @flow */
 /* @ts-check */
 
@@ -525,7 +520,7 @@ var anyScopeRegex = function(regex /* : RegExp */) {
 
 var TYPE_SYMBOL =
     (typeof Symbol === 'function' && Symbol.for &&
-        Symbol.for('react.element')) ||
+     Symbol.for('react.element')) ||
     0xeac7;
 
 /**
@@ -730,6 +725,10 @@ var LIST_R = new RegExp(
 var LIST_LOOKBEHIND_R = /(?:^|\n)( *)$/;
 
 var TABLES = (function() {
+    // predefine regexes so we don't have to create them inside functions
+    // sure, regex literals should be fast, even inside functions, but they
+    // aren't in all browsers.
+    var TABLE_BLOCK_TRIM = /\n+/g;
     var TABLE_ROW_SEPARATOR_TRIM = /^ *\| *| *\| *$/g;
     var TABLE_CELL_END_TRIM = / *$/;
     var TABLE_RIGHT_ALIGN = /^ *-+: *$/;
@@ -925,7 +924,7 @@ var defaultRules /* : DefaultRules */ = {
 
             // map output over the ast, except group any text
             // nodes together into a single string output.
-            for (var i = 0; i < arr.length; i++) {
+            for (var i = 0, key = 0; i < arr.length; i++) {
 
                 var node = arr[i];
                 if (node.type === 'text') {
@@ -1123,9 +1122,9 @@ var defaultRules /* : DefaultRules */ = {
 
                 // Before processing the item, we need a couple things
                 var content = item
-                            // remove indents on trailing lines:
+                         // remove indents on trailing lines:
                         .replace(spaceRegex, '')
-                            // remove the bullet:
+                         // remove the bullet:
                         .replace(LIST_ITEM_PREFIX_R, '');
 
                 // I'm not sur4 why this is necessary again?
@@ -1618,17 +1617,17 @@ var defaultRules /* : DefaultRules */ = {
                 "^\\*(?=\\S)(" +
                 // Match at least one of:
                 "(?:" +
-                    //  - `**`: so that bolds inside italics don't close the
-                    //          italics
-                    "\\*\\*|" +
-                    //  - escape sequence: so escaped *s don't close us
-                    "\\\\[\\s\\S]|" +
-                    //  - whitespace: followed by a non-* (we don't
-                    //          want ' *' to close an italics--it might
-                    //          start a list)
-                    "\\s+(?:\\\\[\\s\\S]|[^\\s\\*\\\\]|\\*\\*)|" +
-                    //  - non-whitespace, non-*, non-backslash characters
-                    "[^\\s\\*\\\\]" +
+                  //  - `**`: so that bolds inside italics don't close the
+                  //          italics
+                  "\\*\\*|" +
+                  //  - escape sequence: so escaped *s don't close us
+                  "\\\\[\\s\\S]|" +
+                  //  - whitespace: followed by a non-* (we don't
+                  //          want ' *' to close an italics--it might
+                  //          start a list)
+                  "\\s+(?:\\\\[\\s\\S]|[^\\s\\*\\\\]|\\*\\*)|" +
+                  //  - non-whitespace, non-*, non-backslash characters
+                  "[^\\s\\*\\\\]" +
                 ")+?" +
                 // followed by a non-space, non-* then *
                 ")\\*(?!\\*)"
@@ -2114,5 +2113,3 @@ if (typeof module !== "undefined" && module.exports) {
     window.SimpleMarkdown = SimpleMarkdown;
 }
 /*:: module.exports = SimpleMarkdown; */
-
-})));
