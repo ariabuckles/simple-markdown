@@ -5,6 +5,7 @@
   "main": "simple-markdown.js",
   "types": "simple-markdown.d.ts",
   "scripts": {
+    "build": "rollup -c",
     "test": "make test",
     "prepublishOnly": "make minify",
     "size": "size-limit",
@@ -54,6 +55,7 @@
     "nyc": "^14.1.1",
     "react": "^16.8.4",
     "react-dom": "^16.8.4",
+    "rollup": "^1.23.1",
     "size-limit": "^0.21.1",
     "typescript": "^3.6.4",
     "uglify-js": "^3.4.9",
