@@ -1,8 +1,10 @@
 /* @flow */
 /* @ts-check */
 
-var assert = require("assert");
-var _ = require("underscore");
+// As of 2019-11-03, flow doesn't have definitions for assert.strict:
+// https://github.com/facebook/flow/pull/7660
+// So we use a /*::*/ hack to satisfy flow:
+var assert = require("assert") /*:: || {} */ .strict;
 var React = require("react");
 var ReactDOMServer = require("react-dom/server");
 
@@ -48,18 +50,7 @@ var prettyPrintAST = function(ast) {
  * @param {SimpleMarkdown.ASTNode | Array<SimpleMarkdown.TableAlignment>} expected
  */
 var validateParse = function(parsed, expected) {
-    if (!_.isEqual(parsed, expected)) {
-        var parsedStr = prettyPrintAST(parsed);
-        var expectedStr = prettyPrintAST(expected);
-        // assert.fail doesn't seem to print the
-        // expected and actual anymore, so we just
-        // throw our own exception.
-        throw new Error("Expected:\n" +
-            expectedStr +
-            "\n\nActual:\n" +
-            parsedStr
-        );
-    }
+    assert.deepEqual(parsed, expected);
 };
 
 /**
@@ -2924,7 +2915,7 @@ describe("simple markdown", function() {
                 }
             };
 
-            var rules = _.extend({}, SimpleMarkdown.defaultRules, {
+            var rules = Object.assign({}, SimpleMarkdown.defaultRules, {
                 percentVar: percentVarRule
             });
 
@@ -2969,16 +2960,16 @@ describe("simple markdown", function() {
                     };
                 }
             };
-            var textRule = _.extend({}, SimpleMarkdown.defaultRules.text, {
+            var textRule = Object.assign({}, SimpleMarkdown.defaultRules.text, {
                 order: 10
             });
 
             it("should sort rules by order", function() {
                 var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 0
                     }),
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: 1
                     }),
                     text: textRule
@@ -2990,10 +2981,10 @@ describe("simple markdown", function() {
                 ]);
 
                 var parser2 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 1
                     }),
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: 0
                     }),
                     text: textRule
@@ -3007,10 +2998,10 @@ describe("simple markdown", function() {
 
             it("should allow fractional orders", function() {
                 var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 1.4
                     }),
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: 0.9
                     }),
                     text: textRule
@@ -3022,10 +3013,10 @@ describe("simple markdown", function() {
                 ]);
 
                 var parser2 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 0.5
                     }),
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: 0
                     }),
                     text: textRule
@@ -3039,10 +3030,10 @@ describe("simple markdown", function() {
 
             it("should allow negative orders", function() {
                 var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 0
                     }),
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: -1
                     }),
                     text: textRule
@@ -3054,10 +3045,10 @@ describe("simple markdown", function() {
                 ]);
 
                 var parser2 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: -2
                     }),
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: 1
                     }),
                     text: textRule
@@ -3071,10 +3062,10 @@ describe("simple markdown", function() {
 
             it("should break ties by rule name", function() {
                 var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 0
                     }),
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: 0
                     }),
                     text: textRule
@@ -3088,10 +3079,10 @@ describe("simple markdown", function() {
                 // ...regardless of their order in the
                 // original rule definition
                 var parser2 = SimpleMarkdown.parserFor({
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: 0
                     }),
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 0
                     }),
                     text: textRule
@@ -3111,7 +3102,7 @@ describe("simple markdown", function() {
                     warnings.push(warning);
                 };
                 var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 1/0 - 1/0
                     }),
                     text: textRule
@@ -3128,11 +3119,11 @@ describe("simple markdown", function() {
 
             it("should break ties with quality", function() {
                 var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 0,
                         quality: function() { return 1; },
                     }),
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: 0,
                         quality: function() { return 2; },
                     }),
@@ -3147,11 +3138,11 @@ describe("simple markdown", function() {
                 // ...regardless of their order in the
                 // original rule definition
                 var parser2 = SimpleMarkdown.parserFor({
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: 0,
                         quality: function() { return 2; },
                     }),
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 0,
                         quality: function() { return 1; },
                     }),
@@ -3166,10 +3157,10 @@ describe("simple markdown", function() {
 
             it("rules with quality should always win the tie", function() {
                 var parser1 = SimpleMarkdown.parserFor({
-                    em1: _.extend({}, emRule, {
+                    em1: Object.assign({}, emRule, {
                         order: 0,
                     }),
-                    em2: _.extend({}, emRule, {
+                    em2: Object.assign({}, emRule, {
                         order: 0,
                         quality: function() { return 2; },
                     }),
@@ -3183,10 +3174,10 @@ describe("simple markdown", function() {
 
                 // except if they don't match
                 var parser2 = SimpleMarkdown.parserFor({
-                    em: _.extend({}, emRule, {
+                    em: Object.assign({}, emRule, {
                         order: 0,
                     }),
-                    strong: _.extend({}, strongRule, {
+                    strong: Object.assign({}, strongRule, {
                         order: 0,
                         quality: function() { return 2; },
                     }),
