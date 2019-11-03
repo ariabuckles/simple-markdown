@@ -5,9 +5,9 @@
   "main": "simple-markdown.js",
   "types": "simple-markdown.d.ts",
   "scripts": {
-    "build": "rollup -c",
+    "build": "make build",
     "test": "make test",
-    "prepublishOnly": "make minify",
+    "prepublishOnly": "make build",
     "size": "size-limit",
     "heroku": "node babelmark.js"
   },

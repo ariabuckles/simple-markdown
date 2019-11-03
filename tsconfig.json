@@ -1,9 +1,6 @@
 {
-  "files": [
-    "simple-markdown.d.ts",
-    "simple-markdown.js"
-  ],
   "include": [
+    "src/**/*",
     "__tests__/**/*"
   ],
   "exclude": [

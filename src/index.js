@@ -2105,11 +2105,4 @@ var SimpleMarkdown /* : Exports */ = {
     }
 };
 
-if (typeof module !== "undefined" && module.exports) {
-    module.exports = SimpleMarkdown;
-} else if (typeof global !== "undefined") {
-    /** @type {any} */ (global).SimpleMarkdown = SimpleMarkdown;
-} else {
-    window.SimpleMarkdown = SimpleMarkdown;
-}
-/*:: module.exports = SimpleMarkdown; */
+export default SimpleMarkdown;
