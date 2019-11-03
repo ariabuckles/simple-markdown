@@ -1093,7 +1093,6 @@ var defaultRules /* : DefaultRules */ = {
 
             if (isStartOfLineCapture && isListBlock) {
                 source = isStartOfLineCapture[1] + source;
-                var res = LIST_R.exec(source);
                 return LIST_R.exec(source);
             } else {
                 return null;
