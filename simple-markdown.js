@@ -1,7 +1,8 @@
-(function (factory) {
-    typeof define === 'function' && define.amd ? define(factory) :
-    factory();
-}((function () { 'use strict';
+(function (global, factory) {
+typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+typeof define === 'function' && define.amd ? define(factory) :
+(global = global || self, global.SimpleMarkdown = factory());
+}(this, (function () { 'use strict';
 
 /* @flow */
 /* @ts-check */
@@ -525,7 +526,7 @@ var anyScopeRegex = function(regex /* : RegExp */) {
 
 var TYPE_SYMBOL =
     (typeof Symbol === 'function' && Symbol.for &&
-        Symbol.for('react.element')) ||
+     Symbol.for('react.element')) ||
     0xeac7;
 
 /**
@@ -1123,9 +1124,9 @@ var defaultRules /* : DefaultRules */ = {
 
                 // Before processing the item, we need a couple things
                 var content = item
-                            // remove indents on trailing lines:
+                         // remove indents on trailing lines:
                         .replace(spaceRegex, '')
-                            // remove the bullet:
+                         // remove the bullet:
                         .replace(LIST_ITEM_PREFIX_R, '');
 
                 // I'm not sur4 why this is necessary again?
@@ -1618,17 +1619,17 @@ var defaultRules /* : DefaultRules */ = {
                 "^\\*(?=\\S)(" +
                 // Match at least one of:
                 "(?:" +
-                    //  - `**`: so that bolds inside italics don't close the
-                    //          italics
-                    "\\*\\*|" +
-                    //  - escape sequence: so escaped *s don't close us
-                    "\\\\[\\s\\S]|" +
-                    //  - whitespace: followed by a non-* (we don't
-                    //          want ' *' to close an italics--it might
-                    //          start a list)
-                    "\\s+(?:\\\\[\\s\\S]|[^\\s\\*\\\\]|\\*\\*)|" +
-                    //  - non-whitespace, non-*, non-backslash characters
-                    "[^\\s\\*\\\\]" +
+                  //  - `**`: so that bolds inside italics don't close the
+                  //          italics
+                  "\\*\\*|" +
+                  //  - escape sequence: so escaped *s don't close us
+                  "\\\\[\\s\\S]|" +
+                  //  - whitespace: followed by a non-* (we don't
+                  //          want ' *' to close an italics--it might
+                  //          start a list)
+                  "\\s+(?:\\\\[\\s\\S]|[^\\s\\*\\\\]|\\*\\*)|" +
+                  //  - non-whitespace, non-*, non-backslash characters
+                  "[^\\s\\*\\\\]" +
                 ")+?" +
                 // followed by a non-space, non-* then *
                 ")\\*(?!\\*)"
@@ -2106,13 +2107,6 @@ var SimpleMarkdown /* : Exports */ = {
     }
 };
 
-if (typeof module !== "undefined" && module.exports) {
-    module.exports = SimpleMarkdown;
-} else if (typeof global !== "undefined") {
-    /** @type {any} */ (global).SimpleMarkdown = SimpleMarkdown;
-} else {
-    window.SimpleMarkdown = SimpleMarkdown;
-}
-/*:: module.exports = SimpleMarkdown; */
+return SimpleMarkdown;
 
 })));

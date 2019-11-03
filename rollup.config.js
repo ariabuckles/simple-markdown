@@ -3,6 +3,7 @@ export default {
 
   output: {
     format: 'umd',
+    indent: false,
     file: 'simple-markdown.js',
     name: 'SimpleMarkdown',
   }

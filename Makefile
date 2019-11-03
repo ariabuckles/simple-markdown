@@ -1,5 +1,5 @@
 .PHONY: all
-all: install test size
+all: install test build
 
 .PHONY: install
 install:
@@ -10,6 +10,13 @@ minify: simple-markdown.min.js
 
 .PHONY: test
 test: check runtests size
+
+.PHONY: build
+build: simple-markdown.js minify
+
+.PHONY: simple-markdown.js
+simple-markdown.js: src/*
+	./node_modules/.bin/rollup -c
 
 .PHONY: check
 check:
