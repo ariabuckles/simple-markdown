@@ -84,7 +84,7 @@ type State = {
 type ReactElement = React$Element<any>;
 type ReactElements = React$Node;
 
-type MatchFunction = (
+type MatchFunction = { regex?: RegExp } & (
     source: string,
     state: State,
     prevCapture: string
@@ -1792,7 +1792,7 @@ var ruleOutput = function/* :: <Rule : Object> */(
     /** @type {SimpleMarkdown.NodeOutput<any>} */
     var nestedRuleOutput /* : NodeOutput<any> */ = function(
         ast /* : SingleASTNode */,
-        outputFunc /* : NodeOutput<any> */,
+        outputFunc /* : Output<any> */,
         state /* : State */
     ) {
         return rules[ast.type][property](ast, outputFunc, state);
