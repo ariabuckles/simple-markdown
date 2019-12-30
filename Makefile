@@ -32,7 +32,8 @@ runtests:
 	./node_modules/.bin/mocha __tests__
 
 .PHONY: coverage
-	./node_modules/.bin/nyc --reporter=html --reporter=text ./node_modules/.bin/mocha __tests__
+coverage:
+	./node_modules/.bin/nyc --cache=false --reporter=html --reporter=text ./node_modules/.bin/mocha __tests__
 
 # Start a chrome debugger for test case(s). Usage:
 # `make debug` or `make debug TEST="part of a test name"`
