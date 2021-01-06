@@ -16,7 +16,7 @@ appreciate anyone reaching out!
 
 ## Reporting a Vulnerability
 
-Please email @ariabuckles at aria@toole1.com or send me a DM on
+Please email @ariabuckles at aria+security@toole1.com or send me a DM on
 twitter at [@ariabuckles](https://twitter.com/ariabuckles).
 If you need encrypted communication, I'll be happy to provide
 you with a Signal or iMessage phone number from there!
