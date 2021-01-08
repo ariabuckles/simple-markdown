@@ -9,10 +9,13 @@ appreciate anyone reaching out!
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.7.2   | :white_check_mark: |
-| 0.7.0   | :white_check_mark: |
-| 0.6.1   | :white_check_mark: |
-| < 0.6.1 | :x:                |
+| 0.7.3   | :white_check_mark: |
+| 0.7.2   | :x:                |
+| 0.7.0   | :x:                |
+| < 0.7.0 | :x:                |
+
+All releases of simple-markdown have been backwards compatible except for bugfixes;
+we strongly recommend updating to the latest available version (currently `0.7.3`).
 
 ## Reporting a Vulnerability
 
