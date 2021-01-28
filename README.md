@@ -407,9 +407,7 @@ you are defining a custom output type.
 
 It returns a function that outputs a single syntax tree node of 
 any type that is in the `rules` object, given a node and a 
-recursive output function.  This is not the final output 
-function because it doesn't handle arrays of nodes or recursion 
-(see `reactFor` and `htmlFor`).
+recursive output function.
 
 #### Putting it all together
 
