@@ -185,8 +185,9 @@ Finally, we need to build our parser and outputters:
     };
     // You probably only need one of these: choose depending on
     // whether you want react nodes or an html string:
-    var reactOutput = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'react'));
-    var htmlOutput = SimpleMarkdown.htmlFor(SimpleMarkdown.ruleOutput(rules, 'html'));
+    var reactOutput = SimpleMarkdown.outputFor(rules, 'react');
+    var htmlOutput = SimpleMarkdown.outputFor(rules, 'html');
+
 ```
 
 Now we can use our custom `parse` and `output` functions to parse
@@ -397,42 +398,18 @@ In the case of order field ties, rules are ordered
 lexicographically by rule name. Each of the rules in the `rules`
 object must contain a `match` and a `parse` function.
 
-#### `SimpleMarkdown.ruleOutput(rules, key)`
+#### `SimpleMarkdown.outputFor(rules, key)`
 
-Takes a `rules` object, containing an `output` function for
-each rule, and a `key` into individual elements in that rules
-rules argument (either `'react'` or `'html'`, unless you are
-defining a custom output type), and returns a function that can
-output a single syntax tree node of any type that is in the
-`rules` object, given a node and a recursive output function.
-This is not the final output function because it doesn't handle
-arrays of nodes or recursion (see `reactFor` and `htmlFor`).
+Takes a `rules` object and a `key` that indicates which key in 
+the rules object is mapped to the function that generates the 
+output type you want. This will be `'react'` or `'html'` unless 
+you are defining a custom output type.
 
-#### `SimpleMarkdown.reactFor(singleNodeOutputFunction)`
-
-Takes a function that can output react-renderable output for
-any single syntax tree node and returns a function that maps
-over syntax tree arrays correctly.
-
-The most common use case is to pass the output of
-`ruleOutput` as the parameter to `reactFor`:
-
-```javascript
-    var output = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'react'));
-```
-
-#### `SimpleMarkdown.htmlFor(singleNodeOutputFunction)`
-
-Takes a function that can output an html string for
-any single syntax tree node and returns a function that maps
-over syntax tree arrays correctly.
-
-The most common use case is to pass the output of
-`ruleOutput` as the parameter to `htmlFor`:
-
-```javascript
-    var output = SimpleMarkdown.htmlFor(SimpleMarkdown.ruleOutput(rules, 'html'));
-```
+It returns a function that outputs a single syntax tree node of 
+any type that is in the `rules` object, given a node and a 
+recursive output function.  This is not the final output 
+function because it doesn't handle arrays of nodes or recursion 
+(see `reactFor` and `htmlFor`).
 
 #### Putting it all together
 
@@ -457,8 +434,8 @@ var rules = {
 };
 
 var parser = SimpleMarkdown.parserFor(rules);
-var reactOutput = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'react'));
-var htmlOutput = SimpleMarkdown.reactFor(SimpleMarkdown.ruleOutput(rules, 'html'));
+var reactOutput = SimpleMarkdown.outputFor(rules, 'react'));
+var htmlOutput = SimpleMarkdown.outputFor(rules, 'html'));
 
 var blockParseAndOutput = function(source) {
     // Many rules require content to end in \n\n to be interpreted
