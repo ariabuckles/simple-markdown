@@ -593,17 +593,14 @@ var sanitizeUrl = function(url /* : ?string */) {
     if (url == null) {
         return null;
     }
-    try {
-        var prot = decodeURIComponent(url)
-            .replace(/[^A-Za-z0-9/:]/g, '')
-            .toLowerCase();
+    try {   
+        var prot = new URL(url).protocol
         if (prot.indexOf('javascript:') === 0 || prot.indexOf('vbscript:') === 0 || prot.indexOf('data:') === 0) {
             return null;
         }
     } catch (e) {
-        // decodeURIComponent sometimes throws a URIError
-        // See `decodeURIComponent('a%AFc');`
-        // http://stackoverflow.com/questions/9064536/javascript-decodeuricomponent-malformed-uri-exception
+        // invalid URLs should throw a TypeError
+        // see for instance: `new URL("");`
         return null;
     }
     return url;
