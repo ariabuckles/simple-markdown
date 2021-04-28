@@ -594,7 +594,7 @@ var sanitizeUrl = function(url /* : ?string */) {
         return null;
     }
     try {   
-        var prot = new URL(url).protocol
+        var prot = new URL(url, 'https://localhost').protocol
         if (prot.indexOf('javascript:') === 0 || prot.indexOf('vbscript:') === 0 || prot.indexOf('data:') === 0) {
             return null;
         }
