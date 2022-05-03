@@ -1,20 +1,20 @@
-simple-markdown
-===============
+🚚 _**As of April 2022 this repo is no longer the home of `simple-markdown`. The contents and development activity have moved into the Perseus repo [here](https://github.com/Khan/perseus/tree/main/packages/simple-markdown).**_
+
+# simple-markdown
 
 simple-markdown is a markdown-like parser designed for simplicity
 and extensibility.
 
 [Change log](https://github.com/Khan/simple-markdown/releases)
 
-Philosophy
-----------
+## Philosophy
 
 Most markdown-like parsers aim for [speed][marked] or
-[edge case handling][CommonMark].
+[edge case handling][commonmark].
 simple-markdown aims for extensibility and simplicity.
 
 [marked]: https://github.com/chjj/marked
-[CommonMark]: https://github.com/jgm/CommonMark
+[commonmark]: https://github.com/jgm/CommonMark
 
 What does this mean?
 Many websites using markdown-like languages have custom extensions,
@@ -26,17 +26,16 @@ custom extensions without needing to be forked.
 
 At Khan Academy, we use simple-markdown to format
 over half of our math exercises, because we need
-[markdown extensions][PerseusMarkdown] for math text and
+[markdown extensions][perseusmarkdown] for math text and
 interactive widgets.
 
-[PerseusMarkdown]: https://github.com/Khan/perseus/blob/master/src/perseus-markdown.jsx
+[perseusmarkdown]: https://github.com/Khan/perseus/blob/master/src/perseus-markdown.jsx
 
-simple-markdown is [MIT licensed][LICENSE].
+simple-markdown is [MIT licensed][license].
 
-[LICENSE]: https://github.com/Khan/simple-markdown/blob/master/LICENSE
+[license]: https://github.com/Khan/simple-markdown/blob/master/LICENSE
 
-Getting started
----------------
+## Getting started
 
 First, let's parse and output some generic markdown using
 simple-markdown.
@@ -48,7 +47,7 @@ folder. Then you can acquire the `SimpleMarkdown` variable
 with:
 
 ```javascript
-    var SimpleMarkdown = require("simple-markdown");
+var SimpleMarkdown = require("simple-markdown");
 ```
 
 Then let's get a basic markdown parser and outputter.
@@ -56,14 +55,14 @@ Then let's get a basic markdown parser and outputter.
 generic markdown:
 
 ```javascript
-    var mdParse = SimpleMarkdown.defaultBlockParse;
-    var mdOutput = SimpleMarkdown.defaultOutput;
+var mdParse = SimpleMarkdown.defaultBlockParse;
+var mdOutput = SimpleMarkdown.defaultOutput;
 ```
 
 `mdParse` can give us a syntax tree:
 
 ```javascript
-    var syntaxTree = mdParse("Here is a paragraph and an *em tag*.");
+var syntaxTree = mdParse("Here is a paragraph and an *em tag*.");
 ```
 
 Let's inspect our syntax tree:
@@ -110,9 +109,7 @@ call `mdOutput`:
         _store: { validated: false, props: [Object] } } ]
 ```
 
-
-Adding a simple extension
--------------------------
+## Adding a simple extension
 
 Let's add an underline extension! To do this, we'll need to create
 a new rule and then make a new parser/outputter. The next section
@@ -135,59 +132,58 @@ any content until it finds another `__` not followed by a
 third `_`.
 
 ```javascript
-    var underlineRule = {
-        // Specify the order in which this rule is to be run
-        order: SimpleMarkdown.defaultRules.em.order - 0.5,
-        
-        // First we check whether a string matches
-        match: function(source) {
-            return /^__([\s\S]+?)__(?!_)/.exec(source);
-        },
-        
-        // Then parse this string into a syntax node
-        parse: function(capture, parse, state) {
-            return {
-                content: parse(capture[1], state)
-            };
-        },
-        
-        // Finally transform this syntax node into a
-        // React element
-        react: function(node, output) {
-            return React.DOM.u(null, output(node.content));
-        },
+var underlineRule = {
+  // Specify the order in which this rule is to be run
+  order: SimpleMarkdown.defaultRules.em.order - 0.5,
 
-        // Or an html element:
-        // (Note: you may only need to make one of `react:` or
-        // `html:`, as long as you never ask for an outputter
-        // for the other type.)
-        html: function(node, output) {
-            return '<u>' + output(node.content) + '</u>';
-        },
+  // First we check whether a string matches
+  match: function (source) {
+    return /^__([\s\S]+?)__(?!_)/.exec(source);
+  },
+
+  // Then parse this string into a syntax node
+  parse: function (capture, parse, state) {
+    return {
+      content: parse(capture[1], state),
     };
+  },
+
+  // Finally transform this syntax node into a
+  // React element
+  react: function (node, output) {
+    return React.DOM.u(null, output(node.content));
+  },
+
+  // Or an html element:
+  // (Note: you may only need to make one of `react:` or
+  // `html:`, as long as you never ask for an outputter
+  // for the other type.)
+  html: function (node, output) {
+    return "<u>" + output(node.content) + "</u>";
+  },
+};
 ```
 
 Then, we need to add this rule to the other rules:
 
 ```javascript
-    var rules = _.extend({}, SimpleMarkdown.defaultRules, {
-        underline: underlineRule
-    });
+var rules = _.extend({}, SimpleMarkdown.defaultRules, {
+  underline: underlineRule,
+});
 ```
 
 Finally, we need to build our parser and outputters:
 
 ```javascript
-    var rawBuiltParser = SimpleMarkdown.parserFor(rules);
-    var parse = function(source) {
-        var blockSource = source + "\n\n";
-        return rawBuiltParser(blockSource, {inline: false});
-    };
-    // You probably only need one of these: choose depending on
-    // whether you want react nodes or an html string:
-    var reactOutput = SimpleMarkdown.outputFor(rules, 'react');
-    var htmlOutput = SimpleMarkdown.outputFor(rules, 'html');
-
+var rawBuiltParser = SimpleMarkdown.parserFor(rules);
+var parse = function (source) {
+  var blockSource = source + "\n\n";
+  return rawBuiltParser(blockSource, { inline: false });
+};
+// You probably only need one of these: choose depending on
+// whether you want react nodes or an html string:
+var reactOutput = SimpleMarkdown.outputFor(rules, "react");
+var htmlOutput = SimpleMarkdown.outputFor(rules, "html");
 ```
 
 Now we can use our custom `parse` and `output` functions to parse
@@ -212,7 +208,7 @@ markdown with underlines!
             "type": "paragraph"
         }
     ]
-    
+
     reactOutput(syntaxTree)
     => [ { type: 'div',
         key: null,
@@ -226,9 +222,7 @@ markdown with underlines!
     => '<div class="paragraph"><u>hello underlines</u></div>'
 ```
 
-
-Basic parsing/output API
-------------------------
+## Basic parsing/output API
 
 #### `SimpleMarkdown.defaultBlockParse(source)`
 
@@ -251,11 +245,9 @@ Parses `source` as block if it ends with `\n\n`, or inline if not.
 
 Returns React-renderable output for `syntaxTree`.
 
-*Note: raw html output will be coming soon*
+_Note: raw html output will be coming soon_
 
-
-Extension Overview
-------------------
+## Extension Overview
 
 Elements in simple-markdown are generally created from rules.
 For parsing, rules must specify `match` and `parse` methods.
@@ -337,12 +329,18 @@ parsing scope alone, you can just pass `state` with no modifications).
 For example:
 
 ```javascript
-    var innerText = capture[1];
-    recurseParse(innerText, _.defaults({
-        inline: true
-    }, state));
+var innerText = capture[1];
+recurseParse(
+  innerText,
+  _.defaults(
+    {
+      inline: true,
+    },
+    state
+  )
+);
 ```
-    
+
 `parse` should return a `node` object, which can have custom fields
 that will be passed to `output`, below. The one reserved field is
 `type`, which designates the type of the node, which will be used
@@ -371,8 +369,7 @@ The simple-markdown API contains several helper methods for
 creating rules, as well as methods for creating parsers and
 outputters from rules.
 
-Extension API
--------------
+## Extension API
 
 simple-markdown includes access to the default list of rules,
 as well as several functions to allow you to create parsers and
@@ -400,13 +397,13 @@ object must contain a `match` and a `parse` function.
 
 #### `SimpleMarkdown.outputFor(rules, key)`
 
-Takes a `rules` object and a `key` that indicates which key in 
-the rules object is mapped to the function that generates the 
-output type you want. This will be `'react'` or `'html'` unless 
+Takes a `rules` object and a `key` that indicates which key in
+the rules object is mapped to the function that generates the
+output type you want. This will be `'react'` or `'html'` unless
 you are defining a custom output type.
 
-It returns a function that outputs a single syntax tree node of 
-any type that is in the `rules` object, given a node and a 
+It returns a function that outputs a single syntax tree node of
+any type that is in the `rules` object, given a node and a
 recursive output function.
 
 #### Putting it all together
@@ -447,11 +444,10 @@ var blockParseAndOutput = function(source) {
 };
 ```
 
-Extension rules helper functions
---------------------------------
+## Extension rules helper functions
 
-*Coming soon*
+_Coming soon_
 
-LICENSE
--------
+## LICENSE
+
 MIT. See the LICENSE file for text.
