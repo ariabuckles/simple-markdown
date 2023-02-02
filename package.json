@@ -48,7 +48,7 @@
     "@types/react-dom": ">=16.0.0",
     "express": "^4.17.1",
     "flow-bin": "^0.111.1",
-    "flow-typed": "^2.6.2",
+    "flow-typed": "^3.8.0",
     "mocha": "^6.2.2",
     "nyc": "^15.0.0",
     "react": "^16.11.0",
